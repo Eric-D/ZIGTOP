@@ -5,8 +5,9 @@ const CLE = 'mathoo.v1';
 const vide = () => ({
   prenom: '',
   avatar: '🦊',
+  classe: '',           // 'cp', 'ce1', 'ce2'…
   etoiles: 0,
-  modules: {},          // id -> { reussites, essais, etoiles, niveau }
+  modules: {},          // « classe:module » -> { reussites, essais, etoiles, niveau }
   jours: [],            // dates ISO (AAAA-MM-JJ) des jours d'entraînement
   serieJours: 0,
   badges: [],
@@ -32,24 +33,33 @@ function sauver() {
 
 export const get = () => etat;
 
-export function setProfil(prenom, avatar) {
-  etat.prenom = prenom;
-  etat.avatar = avatar;
+export function setProfil({ prenom, avatar, classe }) {
+  if (prenom !== undefined) etat.prenom = prenom;
+  if (avatar !== undefined) etat.avatar = avatar;
+  if (classe !== undefined) etat.classe = classe;
   sauver();
 }
 
-export function statsModule(id) {
-  return etat.modules[id] || { reussites: 0, essais: 0, etoiles: 0, niveau: 1 };
+// `cle` vaut « classe:module », par exemple « ce1:tables ».
+export function statsModule(cle) {
+  return etat.modules[cle] || { reussites: 0, essais: 0, etoiles: 0, niveau: 1 };
+}
+
+// Étoiles cumulées sur une classe entière.
+export function etoilesClasse(classeId) {
+  return Object.entries(etat.modules)
+    .filter(([k]) => k.startsWith(classeId + ':'))
+    .reduce((n, [, m]) => n + m.etoiles, 0);
 }
 
 // Difficulté adaptative : on monte quand l'enfant réussit bien, on redescend en douceur.
-export function difficulte(id) {
-  const s = statsModule(id);
+export function difficulte(cle) {
+  const s = statsModule(cle);
   return Math.min(3, Math.max(1, s.niveau));
 }
 
-export function enregistrerReponse(id, juste) {
-  const s = statsModule(id);
+export function enregistrerReponse(cle, juste) {
+  const s = statsModule(cle);
   s.essais += 1;
   if (juste) {
     s.reussites += 1;
@@ -62,7 +72,7 @@ export function enregistrerReponse(id, juste) {
     if (taux > 0.85 && s.niveau < 3) { s.niveau += 1; s.essais = 0; s.reussites = 0; }
     else if (taux < 0.45 && s.niveau > 1) { s.niveau -= 1; s.essais = 0; s.reussites = 0; }
   }
-  etat.modules[id] = s;
+  etat.modules[cle] = s;
   sauver();
 }
 

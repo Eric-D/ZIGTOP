@@ -1,8 +1,8 @@
-// Mathoo CE2 — application monopage.
+// Mathoo — application monopage (CP, CE1, CE2).
 // Règle d'or : on ne dit jamais à l'enfant qu'il a « faux ». On dit « pas encore »
 // et on lui montre l'astuce, puis on lui redonne sa chance.
 
-import { MODULES, moduleParId, serie } from './exercices.js';
+import { CLASSES, CLASSE_DEFAUT, classeParId, modulesDe, moduleParId, cle, serie } from './exercices.js';
 import * as P from './progression.js';
 import { shuffle, pick } from './utils.js';
 
@@ -24,6 +24,8 @@ const ENCOURAGEMENTS = [
 let vue = { nom: 'accueil' };
 let session = null;
 
+const classeCourante = () => classeParId(P.get().classe || CLASSE_DEFAUT);
+
 /* ------------------------------------------------------------------ */
 /* Utilitaires d'affichage                                             */
 /* ------------------------------------------------------------------ */
@@ -33,8 +35,20 @@ const echappe = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<':
 function normalise(v) {
   return String(v).toLowerCase().trim()
     .replace(/’/g, "'")
-    .replace(/\s| | /g, '')
-    .replace(/€|cm|min|^l'|^le|^la/g, '');
+    .replace(/\s| | /g, '')
+    .replace(/€|cm|min|^l'|^le|^la|^d'/g, '');
+}
+
+// Lecture de l'énoncé à voix haute : précieux au CP, où la lecture est encore lente.
+function lire(texte) {
+  if (!('speechSynthesis' in window)) return;
+  try {
+    speechSynthesis.cancel();
+    const voix = new SpeechSynthesisUtterance(texte.replace(/\?$/, ' ?').replace(/×/g, ' fois ').replace(/−/g, ' moins ').replace(/\+/g, ' plus ').replace(/÷/g, ' divisé par '));
+    voix.lang = 'fr-FR';
+    voix.rate = 0.9;
+    speechSynthesis.speak(voix);
+  } catch { /* pas de synthèse vocale sur cet appareil : tant pis */ }
 }
 
 function confettis() {
@@ -74,12 +88,23 @@ function vueProfil() {
   app.innerHTML = `
     <div class="heros">
       <h1>Bienvenue dans Mathoo 🎉</h1>
-      <p>Les maths du CE2, en jeu, à ton rythme. Ici, on n’a jamais « faux » : on a juste
+      <p>Les maths du primaire, en jeu, à ton rythme. Ici, on n’a jamais « faux » : on a juste
       des choses qu’on n’a <strong>pas encore</strong> apprises.</p>
     </div>
     <div class="carte">
       <h2>Comment tu t’appelles ?</h2>
       <input class="champ" id="prenom" maxlength="14" placeholder="Ton prénom" value="${echappe(e.prenom)}" />
+
+      <h2 style="margin-top:22px">Tu es en quelle classe ?</h2>
+      <div class="classes">
+        ${CLASSES.map((c) => `
+          <button class="classe-choix" data-classe="${c.id}" aria-pressed="${c.id === (e.classe || CLASSE_DEFAUT)}">
+            <span class="classe-choix__emoji">${c.emoji}</span>
+            <span class="classe-choix__nom">${c.nom}</span>
+            <span class="classe-choix__age">${c.age}</span>
+          </button>`).join('')}
+      </div>
+
       <h2 style="margin-top:22px">Choisis ton avatar</h2>
       <div class="avatars">
         ${AVATARS.map((a) => `<button class="avatar-choix" data-avatar="${a}" aria-pressed="${a === (e.avatar || '🦊')}">${a}</button>`).join('')}
@@ -88,13 +113,18 @@ function vueProfil() {
     </div>`;
 
   let avatar = e.avatar || '🦊';
-  app.querySelectorAll('[data-avatar]').forEach((b) => b.addEventListener('click', () => {
-    avatar = b.dataset.avatar;
-    app.querySelectorAll('[data-avatar]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+  let classe = e.classe || CLASSE_DEFAUT;
+
+  const groupe = (sel, maj) => app.querySelectorAll(sel).forEach((b) => b.addEventListener('click', () => {
+    maj(b);
+    app.querySelectorAll(sel).forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
   }));
+  groupe('[data-avatar]', (b) => { avatar = b.dataset.avatar; });
+  groupe('[data-classe]', (b) => { classe = b.dataset.classe; });
+
   app.querySelector('#commencer').addEventListener('click', () => {
     const prenom = app.querySelector('#prenom').value.trim() || 'champion';
-    P.setProfil(prenom, avatar);
+    P.setProfil({ prenom, avatar, classe });
     aller({ nom: 'accueil' });
   });
 }
@@ -105,20 +135,22 @@ function vueProfil() {
 
 function vueAccueil() {
   const e = P.get();
+  const c = classeCourante();
   const serieTxt = e.serieJours > 1 ? `🔥 ${e.serieJours} jours d’affilée, bravo !` : 'Prêt·e pour quelques exercices ?';
 
   app.innerHTML = `
     ${entete(serieTxt)}
     <div class="heros">
+      <div class="heros__classe">${c.emoji} Programme de ${c.nom}</div>
       <h1>Entraînement du jour</h1>
       <p>${NB_QUESTIONS} exercices piochés partout, adaptés à ton niveau.</p>
       <button class="btn" data-jouer="melange">Jouer ▶</button>
     </div>
     <div class="section-titre">Choisis un thème</div>
     <div class="grille">
-      ${MODULES.map((m) => {
-        const s = P.statsModule(m.id);
-        const niv = P.difficulte(m.id);
+      ${modulesDe(c.id).map((m) => {
+        const s = P.statsModule(cle(c.id, m.id));
+        const niv = P.difficulte(cle(c.id, m.id));
         return `
         <button class="module" style="--couleur:${m.couleur}" data-jouer="${m.id}">
           <div class="module__emoji">${m.emoji}</div>
@@ -134,7 +166,7 @@ function vueAccueil() {
     </div>
     <div class="pied-page">
       <button class="btn btn--fantome" data-aller="progres">📊 Mes progrès</button>
-      <button class="btn btn--fantome" data-aller="profil">✏️ Changer mon profil</button>
+      <button class="btn btn--fantome" data-aller="profil">✏️ Changer ma classe ou mon avatar</button>
     </div>`;
 }
 
@@ -143,19 +175,18 @@ function vueAccueil() {
 /* ------------------------------------------------------------------ */
 
 function demarrerSession(choix) {
-  const ids = choix === 'melange'
-    ? shuffle(MODULES.map((m) => m.id)).slice(0, 5)
-    : [choix];
+  const c = classeCourante();
+  const tous = modulesDe(c.id).map((m) => m.id);
+  const ids = choix === 'melange' ? shuffle(tous).slice(0, 5) : [choix];
   session = {
+    classeId: c.id,
     ids,
-    exercices: serie(ids, NB_QUESTIONS, P.difficulte),
+    exercices: serie(c.id, ids, NB_QUESTIONS, (moduleId) => P.difficulte(cle(c.id, moduleId))),
     index: 0,
     etoiles: 0,
     essaisSurQuestion: 0,
     saisie: '',
     retour: null,
-    reussisDuPremierCoup: 0,
-    revus: 0,
   };
   P.marquerJour();
   aller({ nom: 'session' });
@@ -166,7 +197,7 @@ function vueSession() {
   if (!s || s.index >= s.exercices.length) return vueBilan();
 
   const ex = s.exercices[s.index];
-  const mod = moduleParId(ex.moduleId);
+  const mod = moduleParId(s.classeId, ex.moduleId);
 
   const points = s.exercices.map((_, i) =>
     `<i class="${i < s.index ? 'ok' : i === s.index ? 'actif' : ''}"></i>`).join('');
@@ -194,12 +225,9 @@ function vueSession() {
     <div class="carte question">
       <div class="question__module">${mod.emoji} ${mod.titre} — question ${s.index + 1} sur ${s.exercices.length}</div>
       <div class="question__texte">${echappe(ex.enonce)}</div>
+      <button class="btn btn--fantome" id="ecouter" title="Écouter la question">🔊 Écouter</button>
     </div>
     ${s.retour ? blocRetour(s.retour) : zoneReponse}`;
-
-  if (s.retour) {
-    app.querySelector('#suivant')?.focus();
-  }
 }
 
 function blocRetour(r) {
@@ -223,12 +251,13 @@ function valider(valeur) {
   if (valeur === '' || valeur == null) return;
 
   const juste = normalise(valeur) === normalise(ex.reponse);
+  const cleMod = cle(s.classeId, ex.moduleId);
   s.essaisSurQuestion += 1;
 
   if (juste) {
     const premierCoup = s.essaisSurQuestion === 1;
-    if (premierCoup) { s.etoiles += 1; s.reussisDuPremierCoup += 1; }
-    P.enregistrerReponse(ex.moduleId, premierCoup);
+    if (premierCoup) s.etoiles += 1;
+    P.enregistrerReponse(cleMod, premierCoup);
     confettis();
     s.retour = {
       type: 'bravo',
@@ -239,8 +268,7 @@ function valider(valeur) {
     // Première tentative : on explique et on redonne la main, sans rien compter.
     s.retour = { type: 'astuce', titre: pick(ENCOURAGEMENTS), aide: ex.aide, encore: true };
   } else {
-    P.enregistrerReponse(ex.moduleId, false);
-    s.revus += 1;
+    P.enregistrerReponse(cleMod, false);
     s.retour = {
       type: 'astuce',
       titre: 'On garde celle-ci pour la prochaine fois !',
@@ -257,8 +285,7 @@ function suivant() {
   const r = s.retour;
   s.retour = null;
   if (r && r.type === 'astuce' && r.encore) {
-    // On rejoue la même question : deuxième chance.
-    vueSession();
+    vueSession();   // deuxième chance sur la même question
     return;
   }
   s.index += 1;
@@ -273,7 +300,7 @@ function suivant() {
 /* ------------------------------------------------------------------ */
 
 function vueBilan() {
-  const s = session || { etoiles: 0, exercices: [], reussisDuPremierCoup: 0, ids: [] };
+  const s = session || { etoiles: 0, exercices: [], ids: [] };
   const nb = s.exercices.length || NB_QUESTIONS;
   const nouveaux = P.verifierBadges();
   if (s.etoiles > 0) confettis();
@@ -309,7 +336,7 @@ function vueBilan() {
 
 function vueProgres() {
   const e = P.get();
-  const total = Object.values(e.modules).reduce((n, m) => n + m.etoiles, 0);
+  const c = classeCourante();
   app.innerHTML = `
     ${entete('Regarde tout ce que tu as appris !')}
     <div class="carte">
@@ -317,16 +344,18 @@ function vueProgres() {
       <div class="ligne-stat"><span class="ligne-stat__nom">⭐ Étoiles gagnées</span><strong>${e.etoiles}</strong></div>
       <div class="ligne-stat"><span class="ligne-stat__nom">🔥 Jours d’affilée</span><strong>${e.serieJours || 0}</strong></div>
       <div class="ligne-stat"><span class="ligne-stat__nom">📅 Jours d’entraînement</span><strong>${e.jours.length}</strong></div>
+      ${CLASSES.filter((x) => P.etoilesClasse(x.id) > 0).map((x) =>
+        `<div class="ligne-stat"><span class="ligne-stat__nom">${x.emoji} Étoiles en ${x.nom}</span><strong>${P.etoilesClasse(x.id)}</strong></div>`).join('')}
     </div>
     <div class="section-titre">Mes badges</div>
     <div class="badges">
       ${P.tousLesBadges().map((b) => `<span class="badge ${b.gagne ? '' : 'verrouille'}">${b.gagne ? b.emoji : '🔒'} ${b.titre}</span>`).join('')}
     </div>
-    <div class="section-titre">Thème par thème</div>
+    <div class="section-titre">Thème par thème — ${c.emoji} ${c.nom}</div>
     <div class="carte">
-      ${MODULES.map((m) => {
-        const s = P.statsModule(m.id);
-        const niv = P.difficulte(m.id);
+      ${modulesDe(c.id).map((m) => {
+        const s = P.statsModule(cle(c.id, m.id));
+        const niv = P.difficulte(cle(c.id, m.id));
         return `<div class="ligne-stat">
           <span>${m.emoji}</span>
           <span class="ligne-stat__nom">${m.titre}</span>
@@ -335,7 +364,7 @@ function vueProgres() {
         </div>`;
       }).join('')}
       <p style="color:var(--encre-douce);font-size:.9rem">Les points de couleur montrent la difficulté des exercices proposés : elle
-      monte toute seule quand tu réussis bien. ${total ? '' : 'Fais une première série pour la voir bouger !'}</p>
+      monte toute seule quand tu réussis bien.</p>
     </div>
     <div class="pied-page">
       <button class="btn btn--large btn--vert" data-jouer="melange">Jouer ▶</button>
@@ -358,11 +387,12 @@ function vueProgres() {
 function aller(v) {
   vue = v;
   rendre();
-  window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
+  window.scrollTo(0, 0);
 }
 
 function rendre() {
-  if (!P.get().prenom && vue.nom !== 'profil') vue = { nom: 'profil' };
+  const e = P.get();
+  if ((!e.prenom || !e.classe) && vue.nom !== 'profil') vue = { nom: 'profil' };
   ({
     profil: vueProfil,
     accueil: vueAccueil,
@@ -372,11 +402,19 @@ function rendre() {
   }[vue.nom] || vueAccueil)();
 }
 
+function majArdoise() {
+  const ardoise = app.querySelector('#ardoise');
+  if (!ardoise) return;
+  ardoise.textContent = session.saisie || '?';
+  ardoise.classList.toggle('vide', !session.saisie);
+}
+
 app.addEventListener('click', (ev) => {
-  const cible = ev.target.closest('[data-aller],[data-jouer],[data-touche],[data-choix],#suivant');
+  const cible = ev.target.closest('[data-aller],[data-jouer],[data-touche],[data-choix],#suivant,#ecouter');
   if (!cible) return;
 
   if (cible.id === 'suivant') return suivant();
+  if (cible.id === 'ecouter') return lire(app.querySelector('.question__texte').textContent);
   if (cible.dataset.aller) return aller({ nom: cible.dataset.aller });
   if (cible.dataset.jouer) return demarrerSession(cible.dataset.jouer);
   if (cible.dataset.choix != null) return valider(cible.dataset.choix);
@@ -386,11 +424,7 @@ app.addEventListener('click', (ev) => {
   if (t === 'ok') return valider(session.saisie);
   if (t === 'effacer') session.saisie = session.saisie.slice(0, -1);
   else if (session.saisie.length < 6) session.saisie += t;
-  const ardoise = app.querySelector('#ardoise');
-  if (ardoise) {
-    ardoise.textContent = session.saisie || '?';
-    ardoise.classList.toggle('vide', !session.saisie);
-  }
+  majArdoise();
 });
 
 // Clavier physique (ordinateur)
@@ -404,11 +438,7 @@ window.addEventListener('keydown', (ev) => {
   else if (ev.key === 'Backspace') session.saisie = session.saisie.slice(0, -1);
   else if (ev.key === 'Enter') return valider(session.saisie);
   else return;
-  const ardoise = app.querySelector('#ardoise');
-  if (ardoise) {
-    ardoise.textContent = session.saisie || '?';
-    ardoise.classList.toggle('vide', !session.saisie);
-  }
+  majArdoise();
 });
 
 rendre();
