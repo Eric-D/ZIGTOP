@@ -1,0 +1,19 @@
+{
+  "name": "Mathoo CE2 — les maths en s'amusant",
+  "short_name": "Mathoo",
+  "description": "Réviser les mathématiques du CE2 en jouant, même sans connexion.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FFF9F0",
+  "theme_color": "#6C5CE7",
+  "lang": "fr",
+  "categories": ["education", "kids"],
+  "icons": [
+    { "src": "icons/icone-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/icone.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}
