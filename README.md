@@ -1,5 +1,8 @@
 # Mathoo — les maths du primaire, en s'amusant
 
+**En ligne : <https://eric-d.github.io/ZIGTOP/>** — à ouvrir sur la tablette, puis
+« Ajouter à l'écran d'accueil ».
+
 Application web installable (PWA) pour réviser les mathématiques du **CP, du CE1 et du CE2**.
 Elle fonctionne **entièrement hors connexion**, sur téléphone, tablette ou ordinateur,
 et ne transmet aucune donnée : tous les progrès restent dans le navigateur de l'enfant.
@@ -145,8 +148,15 @@ python3 -m http.server 8000
 « Ajouter à l'écran d'accueil ». L'application se lance ensuite en plein écran,
 sans barre d'adresse, et fonctionne sans réseau.
 
-Pour un usage réel, déposer le dossier sur n'importe quel hébergement statique en **HTTPS**
-(GitHub Pages, Netlify, Cloudflare Pages…) — c'est requis pour l'installation hors ligne.
+### Déploiement
+
+Le site est publié par **GitHub Pages** depuis la branche `main` (racine du dépôt) :
+un `git push` suffit à mettre à jour <https://eric-d.github.io/ZIGTOP/>. Le HTTPS est
+requis pour l'installation hors ligne, et GitHub Pages le fournit.
+
+⚠️ Après une modification, penser à incrémenter `VERSION` dans `sw.js` : sans cela, les
+appareils qui ont déjà installé l'application continuent de servir l'ancienne version
+depuis leur cache.
 
 ## Structure
 
