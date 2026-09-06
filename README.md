@@ -17,6 +17,49 @@ C'est la règle qui guide toute l'interface :
 - la difficulté s'ajuste toute seule (3 niveaux par thème) pour que l'enfant reste dans la zone
   où il réussit souvent : elle monte au-dessus de 85 % de réussite, et redescend en douceur en dessous de 45 %.
 
+## Accessibilité : que rien ne soit un frein
+
+Un enfant dyslexique, dyspraxique, TDAH, dys- quelque chose ou simplement fatigué doit
+pouvoir faire les mêmes maths que les autres. Tout est réglable depuis
+**⚙️ Réglages et confort de lecture** (accessible dès l'écran d'accueil, et même
+avant d'avoir créé un profil, pour qu'un parent puisse préparer l'application).
+
+**Pour lire plus facilement**
+
+- *Lettres espacées* : police très lisible (OpenDyslexic ou Atkinson Hyperlegible si
+  elles sont installées sur l'appareil, sinon Verdana/Tahoma), interlettrage et
+  intermots augmentés, lignes très aérées — les leviers qui aident réellement à la
+  lecture, plus que le choix de la police seule.
+- *Taille du texte* : normale, grande, très grande (toute l'interface suit).
+- *Couleur du fond* : crème, blanc, bleu doux ou gris doux — une teinte douce évite
+  l'éblouissement et aide certains enfants à ne pas « perdre » la ligne.
+
+**Pour rester tranquille et concentré**
+
+- *Écran calme* : plus aucune animation, plus de confettis, aplats unis.
+  (Le réglage système « animations réduites » est également respecté d'office.)
+- *Séries de 5, 10 ou 15 questions* : une série courte se termine, donc elle se
+  réussit — décisif quand l'attention est limitée.
+- Aucun chronomètre, aucun compte à rebours, aucune pénalité : nulle part dans
+  l'application le temps n'est compté.
+- Les sons se coupent d'un bouton, et aucun son n'annonce une réponse ratée.
+
+**Pour comprendre et pour répondre**
+
+- *Lecture des questions* : à la demande (bouton 🔊) ou **automatique** — l'énoncé
+  est lu à voix haute dès qu'il s'affiche, pour que lire ne soit pas l'obstacle.
+- *Répondre en choisissant* : les questions à écrire deviennent des questions à
+  choix, avec de gros boutons. Précieux en cas de dyspraxie, de difficulté d'écriture
+  ou d'inversion de chiffres.
+- *Dessins d'aide* : chaque explication peut s'accompagner d'un schéma —
+  jetons groupés par 5, ligne des nombres avec le saut, rectangle de points pour la
+  multiplication, barres de dizaines et unités, parts égales pour le partage.
+  Voir la quantité, et pas seulement le chiffre, change tout en cas de dyscalculie.
+
+S'y ajoutent des choix de fond : cibles tactiles d'au moins 48 px, structure toujours
+identique d'un écran à l'autre, une seule question à l'écran à la fois, vocabulaire
+court, et jamais de rouge ni de croix.
+
 ## L'univers : l'île des Nombres
 
 L'application n'est pas une liste d'exercices : c'est un petit monde.
@@ -114,6 +157,8 @@ manifest.webmanifest      métadonnées d'installation
 sw.js                     service worker : met toute l'app en cache
 js/app.js                 écrans, session d'exercices, retours bienveillants
 js/univers.js             Zigo, la carte de l'île, le jardin et la boutique
+js/accessibilite.js       réglages de confort (lecture, calme, voix, saisie, dessins)
+js/visuels.js             schémas d'aide : jetons, ligne des nombres, parts, dizaines
 js/son.js                 petites mélodies WebAudio (aucun fichier audio)
 js/exercices.js           registre des classes et fabrique de séries
 js/niveaux/cp.js          catalogue CP : un générateur par thème
@@ -135,6 +180,7 @@ npm i --no-save jsdom
 node tests/parcours-complet.mjs   # les 3 classes : profil → île → série → bilan → progrès, et absence de mot négatif
 node tests/bonnes-reponses.mjs    # étoiles, badges, montée automatique de niveau
 node tests/jardin.mjs             # boutique, plantations, et encouragement quand il manque des étoiles
+node tests/accessibilite.mjs      # réglages appliqués, séries courtes, réponses à choisir, dessins d'aide
 ```
 
 ## Ajouter une classe

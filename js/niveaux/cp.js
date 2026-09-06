@@ -41,6 +41,7 @@ function genNombres(d) {
         enonce: `Dans ${v}, combien y a-t-il de ${quoi} ?`,
         reponse: quoi === 'dizaines' ? Math.floor(v / 10) : v % 10,
         aide: `${v}, c'est ${Math.floor(v / 10)} dizaine${Math.floor(v / 10) > 1 ? 's' : ''} et ${v % 10} unité${v % 10 > 1 ? 's' : ''}.`,
+        visuel: { type: 'decimal', n: v },
       };
     },
     () => {
@@ -60,6 +61,7 @@ function genNombres(d) {
         enonce: `${v} = ${diz} + ?`,
         reponse: v % 10,
         aide: `${v}, c'est ${diz} et encore ${v % 10}.`,
+        visuel: { type: 'decimal', n: v },
       };
     },
   ])();
@@ -77,6 +79,7 @@ function genAddition(d) {
       enonce: `${a} + ${b} = ?`,
       reponse: a + b,
       aide: `On part de ${a} et on avance de ${b} : ${a + b}.`,
+      visuel: a + b <= 20 ? { type: 'jetons', a, b, signe: '+' } : { type: 'ligne', de: a, saut: b, vers: a + b },
     }),
     () => ({
       type: 'nombre',
@@ -109,6 +112,7 @@ function genSoustraction(d) {
       enonce: `${a} − ${b} = ?`,
       reponse: a - b,
       aide: `On part de ${a} et on recule de ${b} : ${a - b}.`,
+      visuel: { type: 'ligne', de: a, saut: -b, vers: a - b },
     }),
     () => ({
       type: 'nombre',
@@ -140,6 +144,7 @@ function genCalculMental(d) {
         enonce: `Quel est le double de ${n} ?`,
         reponse: n * 2,
         aide: `Le double, c'est deux fois : ${n} + ${n} = ${n * 2}.`,
+        visuel: { type: 'jetons', a: n, b: n, signe: '+' },
       };
     },
     () => {
@@ -202,6 +207,7 @@ function genProblemes(d) {
       enonce: `${p} a ${a} billes. On lui en donne ${b}. Combien en a-t-il maintenant ?`,
       reponse: a + b,
       aide: `On en ajoute : ${a} + ${b} = ${a + b} billes.`,
+      visuel: { type: 'jetons', a, b, signe: '+' },
     }),
     () => {
       const grand = Math.max(a, b), petit = Math.min(a, b);
@@ -219,6 +225,7 @@ function genProblemes(d) {
         enonce: `${p} range ${paires} paires de chaussettes. Combien de chaussettes en tout ?`,
         reponse: paires * 2,
         aide: `Une paire, c'est 2. ${paires} fois 2 = ${paires * 2} chaussettes.`,
+        visuel: { type: 'grille', lignes: paires, colonnes: 2 },
       };
     },
     () => {

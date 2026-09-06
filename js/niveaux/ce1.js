@@ -23,6 +23,7 @@ function genNombres(d) {
         enonce: `Dans ${fmt(n)}, quel est le chiffre des ${rang.nom} ?`,
         reponse: chiffre,
         aide: `${fmt(n)} : en partant de la droite on a les unités, les dizaines, puis les centaines. Le chiffre des ${rang.nom} est ${chiffre}.`,
+        visuel: { type: 'decimal', n },
       };
     },
     () => ({
@@ -61,6 +62,7 @@ function genNombres(d) {
         enonce: `Complète : ${fmt(n)} = ${c} + ?`,
         reponse: n % 100,
         aide: `${fmt(n)}, c'est ${c} et encore ${n % 100}.`,
+        visuel: { type: 'decimal', n },
       };
     },
     () => {
@@ -149,6 +151,7 @@ function genTables(d) {
       enonce: `${a} × ${b} = ?`,
       reponse: p,
       aide: `${a} × ${b}, c'est ${b} paquets de ${a} : ${p}.`,
+      visuel: { type: 'grille', lignes: b, colonnes: a },
     }),
     () => ({
       type: 'choix',
@@ -156,18 +159,21 @@ function genTables(d) {
       choix: leurres(p, 2, Math.max(3, a), 0).map(String),
       reponse: String(p),
       aide: `${a} × ${b} = ${p}.`,
+      visuel: { type: 'grille', lignes: b, colonnes: a },
     }),
     () => ({
       type: 'nombre',
       enonce: `${a} × ? = ${p}`,
       reponse: b,
       aide: `Dans la table de ${a}, ${p} c'est ${a} × ${b}.`,
+      visuel: { type: 'grille', lignes: b, colonnes: a },
     }),
     () => ({
       type: 'nombre',
       enonce: `${a} + ${a} + ${a} = ? (écris le résultat)`,
       reponse: a * 3,
       aide: `Trois fois ${a}, c'est ${a} × 3 = ${a * 3}. L'addition répétée, c'est la multiplication !`,
+      visuel: { type: 'grille', lignes: 3, colonnes: a },
     }),
   ])();
 }
@@ -184,6 +190,7 @@ function genPartages(d) {
         enonce: `On partage ${parts * chacun} images entre ${parts} enfants. Combien chacun en reçoit-il ?`,
         reponse: chacun,
         aide: `${parts} × ${chacun} = ${parts * chacun}, donc chacun reçoit ${chacun} images.`,
+        visuel: { type: 'partage', total: parts * chacun, parts },
       };
     },
     () => {
@@ -259,6 +266,7 @@ function genProblemes(d) {
         enonce: `${parts * chacun} bonbons pour ${parts} enfants, à parts égales. Combien chacun ?`,
         reponse: chacun,
         aide: `On partage : ${parts * chacun} ÷ ${parts} = ${chacun} bonbons.`,
+        visuel: { type: 'partage', total: parts * chacun, parts },
       };
     },
     () => {
