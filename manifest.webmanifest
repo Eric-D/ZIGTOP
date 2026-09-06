@@ -1,7 +1,7 @@
 {
-  "name": "Mathoo CE2 — les maths en s'amusant",
+  "name": "Mathoo — les maths du primaire",
   "short_name": "Mathoo",
-  "description": "Réviser les mathématiques du CE2 en jouant, même sans connexion.",
+  "description": "Réviser les mathématiques du CP, du CE1 et du CE2 en jouant, même sans connexion.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
