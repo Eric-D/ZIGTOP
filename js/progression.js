@@ -11,6 +11,9 @@ const vide = () => ({
   jours: [],            // dates ISO (AAAA-MM-JJ) des jours d'entraînement
   serieJours: 0,
   badges: [],
+  jardin: [],           // identifiants des décors achetés, dans l'ordre de plantation
+  etoilesDepensees: 0,
+  son: true,
 });
 
 let etat = charger();
@@ -41,6 +44,23 @@ export function setProfil({ prenom, avatar, classe }) {
 }
 
 // `cle` vaut « classe:module », par exemple « ce1:tables ».
+// Étoiles encore disponibles pour décorer le jardin.
+export const etoilesDisponibles = () => Math.max(0, etat.etoiles - (etat.etoilesDepensees || 0));
+
+export function acheterDecor(id, prix) {
+  if (etoilesDisponibles() < prix) return false;
+  etat.etoilesDepensees = (etat.etoilesDepensees || 0) + prix;
+  etat.jardin.push(id);
+  sauver();
+  return true;
+}
+
+export function basculerSon() {
+  etat.son = !etat.son;
+  sauver();
+  return etat.son;
+}
+
 export function statsModule(cle) {
   return etat.modules[cle] || { reussites: 0, essais: 0, etoiles: 0, niveau: 1 };
 }
@@ -96,6 +116,8 @@ const BADGES = [
   { id: 'serie7', emoji: '🚀', titre: '7 jours de suite', test: (e) => e.serieJours >= 7 },
   { id: 'explorateur', emoji: '🧭', titre: 'Explorateur', test: (e) => Object.keys(e.modules).length >= 5 },
   { id: 'expert', emoji: '🎓', titre: 'Niveau costaud', test: (e) => Object.values(e.modules).some((m) => m.niveau >= 3) },
+  { id: 'jardinier', emoji: '🌻', titre: 'Jardinier', test: (e) => e.jardin.length >= 5 },
+  { id: 'paysagiste', emoji: '🌈', titre: 'Paysagiste', test: (e) => e.jardin.length >= 12 },
 ];
 
 export function badgesGagnes() {

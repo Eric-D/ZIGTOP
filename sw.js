@@ -1,6 +1,6 @@
 // Service worker : l'application entière est mise en cache pour fonctionner hors connexion.
 // Penser à incrémenter VERSION à chaque modification des fichiers.
-const VERSION = 'mathoo-v2';
+const VERSION = 'mathoo-v3';
 const FICHIERS = [
   './',
   './index.html',
@@ -12,6 +12,8 @@ const FICHIERS = [
   './js/niveaux/ce1.js',
   './js/niveaux/ce2.js',
   './js/progression.js',
+  './js/univers.js',
+  './js/son.js',
   './js/utils.js',
   './icons/icone.svg',
   './icons/icone-180.png',

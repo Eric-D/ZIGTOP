@@ -322,3 +322,130 @@ p { line-height: 1.5; }
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: .001ms !important; transition-duration: .001ms !important; }
 }
+
+/* ---------- l'univers : Zigo, l'île, le jardin ---------- */
+
+.compagnon {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.compagnon .zigo { flex: none; }
+
+.bulle {
+  position: relative;
+  background: #fff;
+  border-radius: 20px 20px 20px 4px;
+  padding: 14px 18px;
+  box-shadow: var(--ombre);
+  font-weight: 700;
+  line-height: 1.45;
+  flex: 1;
+  animation: apparait .3s ease;
+}
+.bulle::after {
+  content: '';
+  position: absolute;
+  left: -9px; bottom: 10px;
+  border: 9px solid transparent;
+  border-right-color: #fff;
+  border-left: 0;
+}
+
+.zigo { display: block; }
+.zigo__corps { animation: respire 3.4s ease-in-out infinite; transform-origin: 70px 130px; }
+.zigo__etoile { animation: scintille 2.2s ease-in-out infinite; transform-origin: 70px 12px; }
+@keyframes respire {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-4px) scale(1.02); }
+}
+@keyframes scintille {
+  0%, 100% { opacity: 1; transform: rotate(0); }
+  50% { opacity: .75; transform: rotate(18deg); }
+}
+
+.carte-ile {
+  background: var(--carte);
+  border-radius: var(--rayon);
+  box-shadow: var(--ombre);
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+.carte-ile__bandeau {
+  background: linear-gradient(135deg, var(--violet), var(--rose));
+  color: #fff;
+  font-weight: 800;
+  padding: 12px 18px;
+}
+.carte-ile__aide {
+  margin: 0;
+  padding: 10px 18px 14px;
+  color: var(--encre-douce);
+  font-size: .9rem;
+  text-align: center;
+}
+.carte { }
+svg.carte { display: block; width: 100%; height: auto; }
+
+.lieu { cursor: pointer; transition: transform .12s ease; transform-box: fill-box; transform-origin: center bottom; }
+.lieu:hover .lieu__batiment, .lieu:focus-visible .lieu__batiment { transform: translateY(-6px); }
+.lieu__batiment { transition: transform .15s ease; }
+.lieu:focus-visible { outline: none; }
+.lieu:focus-visible .lieu__panneau rect { stroke: var(--violet); stroke-width: 5; }
+.lieu:active .lieu__batiment { transform: translateY(-2px) scale(.97); }
+
+.rangee-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.rangee-actions .btn { width: 100%; }
+@media (max-width: 460px) {
+  .rangee-actions { grid-template-columns: 1fr; }
+}
+
+svg.scene-jardin { display: block; width: 100%; height: auto; }
+.pousse { animation: pousse .5s ease-out backwards; }
+@keyframes pousse {
+  from { opacity: 0; transform: translateY(14px) scale(.4); }
+  to { opacity: 1; transform: none; }
+}
+
+.grille--boutique { grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); }
+.graine {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  position: relative;
+  background: var(--carte);
+  border-radius: 18px;
+  padding: 14px 10px;
+  box-shadow: var(--ombre);
+  transition: transform .1s ease;
+}
+.graine:active { transform: scale(.96); }
+.graine__emoji { font-size: 2rem; }
+.graine__nom { font-weight: 700; font-size: .9rem; text-align: center; }
+.graine__prix { font-weight: 800; color: var(--violet); font-size: .95rem; }
+.graine--attente { filter: grayscale(.7); }
+.graine--attente .graine__prix { color: var(--encre-douce); font-size: .85rem; }
+.graine__nb {
+  position: absolute; top: 8px; right: 10px;
+  font-weight: 800; color: var(--vert); font-size: .85rem;
+}
+
+.note {
+  text-align: center;
+  color: var(--encre-douce);
+  font-weight: 600;
+  margin: 12px 4px 0;
+}
+
+.retour {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 14px;
+  align-items: start;
+}
+.retour .zigo { grid-row: span 2; margin-top: -4px; }

@@ -32,7 +32,7 @@ for (const classe of CLASSES) {
   click(d.querySelectorAll('[data-avatar]')[1]);
   click(q('#commencer'));
 
-  const nbModules = d.querySelectorAll('.module').length;
+  const nbLieux = d.querySelectorAll('.lieu').length;
   click(q('[data-jouer="melange"]'));
 
   let clics = 0;
@@ -49,9 +49,9 @@ for (const classe of CLASSES) {
   const texte = d.body.textContent.toLowerCase();
   const negatifs = ['faux', 'erreur', 'mauvais', 'échec', 'raté', ' nul', 'perdu'].filter((m) => texte.includes(m));
 
-  const ok = !!bilan && nbModules >= 8 && negatifs.length === 0;
+  const ok = !!bilan && nbLieux >= 8 && negatifs.length === 0;
   if (!ok) echecs++;
-  console.log(`${ok ? '✔' : '✘'} ${classe.toUpperCase()} : ${nbModules} thèmes, bilan « ${bilan} »` +
+  console.log(`${ok ? '✔' : '✘'} ${classe.toUpperCase()} : ${nbLieux} lieux sur la carte, bilan « ${bilan} »` +
     (negatifs.length ? ` — mots négatifs : ${negatifs}` : ' — aucun mot négatif'));
 }
 

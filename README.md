@@ -17,6 +17,28 @@ C'est la règle qui guide toute l'interface :
 - la difficulté s'ajuste toute seule (3 niveaux par thème) pour que l'enfant reste dans la zone
   où il réussit souvent : elle monte au-dessus de 85 % de réussite, et redescend en douceur en dessous de 45 %.
 
+## L'univers : l'île des Nombres
+
+L'application n'est pas une liste d'exercices : c'est un petit monde.
+
+- **Zigo**, une créature ronde à antenne, accompagne l'enfant sur tous les écrans.
+  Il commente, encourage, explique — et ne gronde jamais. Il change d'expression
+  selon le moment (joyeux, curieux, tout doux).
+- **La carte de l'île** remplace le menu : chaque thème est un lieu à visiter —
+  la Tour des Nombres, l'Atelier de Plus, la Grotte de Moins, l'Observatoire,
+  le Verger, le Marché, le Beffroi, la Carrière… Les étoiles gagnées s'affichent
+  au-dessus de chaque bâtiment.
+- **Le jardin** est la récompense : les étoiles s'y dépensent en fleurs, animaux,
+  cabane, fontaine, montgolfière, arc-en-ciel… Quand il en manque, Zigo encourage
+  au lieu de refuser. C'est le jardin de l'enfant, personne d'autre n'y touche.
+- **Des sons** doux et courts, générés en WebAudio (aucun fichier à télécharger) :
+  une petite mélodie pour une réussite, deux notes curieuses quand on cherche
+  encore — jamais de son « d'erreur ». Ils se coupent d'un bouton.
+- **Le bouton 🔊 Écouter** lit l'énoncé à voix haute (synthèse vocale du système).
+
+Tout est dessiné en SVG et en emoji : pas une seule image à charger, l'application
+reste minuscule et s'installe en quelques secondes.
+
 ## Les classes
 
 L'enfant choisit sa classe au premier lancement (et peut en changer à tout moment
@@ -91,6 +113,8 @@ styles.css                thème visuel (gros boutons tactiles, couleurs joyeuse
 manifest.webmanifest      métadonnées d'installation
 sw.js                     service worker : met toute l'app en cache
 js/app.js                 écrans, session d'exercices, retours bienveillants
+js/univers.js             Zigo, la carte de l'île, le jardin et la boutique
+js/son.js                 petites mélodies WebAudio (aucun fichier audio)
 js/exercices.js           registre des classes et fabrique de séries
 js/niveaux/cp.js          catalogue CP : un générateur par thème
 js/niveaux/ce1.js         catalogue CE1
@@ -108,8 +132,9 @@ appareils déjà installés récupèrent la nouvelle version.
 
 ```bash
 npm i --no-save jsdom
-node tests/parcours-complet.mjs   # les 3 classes : profil → série → bilan → progrès, et absence de mot négatif
+node tests/parcours-complet.mjs   # les 3 classes : profil → île → série → bilan → progrès, et absence de mot négatif
 node tests/bonnes-reponses.mjs    # étoiles, badges, montée automatique de niveau
+node tests/jardin.mjs             # boutique, plantations, et encouragement quand il manque des étoiles
 ```
 
 ## Ajouter une classe
@@ -118,9 +143,12 @@ Créer `js/niveaux/<classe>.js` sur le modèle des trois autres (il exporte un t
 `MODULES` de `{ id, titre, emoji, couleur, gen }`, où `gen(difficulte)` renvoie un
 exercice), puis l'ajouter à `CLASSES` dans `js/exercices.js` et à la liste de `sw.js`.
 Rien d'autre à modifier : l'interface, la progression et les badges suivent.
+Pour donner un lieu sur la carte à un nouveau thème, ajouter une entrée dans `LIEUX`
+(`js/univers.js`) ; sans entrée, le thème reçoit un bâtiment neutre.
 
 ## Suite prévue
 
 - le CM1 et le CM2 (fractions, décimaux, division posée, proportionnalité) ;
 - les autres matières (français, questionner le monde) ;
-- un espace parent avec des statistiques détaillées par thème et dans le temps.
+- un espace parent avec des statistiques détaillées par thème et dans le temps ;
+- de nouveaux décors de jardin et des mini-jeux dans certains lieux de l'île.
