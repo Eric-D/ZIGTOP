@@ -1,0 +1,112 @@
+// Sauvegarde locale des progrès (aucune donnée ne quitte l'appareil).
+
+const CLE = 'mathoo.v1';
+
+const vide = () => ({
+  prenom: '',
+  avatar: '🦊',
+  etoiles: 0,
+  modules: {},          // id -> { reussites, essais, etoiles, niveau }
+  jours: [],            // dates ISO (AAAA-MM-JJ) des jours d'entraînement
+  serieJours: 0,
+  badges: [],
+});
+
+let etat = charger();
+
+function charger() {
+  try {
+    const brut = localStorage.getItem(CLE);
+    if (!brut) return vide();
+    return { ...vide(), ...JSON.parse(brut) };
+  } catch {
+    return vide();
+  }
+}
+
+function sauver() {
+  try {
+    localStorage.setItem(CLE, JSON.stringify(etat));
+  } catch { /* mode privé : on continue sans sauvegarde */ }
+}
+
+export const get = () => etat;
+
+export function setProfil(prenom, avatar) {
+  etat.prenom = prenom;
+  etat.avatar = avatar;
+  sauver();
+}
+
+export function statsModule(id) {
+  return etat.modules[id] || { reussites: 0, essais: 0, etoiles: 0, niveau: 1 };
+}
+
+// Difficulté adaptative : on monte quand l'enfant réussit bien, on redescend en douceur.
+export function difficulte(id) {
+  const s = statsModule(id);
+  return Math.min(3, Math.max(1, s.niveau));
+}
+
+export function enregistrerReponse(id, juste) {
+  const s = statsModule(id);
+  s.essais += 1;
+  if (juste) {
+    s.reussites += 1;
+    s.etoiles += 1;
+    etat.etoiles += 1;
+  }
+  // Ajustement du niveau sur les 8 derniers résultats environ.
+  const taux = s.reussites / Math.max(1, s.essais);
+  if (s.essais >= 8) {
+    if (taux > 0.85 && s.niveau < 3) { s.niveau += 1; s.essais = 0; s.reussites = 0; }
+    else if (taux < 0.45 && s.niveau > 1) { s.niveau -= 1; s.essais = 0; s.reussites = 0; }
+  }
+  etat.modules[id] = s;
+  sauver();
+}
+
+export function marquerJour() {
+  const aujourdhui = new Date().toISOString().slice(0, 10);
+  if (etat.jours.includes(aujourdhui)) return;
+  etat.jours.push(aujourdhui);
+  etat.jours = etat.jours.slice(-400);
+  // Série de jours consécutifs
+  const hier = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  etat.serieJours = etat.jours.includes(hier) ? (etat.serieJours || 0) + 1 : 1;
+  sauver();
+}
+
+const BADGES = [
+  { id: 'premier', emoji: '🌱', titre: 'Premier pas', test: (e) => e.etoiles >= 1 },
+  { id: 'dix', emoji: '⭐', titre: '10 étoiles', test: (e) => e.etoiles >= 10 },
+  { id: 'cinquante', emoji: '🌟', titre: '50 étoiles', test: (e) => e.etoiles >= 50 },
+  { id: 'cent', emoji: '🏆', titre: '100 étoiles', test: (e) => e.etoiles >= 100 },
+  { id: 'serie3', emoji: '🔥', titre: '3 jours de suite', test: (e) => e.serieJours >= 3 },
+  { id: 'serie7', emoji: '🚀', titre: '7 jours de suite', test: (e) => e.serieJours >= 7 },
+  { id: 'explorateur', emoji: '🧭', titre: 'Explorateur', test: (e) => Object.keys(e.modules).length >= 5 },
+  { id: 'expert', emoji: '🎓', titre: 'Niveau costaud', test: (e) => Object.values(e.modules).some((m) => m.niveau >= 3) },
+];
+
+export function badgesGagnes() {
+  return BADGES.filter((b) => etat.badges.includes(b.id));
+}
+
+export function tousLesBadges() {
+  return BADGES.map((b) => ({ ...b, gagne: etat.badges.includes(b.id) }));
+}
+
+// Renvoie les badges tout juste débloqués (pour les fêter).
+export function verifierBadges() {
+  const nouveaux = BADGES.filter((b) => !etat.badges.includes(b.id) && b.test(etat));
+  if (nouveaux.length) {
+    etat.badges.push(...nouveaux.map((b) => b.id));
+    sauver();
+  }
+  return nouveaux;
+}
+
+export function reinitialiser() {
+  etat = vide();
+  sauver();
+}

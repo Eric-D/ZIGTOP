@@ -1,0 +1,303 @@
+/* Mathoo CE2 — feuille de style unique.
+   Objectifs : gros boutons tactiles, couleurs joyeuses, zéro message négatif. */
+
+:root {
+  --violet: #6C5CE7;
+  --violet-clair: #A29BFE;
+  --vert: #00B894;
+  --jaune: #FDCB6E;
+  --rose: #E84393;
+  --encre: #2D3436;
+  --encre-douce: #636E72;
+  --fond: #FFF9F0;
+  --carte: #FFFFFF;
+  --ombre: 0 6px 0 rgba(45, 52, 54, .12), 0 12px 28px rgba(45, 52, 54, .10);
+  --rayon: 22px;
+  --police: "Trebuchet MS", "Segoe UI", Verdana, system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  margin: 0;
+  min-height: 100%;
+  font-family: var(--police);
+  color: var(--encre);
+  background:
+    radial-gradient(circle at 12% 8%, #FFE9C7 0, transparent 42%),
+    radial-gradient(circle at 88% 4%, #DCD6FF 0, transparent 38%),
+    var(--fond);
+  background-attachment: fixed;
+}
+
+body { overscroll-behavior-y: contain; }
+
+.app {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: max(14px, env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom));
+}
+
+/* ---------- éléments communs ---------- */
+
+button {
+  font-family: inherit;
+  font-size: inherit;
+  border: none;
+  cursor: pointer;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 14px 22px;
+  border-radius: 18px;
+  background: var(--violet);
+  color: #fff;
+  font-size: 1.15rem;
+  font-weight: 700;
+  box-shadow: 0 5px 0 rgba(0, 0, 0, .18);
+  transition: transform .08s ease, box-shadow .08s ease, filter .15s ease;
+}
+.btn:active { transform: translateY(4px); box-shadow: 0 1px 0 rgba(0, 0, 0, .18); }
+.btn:focus-visible { outline: 4px solid var(--jaune); outline-offset: 3px; }
+.btn--vert { background: var(--vert); }
+.btn--jaune { background: var(--jaune); color: var(--encre); }
+.btn--fantome {
+  background: transparent;
+  color: var(--encre-douce);
+  box-shadow: none;
+  font-weight: 600;
+  min-height: 44px;
+}
+.btn--large { width: 100%; font-size: 1.3rem; min-height: 68px; }
+
+.carte {
+  background: var(--carte);
+  border-radius: var(--rayon);
+  box-shadow: var(--ombre);
+  padding: 20px;
+}
+
+h1, h2, h3 { margin: 0 0 10px; line-height: 1.2; }
+h1 { font-size: 1.7rem; }
+p { line-height: 1.5; }
+
+/* ---------- en-tête ---------- */
+
+.entete {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.entete__avatar {
+  font-size: 2rem;
+  width: 58px; height: 58px;
+  display: grid; place-items: center;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: var(--ombre);
+  flex: none;
+}
+.entete__texte { flex: 1; min-width: 0; }
+.entete__bonjour { font-size: 1.25rem; font-weight: 800; }
+.entete__sous { color: var(--encre-douce); font-size: .95rem; }
+.pastille {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: #fff; border-radius: 999px;
+  padding: 8px 14px; font-weight: 800;
+  box-shadow: var(--ombre);
+  white-space: nowrap;
+}
+
+/* ---------- accueil ---------- */
+
+.heros {
+  background: linear-gradient(135deg, var(--violet), var(--rose));
+  color: #fff;
+  border-radius: var(--rayon);
+  padding: 22px;
+  margin-bottom: 18px;
+  box-shadow: var(--ombre);
+}
+.heros p { margin: 0 0 16px; opacity: .95; }
+.heros .btn { background: #fff; color: var(--violet); }
+
+.grille {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 14px;
+}
+
+.module {
+  position: relative;
+  text-align: left;
+  background: var(--carte);
+  border-radius: var(--rayon);
+  padding: 16px;
+  box-shadow: var(--ombre);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 140px;
+  transition: transform .1s ease;
+  border-top: 6px solid var(--couleur, var(--violet));
+}
+.module:active { transform: scale(.97); }
+.module__emoji { font-size: 2rem; }
+.module__titre { font-weight: 800; font-size: 1rem; line-height: 1.25; }
+.module__pied {
+  margin-top: auto;
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: .85rem; color: var(--encre-douce); font-weight: 700;
+}
+.niveau { display: inline-flex; gap: 3px; }
+.niveau i {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: #E4E1DA; display: block;
+}
+.niveau i.on { background: var(--couleur, var(--violet)); }
+
+.section-titre {
+  margin: 26px 4px 12px;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--encre-douce);
+}
+
+/* ---------- session ---------- */
+
+.barre-progres {
+  display: flex; gap: 6px; margin-bottom: 16px;
+}
+.barre-progres i {
+  flex: 1; height: 10px; border-radius: 999px; background: #E7E3DA;
+  transition: background .3s ease;
+}
+.barre-progres i.ok { background: var(--vert); }
+.barre-progres i.actif { background: var(--violet-clair); }
+
+.question {
+  text-align: center;
+  padding: 26px 20px;
+  margin-bottom: 16px;
+}
+.question__texte {
+  font-size: clamp(1.3rem, 5.2vw, 2rem);
+  font-weight: 800;
+  line-height: 1.35;
+}
+.question__module { color: var(--encre-douce); font-weight: 700; font-size: .9rem; margin-bottom: 10px; }
+
+.ardoise {
+  min-height: 74px;
+  border-radius: 18px;
+  background: #F3F0FF;
+  border: 3px dashed var(--violet-clair);
+  display: grid; place-items: center;
+  font-size: 2.2rem; font-weight: 800;
+  letter-spacing: .06em;
+  margin-bottom: 14px;
+  color: var(--violet);
+}
+.ardoise.vide { color: #B9B2D8; }
+
+.clavier {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.touche {
+  min-height: 62px;
+  border-radius: 16px;
+  background: #fff;
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--encre);
+  box-shadow: var(--ombre);
+}
+.touche:active { transform: translateY(3px); }
+.touche--action { background: var(--jaune); font-size: 1.2rem; }
+.touche--valider { background: var(--vert); color: #fff; font-size: 1.2rem; }
+
+.choix { display: grid; gap: 12px; }
+.choix .btn { background: #fff; color: var(--encre); box-shadow: var(--ombre); font-size: 1.25rem; }
+
+/* ---------- retour (jamais négatif) ---------- */
+
+.retour {
+  border-radius: var(--rayon);
+  padding: 20px;
+  margin-bottom: 14px;
+  box-shadow: var(--ombre);
+  animation: apparait .25s ease;
+}
+.retour--bravo { background: #DFF7EF; border: 3px solid var(--vert); }
+.retour--astuce { background: #FFF4DC; border: 3px solid var(--jaune); }
+.retour__titre { font-size: 1.3rem; font-weight: 800; margin-bottom: 6px; }
+.retour__aide { line-height: 1.55; }
+
+@keyframes apparait { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+/* ---------- résultats ---------- */
+
+.bilan { text-align: center; padding: 28px 20px; }
+.bilan__etoiles { font-size: 3rem; margin: 6px 0 10px; }
+.bilan__phrase { font-size: 1.15rem; font-weight: 700; }
+.bilan__detail { color: var(--encre-douce); margin-top: 6px; }
+
+.badges { display: flex; flex-wrap: wrap; gap: 10px; }
+.badge {
+  display: flex; align-items: center; gap: 8px;
+  background: #fff; border-radius: 999px; padding: 10px 16px;
+  box-shadow: var(--ombre); font-weight: 700;
+}
+.badge.verrouille { opacity: .38; }
+
+.ligne-stat {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 4px;
+  border-bottom: 2px dotted #EFE9DE;
+}
+.ligne-stat:last-child { border-bottom: none; }
+.ligne-stat__nom { flex: 1; font-weight: 700; }
+
+/* ---------- profil ---------- */
+
+.champ {
+  width: 100%;
+  min-height: 60px;
+  border-radius: 18px;
+  border: 3px solid var(--violet-clair);
+  padding: 12px 18px;
+  font-size: 1.2rem;
+  font-family: inherit;
+  background: #fff;
+}
+.avatars { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0 20px; }
+.avatar-choix {
+  font-size: 1.8rem; width: 60px; height: 60px;
+  border-radius: 50%; background: #fff; box-shadow: var(--ombre);
+}
+.avatar-choix[aria-pressed="true"] { outline: 4px solid var(--violet); }
+
+.pied-page { text-align: center; margin-top: 26px; }
+
+/* ---------- confettis ---------- */
+
+.confetti {
+  position: fixed; top: -12px; width: 11px; height: 16px;
+  border-radius: 3px; pointer-events: none; z-index: 50;
+  animation: tombe linear forwards;
+}
+@keyframes tombe {
+  to { transform: translateY(105vh) rotate(720deg); opacity: .9; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+}
