@@ -125,6 +125,15 @@ p { line-height: 1.5; }
   box-shadow: var(--ombre);
 }
 .heros p { margin: 0 0 16px; opacity: .95; }
+.heros__classe {
+  display: inline-block;
+  background: rgba(255, 255, 255, .22);
+  border-radius: 999px;
+  padding: 5px 14px;
+  font-weight: 800;
+  font-size: .9rem;
+  margin-bottom: 10px;
+}
 .heros .btn { background: #fff; color: var(--violet); }
 
 .grille {
@@ -192,6 +201,7 @@ p { line-height: 1.5; }
   line-height: 1.35;
 }
 .question__module { color: var(--encre-douce); font-weight: 700; font-size: .9rem; margin-bottom: 10px; }
+.question .btn--fantome { margin-top: 12px; }
 
 .ardoise {
   min-height: 74px;
@@ -278,6 +288,17 @@ p { line-height: 1.5; }
   font-family: inherit;
   background: #fff;
 }
+.classes { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 10px; }
+.classe-choix {
+  display: grid; gap: 2px; justify-items: center;
+  padding: 14px 8px; border-radius: 18px;
+  background: #fff; box-shadow: var(--ombre);
+}
+.classe-choix__emoji { font-size: 1.8rem; }
+.classe-choix__nom { font-weight: 800; font-size: 1.1rem; }
+.classe-choix__age { font-size: .8rem; color: var(--encre-douce); }
+.classe-choix[aria-pressed="true"] { outline: 4px solid var(--violet); background: #F3F0FF; }
+
 .avatars { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0 20px; }
 .avatar-choix {
   font-size: 1.8rem; width: 60px; height: 60px;
