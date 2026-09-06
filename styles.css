@@ -449,3 +449,87 @@ svg.scene-jardin { display: block; width: 100%; height: auto; }
   align-items: start;
 }
 .retour .zigo { grid-row: span 2; margin-top: -4px; }
+
+/* ---------- accessibilité : réglages appliqués sur <html> ---------- */
+
+/* Taille du texte : tout est en rem, donc tout suit. */
+html { font-size: 100%; }
+html[data-taille="grand"] { font-size: 112.5%; }
+html[data-taille="tres-grand"] { font-size: 128%; }
+
+/* Confort de lecture : police très lisible, lettres et lignes bien séparées.
+   OpenDyslexic et Atkinson Hyperlegible sont utilisées si elles sont installées
+   sur l'appareil ; sinon on retombe sur des sans-serif larges et régulières. */
+html[data-lecture="facile"] body {
+  font-family: "OpenDyslexic", "Atkinson Hyperlegible", "Verdana", "Tahoma", sans-serif;
+  letter-spacing: .05em;
+  word-spacing: .18em;
+  line-height: 1.8;
+}
+html[data-lecture="facile"] .question__texte { line-height: 1.6; letter-spacing: .06em; }
+html[data-lecture="facile"] .bulle,
+html[data-lecture="facile"] .retour__aide { line-height: 1.9; }
+html[data-lecture="facile"] .module__titre,
+html[data-lecture="facile"] .graine__nom { line-height: 1.5; }
+
+/* Fonds : une teinte douce aide certains enfants à ne pas « perdre » la ligne. */
+html[data-fond="blanc"] body { background: #FFFFFF; }
+html[data-fond="bleu"] body { background: #E9F2FB; }
+html[data-fond="gris"] body { background: #EFEFEA; }
+html[data-fond="blanc"] { --fond: #FFFFFF; }
+html[data-fond="bleu"] { --fond: #E9F2FB; }
+html[data-fond="gris"] { --fond: #EFEFEA; }
+
+/* Écran calme : plus rien ne bouge, plus de confettis. */
+html[data-animations="non"] *,
+html[data-animations="non"] *::before,
+html[data-animations="non"] *::after {
+  animation: none !important;
+  transition: none !important;
+}
+html[data-animations="non"] .heros { background: var(--violet); }
+
+/* ---------- panneau de réglages ---------- */
+
+.reglages { display: grid; gap: 20px; }
+.reglage__libelle { font-weight: 800; margin-bottom: 8px; }
+.reglage__options { display: flex; flex-wrap: wrap; gap: 8px; }
+.option {
+  min-height: 48px;
+  padding: 10px 18px;
+  border-radius: 14px;
+  background: #F2F0EA;
+  color: var(--encre);
+  font-weight: 700;
+  border: 3px solid transparent;
+}
+.option[aria-pressed="true"] {
+  background: #F3F0FF;
+  border-color: var(--violet);
+  color: var(--violet);
+}
+.option:focus-visible { outline: 4px solid var(--jaune); outline-offset: 2px; }
+.reglage__aide {
+  margin-top: 8px;
+  color: var(--encre-douce);
+  font-size: .92rem;
+  line-height: 1.5;
+}
+
+/* ---------- dessins d'aide ---------- */
+
+.retour__dessin {
+  margin-top: 12px;
+  background: #fff;
+  border-radius: 14px;
+  padding: 10px;
+  overflow-x: auto;
+}
+svg.visuel {
+  display: block;
+  width: 100%;
+  max-width: 460px;
+  max-height: 240px;   /* une aide visuelle ne doit jamais noyer l'explication */
+  height: auto;
+  margin: 0 auto;
+}

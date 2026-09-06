@@ -29,6 +29,7 @@ function genNombres(d) {
         type: 'nombre',
         enonce: `Dans le nombre ${fmt(n)}, quel est le chiffre des ${rang.nom} ?`,
         reponse: chiffre,
+        visuel: n < 1000 ? { type: 'decimal', n } : null,
         aide: `On lit ${fmt(n)} de droite à gauche : unités, dizaines, centaines, milliers. Le chiffre des ${rang.nom} est ${chiffre}.`,
       };
     },
@@ -157,6 +158,7 @@ function genTables(d) {
       enonce: `${a} × ${b} = ?`,
       reponse: p,
       aide: `${a} × ${b} = ${p}. C'est ${b} fois ${a}, ou ${a} paquets de ${b} : c'est pareil !`,
+      visuel: { type: 'grille', lignes: b, colonnes: a },
     }),
     () => ({
       type: 'choix',
@@ -164,12 +166,14 @@ function genTables(d) {
       choix: leurres(p, 3, Math.max(4, a), 0).map(String),
       reponse: String(p),
       aide: `${a} × ${b} = ${p}.`,
+      visuel: { type: 'grille', lignes: b, colonnes: a },
     }),
     () => ({
       type: 'nombre',
       enonce: `${a} × ? = ${p}`,
       reponse: b,
       aide: `Dans la table de ${a}, ${p} c'est ${a} × ${b}.`,
+      visuel: { type: 'grille', lignes: b, colonnes: a },
     }),
   ])();
 }
@@ -229,6 +233,7 @@ function genDivision(d) {
         enonce: `On partage ${dividende} billes entre ${diviseur} enfants, à parts égales. Combien de billes par enfant ?`,
         reponse: quotient,
         aide: `${dividende} ÷ ${diviseur} = ${quotient} : chaque enfant reçoit ${quotient} billes.`,
+        visuel: { type: 'partage', total: dividende, parts: diviseur },
       }),
     ])();
   }

@@ -14,6 +14,7 @@ const vide = () => ({
   jardin: [],           // identifiants des décors achetés, dans l'ordre de plantation
   etoilesDepensees: 0,
   son: true,
+  reglages: {},         // accessibilité : voir js/accessibilite.js
 });
 
 let etat = charger();
@@ -53,6 +54,12 @@ export function acheterDecor(id, prix) {
   etat.jardin.push(id);
   sauver();
   return true;
+}
+
+export function setReglage(id, valeur) {
+  etat.reglages = { ...etat.reglages, [id]: valeur };
+  sauver();
+  return etat.reglages;
 }
 
 export function basculerSon() {

@@ -6,10 +6,11 @@ import { CLASSES, CLASSE_DEFAUT, classeParId, modulesDe, moduleParId, cle, serie
 import * as P from './progression.js';
 import * as Son from './son.js';
 import { zigo, phrase, carte, jardin, LIEUX, DECORS, decorParId } from './univers.js';
-import { shuffle, pick } from './utils.js';
+import * as A11y from './accessibilite.js';
+import { visuel } from './visuels.js';
+import { shuffle, pick, leurres } from './utils.js';
 
 const app = document.getElementById('app');
-const NB_QUESTIONS = 10;
 const AVATARS = ['🦊', '🐼', '🐨', '🦁', '🐙', '🦉', '🐢', '🦄', '🐝', '🐬', '🦕', '🐧'];
 
 const BRAVOS = [
@@ -30,6 +31,10 @@ const classeCourante = () => classeParId(P.get().classe || CLASSE_DEFAUT);
 const nomLieu = (moduleId, secours) => (LIEUX[moduleId] || {}).lieu || secours;
 
 Son.setActif(P.get().son !== false);
+
+// Réglages d'accessibilité : appliqués avant tout affichage.
+let reglages = A11y.appliquer(P.get().reglages);
+const nbQuestions = () => A11y.tailleSerie(reglages);
 
 // Zigo dans sa bulle : il accompagne l'enfant sur tous les écrans.
 function bulle(texte, humeur = 'normal', taille = 92) {
@@ -66,6 +71,7 @@ function lire(texte) {
 }
 
 function confettis() {
+  if (!A11y.animationsActives(reglages)) return;
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   const couleurs = ['#6C5CE7', '#00B894', '#FDCB6E', '#E84393', '#0984E3', '#E17055'];
   for (let i = 0; i < 26; i++) {
@@ -124,6 +130,9 @@ function vueProfil() {
         ${AVATARS.map((a) => `<button class="avatar-choix" data-avatar="${a}" aria-pressed="${a === (e.avatar || '🦊')}">${a}</button>`).join('')}
       </div>
       <button class="btn btn--large btn--vert" id="commencer">C’est parti ! 🚀</button>
+    </div>
+    <div class="pied-page">
+      <button class="btn btn--fantome" data-aller="reglages">⚙️ Réglages et confort de lecture</button>
     </div>`;
 
   let avatar = e.avatar || '🦊';
@@ -167,6 +176,7 @@ function vueAccueil() {
     <div class="pied-page">
       <button class="btn btn--fantome" data-aller="progres">📊 Mes progrès</button>
       <button class="btn btn--fantome" data-aller="profil">✏️ Ma classe et mon avatar</button>
+      <button class="btn btn--fantome" data-aller="reglages">⚙️ Réglages et confort de lecture</button>
       <button class="btn btn--fantome" id="son">${e.son === false ? '🔇 Sons coupés' : '🔊 Sons activés'}</button>
     </div>`;
 
@@ -214,6 +224,39 @@ function vueJardin() {
 }
 
 /* ------------------------------------------------------------------ */
+/* Écran : réglages d'accessibilité                                    */
+/* ------------------------------------------------------------------ */
+
+function vueReglages() {
+  const e = P.get();
+  app.innerHTML = `
+    ${entete('Règle l’application comme tu es à l’aise')}
+    ${bulle('Ici, tu choisis ce qui t’aide : des lettres plus espacées, moins d’animations, la lecture à voix haute… Il n’y a pas de bon ou de mauvais réglage.', 'doux', 78)}
+    ${A11y.panneau(reglages)}
+    <div class="section-titre">Sons</div>
+    <div class="carte reglages">
+      <div class="reglage">
+        <div class="reglage__libelle">Petites musiques</div>
+        <div class="reglage__options">
+          <button class="option" id="son" aria-pressed="${e.son !== false}">${e.son === false ? 'Coupés' : 'Activés'}</button>
+        </div>
+        <div class="reglage__aide">Aucun son n’annonce une réponse ratée : il n’y a que des sons joyeux ou curieux.</div>
+      </div>
+    </div>
+    <div class="pied-page">
+      <button class="btn btn--large btn--vert" data-aller="accueil">C’est bon pour moi ✔</button>
+    </div>`;
+
+  app.querySelector('#son').addEventListener('click', (ev) => {
+    const actif = P.basculerSon();
+    Son.setActif(actif);
+    ev.currentTarget.textContent = actif ? 'Activés' : 'Coupés';
+    ev.currentTarget.setAttribute('aria-pressed', String(actif));
+    if (actif) Son.jouer('clic');
+  });
+}
+
+/* ------------------------------------------------------------------ */
 /* Écran : session d'exercices                                         */
 /* ------------------------------------------------------------------ */
 
@@ -224,7 +267,7 @@ function demarrerSession(choix) {
   session = {
     classeId: c.id,
     ids,
-    exercices: serie(c.id, ids, NB_QUESTIONS, (moduleId) => P.difficulte(cle(c.id, moduleId))),
+    exercices: serie(c.id, ids, nbQuestions(), (moduleId) => P.difficulte(cle(c.id, moduleId))),
     index: 0,
     etoiles: 0,
     essaisSurQuestion: 0,
@@ -245,9 +288,10 @@ function vueSession() {
   const points = s.exercices.map((_, i) =>
     `<i class="${i < s.index ? 'ok' : i === s.index ? 'actif' : ''}"></i>`).join('');
 
-  const zoneReponse = ex.type === 'choix'
+  const propositions = ex.type === 'choix' ? ex.choix : propositionsAuto(ex);
+  const zoneReponse = propositions
     ? `<div class="choix">
-         ${ex.choix.map((c) => `<button class="btn" data-choix="${echappe(c)}">${echappe(c)}</button>`).join('')}
+         ${propositions.map((c) => `<button class="btn" data-choix="${echappe(c)}">${echappe(c)}</button>`).join('')}
        </div>`
     : `<div class="ardoise ${s.saisie ? '' : 'vide'}" id="ardoise">${s.saisie || '?'}</div>
        <div class="clavier">
@@ -270,10 +314,26 @@ function vueSession() {
       <div class="question__texte">${echappe(ex.enonce)}</div>
       <button class="btn btn--fantome" id="ecouter" title="Écouter la question">🔊 Écouter</button>
     </div>
-    ${s.retour ? blocRetour(s.retour) : zoneReponse}`;
+    ${s.retour ? blocRetour(s.retour, ex) : zoneReponse}`;
+
+  // Lecture automatique de l'énoncé, pour qui la lecture est un obstacle.
+  if (!s.retour && reglages.voix === 'auto') lire(ex.enonce);
 }
 
-function blocRetour(r) {
+// Quand l'enfant a du mal à écrire, on transforme les questions à saisie en choix.
+function propositionsAuto(ex) {
+  if (reglages.saisie !== 'choix') return null;
+  const n = Number(ex.reponse);
+  if (!Number.isInteger(n)) return null;
+  if (!ex.choixAuto) {
+    const ecart = Math.max(3, Math.round(Math.abs(n) * 0.25));
+    ex.choixAuto = leurres(n, 3, ecart, 0).map(String);
+  }
+  return ex.choixAuto;
+}
+
+function blocRetour(r, ex) {
+  const dessin = reglages.visuels !== 'non' && ex ? visuel(ex.visuel) : '';
   if (r.type === 'bravo') {
     return `<div class="retour retour--bravo">
         ${zigo('joie', 62)}
@@ -285,7 +345,7 @@ function blocRetour(r) {
   return `<div class="retour retour--astuce">
       ${zigo('curieux', 62)}
       <div class="retour__titre">💡 ${r.titre}</div>
-      <div class="retour__aide">${echappe(r.aide)}</div>
+      <div class="retour__aide">${echappe(r.aide)}${dessin ? `<div class="retour__dessin">${dessin}</div>` : ''}</div>
     </div>
     <button class="btn btn--large" id="suivant">${r.encore ? 'J’ai compris, je réessaie 💪' : 'Continuer →'}</button>`;
 }
@@ -348,7 +408,7 @@ function suivant() {
 
 function vueBilan() {
   const s = session || { etoiles: 0, exercices: [], ids: [] };
-  const nb = s.exercices.length || NB_QUESTIONS;
+  const nb = s.exercices.length || nbQuestions();
   const nouveaux = P.verifierBadges();
   if (s.etoiles > 0) confettis();
   Son.jouer(nouveaux.length ? 'badge' : 'juste');
@@ -441,7 +501,9 @@ function aller(v) {
 
 function rendre() {
   const e = P.get();
-  if ((!e.prenom || !e.classe) && vue.nom !== 'profil') vue = { nom: 'profil' };
+  // Les réglages restent accessibles avant même d'avoir créé un profil :
+  // un parent peut vouloir préparer le confort de lecture en premier.
+  if ((!e.prenom || !e.classe) && vue.nom !== 'profil' && vue.nom !== 'reglages') vue = { nom: 'profil' };
   ({
     profil: vueProfil,
     accueil: vueAccueil,
@@ -449,6 +511,7 @@ function rendre() {
     bilan: vueBilan,
     progres: vueProgres,
     jardin: vueJardin,
+    reglages: vueReglages,
   }[vue.nom] || vueAccueil)();
 }
 
@@ -460,8 +523,14 @@ function majArdoise() {
 }
 
 app.addEventListener('click', (ev) => {
-  const cible = ev.target.closest('[data-aller],[data-jouer],[data-touche],[data-choix],[data-decor],#suivant,#ecouter');
+  const cible = ev.target.closest('[data-aller],[data-jouer],[data-touche],[data-choix],[data-decor],[data-reglage],#suivant,#ecouter');
   if (!cible) return;
+
+  if (cible.dataset.reglage) {
+    reglages = A11y.appliquer(P.setReglage(cible.dataset.reglage, cible.dataset.valeur));
+    Son.jouer('clic');
+    return vueReglages();
+  }
 
   if (cible.dataset.decor) {
     const d = decorParId(cible.dataset.decor);
