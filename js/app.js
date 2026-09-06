@@ -4,6 +4,8 @@
 
 import { CLASSES, CLASSE_DEFAUT, classeParId, modulesDe, moduleParId, cle, serie } from './exercices.js';
 import * as P from './progression.js';
+import * as Son from './son.js';
+import { zigo, phrase, carte, jardin, LIEUX, DECORS, decorParId } from './univers.js';
 import { shuffle, pick } from './utils.js';
 
 const app = document.getElementById('app');
@@ -25,6 +27,18 @@ let vue = { nom: 'accueil' };
 let session = null;
 
 const classeCourante = () => classeParId(P.get().classe || CLASSE_DEFAUT);
+const nomLieu = (moduleId, secours) => (LIEUX[moduleId] || {}).lieu || secours;
+
+Son.setActif(P.get().son !== false);
+
+// Zigo dans sa bulle : il accompagne l'enfant sur tous les écrans.
+function bulle(texte, humeur = 'normal', taille = 92) {
+  return `
+    <div class="compagnon">
+      ${zigo(humeur, taille)}
+      <div class="bulle">${texte}</div>
+    </div>`;
+}
 
 /* ------------------------------------------------------------------ */
 /* Utilitaires d'affichage                                             */
@@ -136,37 +150,66 @@ function vueProfil() {
 function vueAccueil() {
   const e = P.get();
   const c = classeCourante();
-  const serieTxt = e.serieJours > 1 ? `🔥 ${e.serieJours} jours d’affilée, bravo !` : 'Prêt·e pour quelques exercices ?';
+  const serieTxt = e.serieJours > 1 ? `🔥 ${e.serieJours} jours d’affilée, bravo !` : 'Ton île t’attend !';
 
   app.innerHTML = `
     ${entete(serieTxt)}
-    <div class="heros">
-      <div class="heros__classe">${c.emoji} Programme de ${c.nom}</div>
-      <h1>Entraînement du jour</h1>
-      <p>${NB_QUESTIONS} exercices piochés partout, adaptés à ton niveau.</p>
-      <button class="btn" data-jouer="melange">Jouer ▶</button>
+    ${bulle(phrase('accueil'), 'joie')}
+    <div class="carte-ile">
+      <div class="carte-ile__bandeau">${c.emoji} L’île des Nombres — programme de ${c.nom}</div>
+      ${carte(modulesDe(c.id), (id) => P.statsModule(cle(c.id, id)))}
+      <p class="carte-ile__aide">Touche un endroit de la carte pour y aller.</p>
     </div>
-    <div class="section-titre">Choisis un thème</div>
-    <div class="grille">
-      ${modulesDe(c.id).map((m) => {
-        const s = P.statsModule(cle(c.id, m.id));
-        const niv = P.difficulte(cle(c.id, m.id));
+    <div class="rangee-actions">
+      <button class="btn btn--vert" data-jouer="melange">🎒 Faire le tour de l’île</button>
+      <button class="btn btn--jaune" data-aller="jardin">🌻 Mon jardin</button>
+    </div>
+    <div class="pied-page">
+      <button class="btn btn--fantome" data-aller="progres">📊 Mes progrès</button>
+      <button class="btn btn--fantome" data-aller="profil">✏️ Ma classe et mon avatar</button>
+      <button class="btn btn--fantome" id="son">${e.son === false ? '🔇 Sons coupés' : '🔊 Sons activés'}</button>
+    </div>`;
+
+  app.querySelector('#son').addEventListener('click', (ev) => {
+    const actif = P.basculerSon();
+    Son.setActif(actif);
+    ev.currentTarget.textContent = actif ? '🔊 Sons activés' : '🔇 Sons coupés';
+    if (actif) Son.jouer('clic');
+  });
+}
+
+/* ------------------------------------------------------------------ */
+/* Écran : le jardin de Zigo                                           */
+/* ------------------------------------------------------------------ */
+
+function vueJardin() {
+  const e = P.get();
+  const dispo = P.etoilesDisponibles();
+
+  app.innerHTML = `
+    ${entete(`Tu as ${dispo} étoile${dispo > 1 ? 's' : ''} à planter`)}
+    ${bulle(phrase('jardin'), 'doux', 78)}
+    <div class="carte" style="padding:0;overflow:hidden">
+      ${jardin(e.jardin)}
+    </div>
+    ${e.jardin.length === 0 ? '<p class="note">Ton jardin est encore tout vide : gagne des étoiles et plante ta première fleur !</p>' : ''}
+    <div class="section-titre">La boutique de graines</div>
+    <div class="grille grille--boutique">
+      ${DECORS.map((d) => {
+        const possible = dispo >= d.prix;
+        const nb = e.jardin.filter((x) => x === d.id).length;
         return `
-        <button class="module" style="--couleur:${m.couleur}" data-jouer="${m.id}">
-          <div class="module__emoji">${m.emoji}</div>
-          <div class="module__titre">${m.titre}</div>
-          <div class="module__pied">
-            <span>⭐ ${s.etoiles}</span>
-            <span class="niveau" title="Niveau ${niv}">
-              ${[1, 2, 3].map((i) => `<i class="${i <= niv ? 'on' : ''}"></i>`).join('')}
-            </span>
-          </div>
+        <button class="graine ${possible ? '' : 'graine--attente'}" data-decor="${d.id}">
+          <span class="graine__emoji">${d.emoji}</span>
+          <span class="graine__nom">${d.nom}</span>
+          <span class="graine__prix">${possible ? `⭐ ${d.prix}` : `encore ${d.prix - dispo} ⭐`}</span>
+          ${nb ? `<span class="graine__nb">×${nb}</span>` : ''}
         </button>`;
       }).join('')}
     </div>
     <div class="pied-page">
-      <button class="btn btn--fantome" data-aller="progres">📊 Mes progrès</button>
-      <button class="btn btn--fantome" data-aller="profil">✏️ Changer ma classe ou mon avatar</button>
+      <button class="btn btn--large btn--vert" data-jouer="melange">Gagner des étoiles ▶</button>
+      <button class="btn btn--fantome" data-aller="accueil">← Retour à l’île</button>
     </div>`;
 }
 
@@ -223,7 +266,7 @@ function vueSession() {
     </header>
     <div class="barre-progres">${points}</div>
     <div class="carte question">
-      <div class="question__module">${mod.emoji} ${mod.titre} — question ${s.index + 1} sur ${s.exercices.length}</div>
+      <div class="question__module">${mod.emoji} ${nomLieu(ex.moduleId, mod.titre)} — question ${s.index + 1} sur ${s.exercices.length}</div>
       <div class="question__texte">${echappe(ex.enonce)}</div>
       <button class="btn btn--fantome" id="ecouter" title="Écouter la question">🔊 Écouter</button>
     </div>
@@ -233,12 +276,14 @@ function vueSession() {
 function blocRetour(r) {
   if (r.type === 'bravo') {
     return `<div class="retour retour--bravo">
+        ${zigo('joie', 62)}
         <div class="retour__titre">🎉 ${r.titre}</div>
         <div class="retour__aide">${echappe(r.aide || '')}</div>
       </div>
       <button class="btn btn--large btn--vert" id="suivant">Question suivante →</button>`;
   }
   return `<div class="retour retour--astuce">
+      ${zigo('curieux', 62)}
       <div class="retour__titre">💡 ${r.titre}</div>
       <div class="retour__aide">${echappe(r.aide)}</div>
     </div>
@@ -258,6 +303,7 @@ function valider(valeur) {
     const premierCoup = s.essaisSurQuestion === 1;
     if (premierCoup) s.etoiles += 1;
     P.enregistrerReponse(cleMod, premierCoup);
+    Son.jouer('juste');
     confettis();
     s.retour = {
       type: 'bravo',
@@ -266,6 +312,7 @@ function valider(valeur) {
     };
   } else if (s.essaisSurQuestion === 1) {
     // Première tentative : on explique et on redonne la main, sans rien compter.
+    Son.jouer('astuce');
     s.retour = { type: 'astuce', titre: pick(ENCOURAGEMENTS), aide: ex.aide, encore: true };
   } else {
     P.enregistrerReponse(cleMod, false);
@@ -304,6 +351,7 @@ function vueBilan() {
   const nb = s.exercices.length || NB_QUESTIONS;
   const nouveaux = P.verifierBadges();
   if (s.etoiles > 0) confettis();
+  Son.jouer(nouveaux.length ? 'badge' : 'juste');
 
   const phrase = s.etoiles === nb
     ? 'Sans faute ! Tu maîtrises vraiment 🏅'
@@ -315,6 +363,7 @@ function vueBilan() {
 
   app.innerHTML = `
     <div class="carte bilan">
+      ${zigo(s.etoiles >= nb * 0.7 ? 'joie' : 'doux', 96)}
       <div class="bilan__etoiles">${s.etoiles ? '⭐'.repeat(Math.min(10, s.etoiles)) : '🌱'}</div>
       <div class="bilan__phrase">${phrase}</div>
       <div class="bilan__detail">${s.etoiles} étoile${s.etoiles > 1 ? 's' : ''} gagnée${s.etoiles > 1 ? 's' : ''} sur ${nb} exercices.</div>
@@ -399,6 +448,7 @@ function rendre() {
     session: vueSession,
     bilan: vueBilan,
     progres: vueProgres,
+    jardin: vueJardin,
   }[vue.nom] || vueAccueil)();
 }
 
@@ -410,13 +460,26 @@ function majArdoise() {
 }
 
 app.addEventListener('click', (ev) => {
-  const cible = ev.target.closest('[data-aller],[data-jouer],[data-touche],[data-choix],#suivant,#ecouter');
+  const cible = ev.target.closest('[data-aller],[data-jouer],[data-touche],[data-choix],[data-decor],#suivant,#ecouter');
   if (!cible) return;
 
+  if (cible.dataset.decor) {
+    const d = decorParId(cible.dataset.decor);
+    if (P.acheterDecor(d.id, d.prix)) {
+      Son.jouer('achat');
+      P.verifierBadges();
+      vueJardin();
+    } else {
+      // On ne bloque pas sèchement : Zigo explique qu'il faut encore quelques étoiles.
+      const manque = d.prix - P.etoilesDisponibles();
+      app.querySelector('.bulle').textContent = `Il te manque encore ${manque} étoile${manque > 1 ? 's' : ''} pour ${d.nom.toLowerCase()} — tu y es presque !`;
+    }
+    return;
+  }
   if (cible.id === 'suivant') return suivant();
   if (cible.id === 'ecouter') return lire(app.querySelector('.question__texte').textContent);
   if (cible.dataset.aller) return aller({ nom: cible.dataset.aller });
-  if (cible.dataset.jouer) return demarrerSession(cible.dataset.jouer);
+  if (cible.dataset.jouer) { Son.jouer('clic'); return demarrerSession(cible.dataset.jouer); }
   if (cible.dataset.choix != null) return valider(cible.dataset.choix);
 
   const t = cible.dataset.touche;
@@ -425,6 +488,16 @@ app.addEventListener('click', (ev) => {
   if (t === 'effacer') session.saisie = session.saisie.slice(0, -1);
   else if (session.saisie.length < 6) session.saisie += t;
   majArdoise();
+});
+
+// Les lieux de la carte sont des éléments SVG : on les rend activables au clavier.
+app.addEventListener('keydown', (ev) => {
+  const lieu = ev.target.closest?.('[data-jouer]');
+  if (lieu && (ev.key === 'Enter' || ev.key === ' ')) {
+    ev.preventDefault();
+    Son.jouer('clic');
+    demarrerSession(lieu.dataset.jouer);
+  }
 });
 
 // Clavier physique (ordinateur)
