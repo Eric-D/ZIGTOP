@@ -36,7 +36,20 @@ progression du manuel (unités, puis dizaines, puis centaines, puis milliers) :
 4. trois ordres de grandeur à entourer, comme le « je vérifie mon résultat » de la leçon ;
 5. deux problèmes, avec la place pour poser l'opération et écrire la phrase réponse.
 
-Option : nombres jusqu'à 999, jusqu'à 9 999, ou les deux.
+Réglages de la fiche :
+
+- **nombres utilisés** : jusqu'à 999, jusqu'à 9 999, ou les deux ;
+- **nombre de feuilles** : 1, 2, 4 ou 6 d'un coup — chacune a ses propres exercices et
+  son propre code. À l'impression, toutes les pages élève sortent d'abord, les corrigés
+  ensuite : on donne la pile du dessus à l'enfant et on garde le reste ;
+- **rappel de la méthode** : avec ou sans. Sans le rappel, la place libérée sert à
+  deux additions et une opération à poser de plus (6 et 4 au lieu de 4 et 3) ;
+- **ligne « Nom / Date »** : avec ou sans ;
+- **corrigé** : avec ou sans. Le corrigé n'a jamais de ligne Nom / Date.
+
+Changer un de ces réglages d'affichage ne retire pas de nouveaux nombres : seuls
+« 🎲 Autres exercices » et le choix des nombres utilisés relancent un tirage. Augmenter
+le nombre de feuilles garde celles déjà affichées et n'en tire que de nouvelles.
 
 ### Le code de la fiche et son QR code
 

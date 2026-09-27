@@ -172,16 +172,21 @@ function genererAdditionPosee(options) {
         'Je vérifie avec un ordre de grandeur : 700 + 250 = 950, tout près de 952. C’est cohérent !',
       ],
     },
+    // Les deux dernières additions de chaque liste ne sont imprimées que lorsque
+    // le rappel de méthode est masqué : la page libérée sert à s'entraîner plus.
     posees: [
       { ...additionAvec(tailles[0], 'aucune'), largeur: tailles[0] },
       { ...additionAvec(tailles[1], 'une'), largeur: tailles[1] },
       { ...additionAvec(tailles[2], 'plusieurs'), largeur: tailles[2] },
       { ...additionAvec(tailles[3], 'plusieurs'), largeur: tailles[3] },
+      { ...additionAvec(tailles[1], 'plusieurs'), largeur: tailles[1] },
+      { ...additionAvec(tailles[3], 'une'), largeur: tailles[3] },
     ],
     aposer: [
       { ...additionAvec(tailles[0], 'une'), largeur: tailles[0] },
       { ...additionAvec(tailles[2], 'plusieurs'), largeur: tailles[2] },
       { ...additionAvec(tailles[3], 'plusieurs'), largeur: tailles[3] },
+      { ...additionAvec(tailles[1], 'plusieurs'), largeur: tailles[1] },
     ],
     estimations: estimations(chif || 3),
     problemes: problemesAddition(chif || 3),
@@ -195,7 +200,7 @@ function genererAdditionPosee(options) {
 const echappe = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 // Le QR code rouvre exactement cette fiche (et son corrigé) dans l'application.
-function enTete(fiche, sousTitre, contenu, base) {
+function enTete(fiche, sousTitre, contenu, base, identite = true) {
   const lien = base ? `${base}?fiche=${contenu.code}` : '';
   const qr = lien ? qrSVG(lien, { taille: 76, marge: 2 }) : '';
   return `
@@ -203,10 +208,10 @@ function enTete(fiche, sousTitre, contenu, base) {
       <div class="feuille__entete__texte">
         <div class="feuille__domaine">${fiche.classe.toUpperCase()} · ${fiche.domaine}</div>
         <h1 class="feuille__titre">${fiche.titre}${sousTitre ? ` — <em>${sousTitre}</em>` : ''}</h1>
-        <div class="feuille__identite">
+        ${identite ? `<div class="feuille__identite">
           <span>Nom : <span class="pointilles"></span></span>
           <span>Date : <span class="pointilles pointilles--court"></span></span>
-        </div>
+        </div>` : ''}
       </div>
       <div class="feuille__qr">
         ${qr}
@@ -215,34 +220,41 @@ function enTete(fiche, sousTitre, contenu, base) {
     </div>`;
 }
 
-function pageExercices(fiche, contenu, base) {
+// Combien d'exercices tiennent sur la page, selon qu'on imprime ou non la méthode.
+const combien = (contenu, methode) => ({
+  posees: contenu.posees.slice(0, methode ? 4 : 6),
+  aposer: contenu.aposer.slice(0, methode ? 3 : 4),
+});
+
+function pageExercices(fiche, contenu, { base = '', methode = true, identite = true } = {}) {
   const exemple = operationPosee({ ...contenu.methode.exemple, mode: 'corrige', numero: '' });
+  const { posees, aposer } = combien(contenu, methode);
 
   return `
   <section class="feuille">
-    ${enTete(fiche, '', contenu, base)}
+    ${enTete(fiche, '', contenu, base, identite)}
 
     <div class="objectif">${echappe(contenu.objectif)}</div>
 
-    <div class="bloc bloc--methode">
+    ${methode ? `<div class="bloc bloc--methode">
       <h2>Je me souviens de la méthode</h2>
       <div class="methode">
         <div class="methode__exemple">${exemple}<div class="methode__egalite">685 + 267 = 952</div></div>
         <ol class="methode__etapes">${contenu.methode.etapes.map((e) => `<li>${echappe(e)}</li>`).join('')}</ol>
       </div>
-    </div>
+    </div>` : ''}
 
     <div class="bloc">
       <h2>Exercice 1 — Calcule ces additions.</h2>
       <div class="operations">
-        ${contenu.posees.map((o, i) => operationPosee({ ...o, mode: 'pose', numero: String.fromCharCode(97 + i) })).join('')}
+        ${posees.map((o, i) => operationPosee({ ...o, mode: 'pose', numero: String.fromCharCode(97 + i) })).join('')}
       </div>
     </div>
 
     <div class="bloc">
       <h2>Exercice 2 — Pose l’opération, puis calcule.</h2>
       <div class="operations">
-        ${contenu.aposer.map((o, i) => operationPosee({ ...o, largeur: o.largeur + 1, mode: 'vide', numero: String.fromCharCode(97 + i) })).join('')}
+        ${aposer.map((o, i) => operationPosee({ ...o, largeur: o.largeur + 1, mode: 'vide', numero: String.fromCharCode(97 + i) })).join('')}
       </div>
     </div>
 
@@ -273,24 +285,25 @@ function pageExercices(fiche, contenu, base) {
   </section>`;
 }
 
-function pageCorrige(fiche, contenu, base) {
+function pageCorrige(fiche, contenu, { base = '', methode = true } = {}) {
+  const { posees, aposer } = combien(contenu, methode);
   return `
   <section class="feuille feuille--corrige">
-    ${enTete(fiche, 'corrigé', contenu, base)}
+    ${enTete(fiche, 'corrigé', contenu, base, false)}
     <div class="objectif objectif--corrige">Pour le parent ou l’enseignant : les retenues sont notées en haut de chaque colonne.
       Pour retrouver exactement cette fiche plus tard : scanner le QR code, ou saisir <strong>${contenu.code}</strong> dans l’application.</div>
 
     <div class="bloc">
       <h2>Exercice 1</h2>
       <div class="operations">
-        ${contenu.posees.map((o, i) => operationPosee({ ...o, mode: 'corrige', numero: String.fromCharCode(97 + i) })).join('')}
+        ${posees.map((o, i) => operationPosee({ ...o, mode: 'corrige', numero: String.fromCharCode(97 + i) })).join('')}
       </div>
     </div>
 
     <div class="bloc">
       <h2>Exercice 2</h2>
       <div class="operations">
-        ${contenu.aposer.map((o, i) => operationPosee({ ...o, mode: 'corrige', numero: String.fromCharCode(97 + i) })).join('')}
+        ${aposer.map((o, i) => operationPosee({ ...o, mode: 'corrige', numero: String.fromCharCode(97 + i) })).join('')}
       </div>
     </div>
 
@@ -398,6 +411,11 @@ export function tirer(fiche, options, graine = graineAleatoire()) {
   }
 }
 
-export function rendre(fiche, contenu, avecCorrige = true, base = '') {
-  return pageExercices(fiche, contenu, base) + (avecCorrige ? pageCorrige(fiche, contenu, base) : '');
+// `contenus` : une fiche ou plusieurs. Les pages élève sortent d'abord, les corrigés
+// ensuite : on donne la pile du dessus à l'enfant et on garde le reste.
+export function rendre(fiche, contenus, { corrige = true, methode = true, identite = true, base = '' } = {}) {
+  const liste = Array.isArray(contenus) ? contenus : [contenus];
+  const pages = liste.map((c) => pageExercices(fiche, c, { base, methode, identite }));
+  if (corrige) pages.push(...liste.map((c) => pageCorrige(fiche, c, { base, methode })));
+  return pages.join('');
 }

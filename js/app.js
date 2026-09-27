@@ -27,7 +27,9 @@ const ENCOURAGEMENTS = [
 
 let vue = { nom: 'accueil' };
 let session = null;
-let fiche = null;   // { id, options, corrige, contenu } — le contenu n'est retiré que sur demande
+// { id, options, affichage: { corrige, methode, identite, nb }, contenus }
+// Les contenus ne sont retirés que sur demande : le reste ne fait que changer l'affichage.
+let fiche = null;
 
 const classeCourante = () => classeParId(P.get().classe || CLASSE_DEFAUT);
 const nomLieu = (moduleId, secours) => (LIEUX[moduleId] || {}).lieu || secours;
@@ -232,23 +234,39 @@ function vueJardin() {
 
 // `retirer` : faut-il piocher de nouveaux exercices ? Non quand on change simplement
 // l'affichage du corrigé — l'enfant garde exactement la fiche qu'il a sous les yeux.
-function preparerFiche(id, options, corrige, retirer = true, graine) {
-  const f = ficheParId(id) || FICHES[0];
-  const opts = options || optionsParDefaut(f);
-  const contenu = retirer || !fiche ? tirer(f, opts, graine) : fiche.contenu;
-  fiche = { id: f.id, options: opts, corrige: corrige !== false, contenu };
+const AFFICHAGE_DEFAUT = { corrige: true, methode: true, identite: true, nb: 1 };
+
+function preparerFiche({ id, options, affichage, retirer = false, graines } = {}) {
+  const f = ficheParId(id || (fiche && fiche.id)) || FICHES[0];
+  const memeFiche = fiche && fiche.id === f.id;
+  const opts = options || (memeFiche ? fiche.options : optionsParDefaut(f));
+  const aff = { ...(fiche ? fiche.affichage : AFFICHAGE_DEFAUT), ...affichage };
+
+  let contenus;
+  if (graines) {
+    contenus = graines.map((g) => tirer(f, opts, g));
+    aff.nb = contenus.length;
+  } else if (retirer || !memeFiche) {
+    contenus = Array.from({ length: aff.nb }, () => tirer(f, opts));
+  } else {
+    // On garde les feuilles déjà affichées et on complète si l'on en demande plus.
+    contenus = fiche.contenus.slice(0, aff.nb);
+    while (contenus.length < aff.nb) contenus.push(tirer(f, opts));
+  }
+  fiche = { id: f.id, options: opts, affichage: aff, contenus };
 }
 
 // Adresse de l'application, pour que le QR code de la fiche y ramène.
 const baseURL = () => window.location.href.replace(/[?#].*$/, '').replace(/[^/]*$/, '');
 
-const ficheHTML = () => rendreFiche(ficheParId(fiche.id), fiche.contenu, fiche.corrige, baseURL());
+const ficheHTML = () =>
+  rendreFiche(ficheParId(fiche.id), fiche.contenus, { ...fiche.affichage, base: baseURL() });
 
 // Retrouve une fiche déjà imprimée à partir de son code (ou de son QR code).
 function retrouverFiche(code) {
   const trouve = decoder(code);
   if (!trouve) return false;
-  preparerFiche(trouve.fiche.id, trouve.options, fiche ? fiche.corrige : true, true, trouve.graine);
+  preparerFiche({ id: trouve.fiche.id, options: trouve.options, graines: [trouve.graine] });
   return true;
 }
 
@@ -257,8 +275,18 @@ function vueFiches() {
   const disponibles = fichesDe(c.id);
   const liste = disponibles.length ? disponibles : FICHES;
 
-  if (!fiche || !liste.some((f) => f.id === fiche.id)) preparerFiche(liste[0].id);
+  if (!fiche || !liste.some((f) => f.id === fiche.id)) preparerFiche({ id: liste[0].id, retirer: true });
   const active = ficheParId(fiche.id);
+  const aff = fiche.affichage;
+  const bascule = (id, titre, oui, non, aide) => `
+    <div class="reglage">
+      <div class="reglage__libelle">${titre}</div>
+      <div class="reglage__options">
+        <button class="option" data-affichage="${id}" data-valeur="oui" aria-pressed="${aff[id]}">${oui}</button>
+        <button class="option" data-affichage="${id}" data-valeur="non" aria-pressed="${!aff[id]}">${non}</button>
+      </div>
+      ${aide ? `<div class="reglage__aide">${aide}</div>` : ''}
+    </div>`;
 
   app.innerHTML = `
     <div class="no-print">
@@ -286,13 +314,19 @@ function vueFiches() {
             </div>
           </div>`).join('')}
         <div class="reglage">
-          <div class="reglage__libelle">Corrigé</div>
+          <div class="reglage__libelle">Nombre de feuilles</div>
           <div class="reglage__options">
-            <button class="option" data-fiche-corrige="oui" aria-pressed="${fiche.corrige}">Avec le corrigé</button>
-            <button class="option" data-fiche-corrige="non" aria-pressed="${!fiche.corrige}">Sans le corrigé</button>
+            ${[1, 2, 4, 6].map((n) => `
+              <button class="option" data-nb-feuilles="${n}" aria-pressed="${aff.nb === n}">${n}</button>`).join('')}
           </div>
-          <div class="reglage__aide">Le corrigé s’imprime sur une deuxième page, à garder par l’adulte.</div>
+          <div class="reglage__aide">Chaque feuille a ses propres exercices et son propre code.
+            À l’impression, toutes les pages élève sortent d’abord, les corrigés ensuite.</div>
         </div>
+        ${bascule('methode', 'Rappel de la méthode', 'Avec', 'Sans',
+          'Sans le rappel, la place libérée sert à deux additions et une opération à poser de plus.')}
+        ${bascule('identite', 'Ligne « Nom / Date »', 'Avec', 'Sans', '')}
+        ${bascule('corrige', 'Corrigé', 'Avec', 'Sans',
+          'Les corrigés s’impriment après les pages élève, à garder par l’adulte.')}
       </div>
 
       <div class="barre-fiche">
@@ -303,16 +337,19 @@ function vueFiches() {
         <div class="reglage">
           <div class="reglage__libelle">Retrouver une fiche déjà imprimée</div>
           <div class="recherche-code">
-            <input class="champ" id="code-fiche" maxlength="12" placeholder="Code : ${fiche.contenu.code}"
+            <input class="champ" id="code-fiche" maxlength="12" placeholder="Code : ${fiche.contenus[0].code}"
                    aria-label="Code de la fiche à retrouver" />
             <button class="btn" id="retrouver">Retrouver</button>
           </div>
           <div class="reglage__aide" id="message-code">Chaque fiche imprimée porte un code et un QR code :
-            ils redonnent exactement les mêmes exercices, et leur corrigé. Cette fiche-ci est la
-            <strong>${fiche.contenu.code}</strong>.</div>
+            ils redonnent exactement les mêmes exercices, et leur corrigé.
+            ${fiche.contenus.length > 1
+              ? `Ces feuilles-ci : <strong>${fiche.contenus.map((c) => c.code).join('</strong>, <strong>')}</strong>.`
+              : `Cette fiche-ci est la <strong>${fiche.contenus[0].code}</strong>.`}</div>
         </div>
       </div>
-      <p class="note">Aperçu ci-dessous : c’est exactement ce qui sortira de l’imprimante.</p>
+      <p class="note">Aperçu ci-dessous : c’est exactement ce qui sortira de l’imprimante
+        (${fiche.contenus.length * (aff.corrige ? 2 : 1)} page${fiche.contenus.length * (aff.corrige ? 2 : 1) > 1 ? 's' : ''}).</p>
       <div class="pied-page"><button class="btn btn--fantome" data-aller="accueil">← Retour à l’île</button></div>
     </div>
     <div id="impression">${ficheHTML()}</div>`;
@@ -326,7 +363,7 @@ function vueFiches() {
       vueFiches();
     } else {
       app.querySelector('#message-code').innerHTML =
-        `Ce code n’est pas reconnu : vérifie les lettres et les chiffres (par exemple ${fiche.contenu.code}).`;
+        `Ce code n’est pas reconnu : vérifie les lettres et les chiffres (par exemple ${fiche.contenus[0].code}).`;
     }
   });
   app.querySelector('#code-fiche').addEventListener('keydown', (ev) => {
@@ -334,7 +371,7 @@ function vueFiches() {
   });
   app.querySelector('#regenerer').addEventListener('click', () => {
     Son.jouer('clic');
-    preparerFiche(fiche.id, fiche.options, fiche.corrige);
+    preparerFiche({ retirer: true });
     vueFiches();
   });
 }
@@ -640,19 +677,23 @@ function majArdoise() {
 }
 
 app.addEventListener('click', (ev) => {
-  const cible = ev.target.closest('[data-aller],[data-jouer],[data-touche],[data-choix],[data-decor],[data-reglage],[data-fiche],[data-fiche-option],[data-fiche-corrige],#suivant,#ecouter');
+  const cible = ev.target.closest('[data-aller],[data-jouer],[data-touche],[data-choix],[data-decor],[data-reglage],[data-fiche],[data-fiche-option],[data-affichage],[data-nb-feuilles],#suivant,#ecouter');
   if (!cible) return;
 
   if (cible.dataset.fiche) {
-    preparerFiche(cible.dataset.fiche, null, fiche ? fiche.corrige : true);
+    preparerFiche({ id: cible.dataset.fiche, retirer: true });
     return vueFiches();
   }
   if (cible.dataset.ficheOption) {
-    preparerFiche(fiche.id, { ...fiche.options, [cible.dataset.ficheOption]: cible.dataset.valeur }, fiche.corrige);
+    preparerFiche({ options: { ...fiche.options, [cible.dataset.ficheOption]: cible.dataset.valeur }, retirer: true });
     return vueFiches();
   }
-  if (cible.dataset.ficheCorrige) {
-    preparerFiche(fiche.id, fiche.options, cible.dataset.ficheCorrige === 'oui', false);
+  if (cible.dataset.affichage) {
+    preparerFiche({ affichage: { [cible.dataset.affichage]: cible.dataset.valeur === 'oui' } });
+    return vueFiches();
+  }
+  if (cible.dataset.nbFeuilles) {
+    preparerFiche({ affichage: { nb: Number(cible.dataset.nbFeuilles) } });
     return vueFiches();
   }
 

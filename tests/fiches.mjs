@@ -41,14 +41,16 @@ verifier(deuxRetenues / tirages > 0.9, `la 3e addition a bien plusieurs retenues
 /* 2. Le corrigé est juste, retenues comprises ---------------------- */
 
 const contenu = tirer(fiche, optionsParDefaut(fiche));
-const { window } = new JSDOM(`<div>${rendre(fiche, contenu, true)}</div>`);
+const { window } = new JSDOM(`<div>${rendre(fiche, contenu, { corrige: true })}</div>`);
 const d = window.document;
 
 const feuilles = d.querySelectorAll('.feuille');
 verifier(feuilles.length === 2, `${feuilles.length} pages : exercices + corrigé`);
 
 const corrige = d.querySelector('.feuille--corrige');
-const attendus = [...contenu.posees, ...contenu.aposer].map((o) => o.a + o.b);
+// Avec le rappel de méthode, la fiche n'imprime que les 4 premières additions
+// posées et les 3 premières à poser : le corrigé doit suivre exactement.
+const attendus = [...contenu.posees.slice(0, 4), ...contenu.aposer.slice(0, 3)].map((o) => o.a + o.b);
 const trouves = [...corrige.querySelectorAll('.operations .op')].map((op) =>
   nombre([...op.querySelectorAll('.pose__resultat .reponse')].map((td) => td.textContent).join('')));
 verifier(JSON.stringify(trouves) === JSON.stringify(attendus),
@@ -86,8 +88,43 @@ verifier(phrasesOk, 'les phrases réponses des problèmes donnent le bon total')
 
 /* 3. Stabilité : même contenu, même fiche ------------------------- */
 
-verifier(rendre(fiche, contenu, true) === rendre(fiche, contenu, true), 'un même contenu donne toujours la même fiche');
-verifier(!rendre(fiche, contenu, false).includes('feuille--corrige'), 'sans corrigé : une seule page');
+verifier(rendre(fiche, contenu, { corrige: true }) === rendre(fiche, contenu, { corrige: true }),
+  'un même contenu donne toujours la même fiche');
+verifier(!rendre(fiche, contenu, { corrige: false }).includes('feuille--corrige'), 'sans corrigé : une seule page');
+
+/* 3 bis. Options d'impression ------------------------------------- */
+
+const compter = (html, motif) => (html.match(motif) || []).length;
+const pages = (html) => compter(html, /<section class="feuille/g);
+
+const plusieurs = [contenu, tirer(fiche, optionsParDefaut(fiche)), tirer(fiche, optionsParDefaut(fiche))];
+const troisFeuilles = rendre(fiche, plusieurs, { corrige: true });
+verifier(pages(troisFeuilles) === 6, `3 feuilles + 3 corrigés = ${pages(troisFeuilles)} pages`);
+verifier(troisFeuilles.indexOf('feuille--corrige') > troisFeuilles.lastIndexOf('<section class="feuille">'),
+  'les pages élève sortent toutes avant les corrigés');
+verifier(new Set(plusieurs.map((c) => c.code)).size === 3, 'chaque feuille a son propre code');
+
+const avecMethode = rendre(fiche, contenu, { corrige: false, methode: true });
+const sansMethode = rendre(fiche, contenu, { corrige: false, methode: false });
+verifier(avecMethode.includes('Je me souviens de la méthode'), 'la méthode est rappelée par défaut');
+verifier(!sansMethode.includes('Je me souviens de la méthode'), 'on peut masquer le rappel de la méthode');
+verifier(compter(sansMethode, /class="op"/g) > compter(avecMethode, /class="op"/g),
+  `sans la méthode, plus d'exercices (${compter(sansMethode, /class="op"/g)} contre ${compter(avecMethode, /class="op"/g)})`);
+
+// Le corrigé doit reprendre les mêmes opérations que la page élève, ni plus ni moins.
+for (const methode of [true, false]) {
+  const doc = new JSDOM(`<div>${rendre(fiche, contenu, { corrige: true, methode })}</div>`).window.document;
+  const [pageEleve, pageCorrige] = doc.querySelectorAll('.feuille');
+  const nbEleve = pageEleve.querySelectorAll('.operations .op').length;
+  const nbCorrige = pageCorrige.querySelectorAll('.operations .op').length;
+  verifier(nbEleve === nbCorrige && nbEleve === (methode ? 7 : 10),
+    `${methode ? 'avec' : 'sans'} la méthode : ${nbEleve} opérations imprimées, ${nbCorrige} corrigées`);
+}
+
+verifier(rendre(fiche, contenu, { identite: false }).indexOf('Nom :') === -1, 'on peut retirer la ligne Nom / Date');
+verifier(rendre(fiche, contenu, { identite: true, corrige: false }).includes('Nom :'), 'la ligne Nom / Date est là par défaut');
+verifier(!rendre(fiche, contenu, { identite: true }).split('feuille--corrige')[1].includes('Nom :'),
+  'le corrigé, lui, n’a jamais de ligne Nom / Date');
 
 /* 4. Rien d'écrit sur la page d'exercices (hors exemple de la méthode) --- */
 
@@ -119,7 +156,7 @@ verifier(true, 'les options voyagent dans le code');
 
 /* 6. Le QR code de la fiche -------------------------------------- */
 
-const avecBase = rendre(fiche, contenu, true, 'https://eric-d.github.io/ZIGTOP/');
+const avecBase = rendre(fiche, contenu, { corrige: true, base: 'https://eric-d.github.io/ZIGTOP/' });
 verifier((avecBase.match(/class=\"qr\"/g) || []).length === 2, 'un QR code sur la fiche et sur le corrigé');
 const m = matrice(`https://eric-d.github.io/ZIGTOP/?fiche=${contenu.code}`);
 verifier(m && m.length === 33, `matrice QR de ${m ? m.length : 0} modules (version 4)`);
