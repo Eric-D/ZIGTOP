@@ -201,9 +201,11 @@ function genererAdditionPosee(options) {
 
 const echappe = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
-// Le QR code rouvre exactement cette fiche (et son corrigé) dans l'application.
-function enTete(fiche, sousTitre, contenu, base, identite = true) {
-  const lien = base ? `${base}?fiche=${contenu.code}` : '';
+// Le QR code rouvre exactement cette fiche dans l'application. Celui de la feuille
+// de l'enfant ouvre les exercices seuls — les réponses ne sont pas à un scan près ;
+// celui du corrigé, que l'adulte garde, ouvre la correction.
+function enTete(fiche, sousTitre, contenu, base, identite = true, vue = 'eleve') {
+  const lien = base ? `${base}?fiche=${contenu.code}&vue=${vue}` : '';
   const qr = lien ? qrSVG(lien, { taille: 76, marge: 2 }) : '';
   return `
     <div class="feuille__entete">
@@ -234,7 +236,7 @@ function pageExercices(fiche, contenu, { base = '', methode = true, identite = t
 
   return `
   <section class="feuille">
-    ${enTete(fiche, '', contenu, base, identite)}
+    ${enTete(fiche, '', contenu, base, identite, 'eleve')}
 
     <div class="objectif">${echappe(contenu.objectif)}</div>
 
@@ -291,7 +293,7 @@ function pageCorrige(fiche, contenu, { base = '', methode = true } = {}) {
   const { posees, aposer } = combien(contenu, methode);
   return `
   <section class="feuille feuille--corrige">
-    ${enTete(fiche, 'corrigé', contenu, base, false)}
+    ${enTete(fiche, 'corrigé', contenu, base, false, 'corrige')}
     <div class="objectif objectif--corrige">Pour le parent ou l’enseignant : les retenues sont notées en haut de chaque colonne.
       Pour retrouver exactement cette fiche plus tard : scanner le QR code, ou saisir <strong>${contenu.code}</strong> dans l’application.</div>
 
@@ -415,9 +417,12 @@ export function tirer(fiche, options, graine = graineAleatoire()) {
 
 // `contenus` : une fiche ou plusieurs. Les pages élève sortent d'abord, les corrigés
 // ensuite : on donne la pile du dessus à l'enfant et on garde le reste.
-export function rendre(fiche, contenus, { corrige = true, methode = true, identite = true, base = '' } = {}) {
+// `eleve: false` ne rend que les corrigés — c'est la vue partagée par lien.
+export function rendre(fiche, contenus, {
+  corrige = true, methode = true, identite = true, eleve = true, base = '',
+} = {}) {
   const liste = Array.isArray(contenus) ? contenus : [contenus];
-  const pages = liste.map((c) => pageExercices(fiche, c, { base, methode, identite }));
-  if (corrige) pages.push(...liste.map((c) => pageCorrige(fiche, c, { base, methode })));
+  const pages = eleve ? liste.map((c) => pageExercices(fiche, c, { base, methode, identite })) : [];
+  if (corrige || !eleve) pages.push(...liste.map((c) => pageCorrige(fiche, c, { base, methode })));
   return pages.join('');
 }

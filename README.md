@@ -51,6 +51,37 @@ Changer un de ces réglages d'affichage ne retire pas de nouveaux nombres : seul
 « 🎲 Autres exercices » et le choix des nombres utilisés relancent un tirage. Augmenter
 le nombre de feuilles garde celles déjà affichées et n'en tire que de nouvelles.
 
+### Partager un lien, sans compte ni serveur
+
+Le code contenant tout, **une adresse suffit à partager une fiche ou sa correction**.
+L'application est entièrement côté navigateur : il n'y a rien à authentifier, rien à
+stocker, et le lien ne contient **aucune donnée sur l'enfant** (ni prénom, ni résultats).
+
+| Adresse | Ce qu'elle ouvre |
+| --- | --- |
+| `?fiche=02BE-G69V` | la fiche et son corrigé |
+| `?fiche=02BE-G69V&vue=corrige` | **la correction seule** — le lien à envoyer |
+| `?fiche=02BE-G69V&vue=eleve` | les exercices seuls, sans les réponses |
+| `?fiches=02BE-G69V,02R5-Y0DG` | plusieurs feuilles d'un coup (jusqu'à 12) |
+| `&methode=0` `&nom=0` | l'affichage exact de la feuille imprimée |
+
+Le bloc **Partager** de l'écran des fiches donne les deux liens tout faits, avec un
+bouton « Copier ». Un lien ouvert par quelqu'un qui n'a jamais utilisé l'application
+affiche directement la correction, sans passer par la création d'un profil.
+
+Les deux QR codes imprimés sont volontairement différents : celui de la feuille de
+l'enfant mène aux **exercices seuls** (les réponses ne sont pas à un scan près), celui
+du corrigé — la page que l'adulte garde — mène à la **correction**.
+
+### Vers un espace parent ou enseignant
+
+Tout ce qui précède fonctionne déjà sans serveur : distribuer des fiches, retrouver une
+correction, envoyer un lien à un collègue ou à une famille. Un véritable espace
+parent/enseignant (suivi des résultats d'un élève, classe entière, devoirs assignés)
+demanderait en revanche un serveur et des comptes, puisqu'il s'agirait cette fois de
+données personnelles. Le partage de fiches restera dans tous les cas utilisable sans
+compte : c'est un choix, pas une limite technique.
+
 ### Le code de la fiche et son QR code
 
 Chaque fiche porte en haut à droite un **QR code** et un **code à huit caractères**
@@ -240,6 +271,7 @@ node tests/bonnes-reponses.mjs    # étoiles, badges, montée automatique de niv
 node tests/jardin.mjs             # boutique, plantations, et encouragement quand il manque des étoiles
 node tests/accessibilite.mjs      # réglages appliqués, séries courtes, réponses à choisir, dessins d'aide
 node tests/fiches.mjs             # corrigé juste, retenues bien placées, codes de fiche reproductibles
+node tests/partage.mjs            # liens partagés : corrigé ouvert sans profil, options conservées
 
 # vérification approfondie du QR code (dépendances en plus) :
 npm i --no-save playwright jsqr pngjs && npx playwright install chromium

@@ -234,7 +234,7 @@ function vueJardin() {
 
 // `retirer` : faut-il piocher de nouveaux exercices ? Non quand on change simplement
 // l'affichage du corrigé — l'enfant garde exactement la fiche qu'il a sous les yeux.
-const AFFICHAGE_DEFAUT = { corrige: true, methode: true, identite: true, nb: 1 };
+const AFFICHAGE_DEFAUT = { corrige: true, methode: true, identite: true, eleve: true, nb: 1 };
 
 function preparerFiche({ id, options, affichage, retirer = false, graines } = {}) {
   const f = ficheParId(id || (fiche && fiche.id)) || FICHES[0];
@@ -258,6 +258,20 @@ function preparerFiche({ id, options, affichage, retirer = false, graines } = {}
 
 // Adresse de l'application, pour que le QR code de la fiche y ramène.
 const baseURL = () => window.location.href.replace(/[?#].*$/, '').replace(/[^/]*$/, '');
+
+// Lien partageable vers une ou plusieurs feuilles. Tout tient dans l'adresse :
+// aucun compte, aucun serveur, rien à stocker — et aucune donnée sur l'enfant.
+function lienFiche({ codes, vue, methode, identite } = {}) {
+  const p = new URLSearchParams();
+  const liste = codes || fiche.contenus.map((c) => c.code);
+  p.set(liste.length > 1 ? 'fiches' : 'fiche', liste.join(','));
+  if (vue) p.set('vue', vue);
+  const aff = fiche.affichage;
+  if (!(methode ?? aff.methode)) p.set('methode', '0');
+  if (!(identite ?? aff.identite)) p.set('nom', '0');
+  // Les virgules restent lisibles dans l'adresse : un lien se relit, se dicte, se colle.
+  return `${baseURL()}?${p.toString().replace(/%2C/g, ',')}`;
+}
 
 const ficheHTML = () =>
   rendreFiche(ficheParId(fiche.id), fiche.contenus, { ...fiche.affichage, base: baseURL() });
@@ -323,7 +337,7 @@ function vueFiches() {
             À l’impression, toutes les pages élève sortent d’abord, les corrigés ensuite.</div>
         </div>
         ${bascule('methode', 'Rappel de la méthode', 'Avec', 'Sans',
-          'Sans le rappel, la place libérée sert à deux additions et une opération à poser de plus.')}
+          'Sans le rappel, la place libérée sert à quatre additions et une opération à poser de plus.')}
         ${bascule('identite', 'Ligne « Nom / Date »', 'Avec', 'Sans', '')}
         ${bascule('corrige', 'Corrigé', 'Avec', 'Sans',
           'Les corrigés s’impriment après les pages élève, à garder par l’adulte.')}
@@ -333,6 +347,39 @@ function vueFiches() {
         <button class="btn btn--vert" id="imprimer">🖨️ Imprimer</button>
         <button class="btn btn--jaune" id="regenerer">🎲 Autres exercices</button>
       </div>
+      <div class="section-titre">Partager</div>
+      <div class="carte reglages">
+        <div class="reglage">
+          <div class="reglage__libelle">Le corrigé, par un simple lien</div>
+          <div class="reglage__aide">Tout est contenu dans l’adresse : la personne qui reçoit le lien
+            voit la correction sans compte, sans installation, même des mois plus tard. Aucun prénom,
+            aucune donnée sur l’enfant n’y figure.</div>
+          <div class="lien-partage">
+            <span class="lien-partage__etiquette">Corrigé seul</span>
+            <input class="champ" id="lien-corrige" readonly value="${lienFiche({ vue: 'corrige' })}"
+                   aria-label="Lien vers le corrigé" />
+            <button class="btn" data-copier="lien-corrige">Copier</button>
+          </div>
+          <div class="lien-partage">
+            <span class="lien-partage__etiquette">Fiche + corrigé</span>
+            <input class="champ" id="lien-fiche" readonly value="${lienFiche()}"
+                   aria-label="Lien vers la fiche complète" />
+            <button class="btn btn--jaune" data-copier="lien-fiche">Copier</button>
+          </div>
+          <div class="reglage__aide" id="message-copie"></div>
+        </div>
+        <div class="reglage">
+          <div class="reglage__libelle">Affichage</div>
+          <div class="reglage__options">
+            <button class="option" data-affichage="eleve" data-valeur="oui" aria-pressed="${aff.eleve}">Fiche et corrigé</button>
+            <button class="option" data-affichage="eleve" data-valeur="non" aria-pressed="${!aff.eleve}">Corrigé seul</button>
+          </div>
+          <div class="reglage__aide">« Corrigé seul », c’est exactement ce que voit la personne à qui
+            tu envoies le lien du corrigé.</div>
+        </div>
+      </div>
+
+      <div class="section-titre">Retrouver une fiche</div>
       <div class="carte reglages">
         <div class="reglage">
           <div class="reglage__libelle">Retrouver une fiche déjà imprimée</div>
@@ -348,13 +395,30 @@ function vueFiches() {
               : `Cette fiche-ci est la <strong>${fiche.contenus[0].code}</strong>.`}</div>
         </div>
       </div>
-      <p class="note">Aperçu ci-dessous : c’est exactement ce qui sortira de l’imprimante
-        (${fiche.contenus.length * (aff.corrige ? 2 : 1)} page${fiche.contenus.length * (aff.corrige ? 2 : 1) > 1 ? 's' : ''}).</p>
+      ${(() => {
+        const n = fiche.contenus.length * ((aff.eleve ? 1 : 0) + (aff.corrige || !aff.eleve ? 1 : 0));
+        return `<p class="note">Aperçu ci-dessous : c’est exactement ce qui sortira de l’imprimante
+          (${n} page${n > 1 ? 's' : ''}).</p>`;
+      })()}
       <div class="pied-page"><button class="btn btn--fantome" data-aller="accueil">← Retour à l’île</button></div>
     </div>
     <div id="impression">${ficheHTML()}</div>`;
 
   app.querySelector('#imprimer').addEventListener('click', () => window.print());
+  app.querySelectorAll('[data-copier]').forEach((b) => b.addEventListener('click', async () => {
+    const champ = app.querySelector(`#${b.dataset.copier}`);
+    const message = app.querySelector('#message-copie');
+    try {
+      await navigator.clipboard.writeText(champ.value);
+      message.textContent = 'Lien copié ! Tu peux le coller dans un message.';
+    } catch {
+      // Sans presse-papier (navigateur ancien, page non sécurisée), on sélectionne le texte.
+      champ.focus();
+      champ.select();
+      message.textContent = 'Le lien est sélectionné : copie-le avec Ctrl+C.';
+    }
+    Son.jouer('clic');
+  }));
   app.querySelector('#retrouver').addEventListener('click', () => {
     const saisie = app.querySelector('#code-fiche').value.trim();
     if (!saisie) return;
@@ -654,9 +718,11 @@ function aller(v) {
 
 function rendre() {
   const e = P.get();
-  // Les réglages restent accessibles avant même d'avoir créé un profil :
-  // un parent peut vouloir préparer le confort de lecture en premier.
-  if ((!e.prenom || !e.classe) && vue.nom !== 'profil' && vue.nom !== 'reglages') vue = { nom: 'profil' };
+  // Les réglages restent accessibles avant même d'avoir créé un profil (un parent peut
+  // vouloir préparer le confort de lecture), et un lien partagé vers une fiche ou un
+  // corrigé s'ouvre aussi tel quel : la personne qui le reçoit n'a pas de profil ici.
+  const libres = ['profil', 'reglages', 'fiches'];
+  if ((!e.prenom || !e.classe) && !libres.includes(vue.nom)) vue = { nom: 'profil' };
   ({
     profil: vueProfil,
     accueil: vueAccueil,
@@ -754,12 +820,38 @@ window.addEventListener('keydown', (ev) => {
   majArdoise();
 });
 
-// Ouverture directe depuis le QR code d'une fiche imprimée : ?fiche=02G0-UTSC
-const codeDemande = new URLSearchParams(window.location.search).get('fiche');
-if (codeDemande && retrouverFiche(codeDemande)) {
+// Ouverture par URL : QR code d'une fiche imprimée, ou lien partagé.
+//   ?fiche=02G0-UTSC              une feuille
+//   ?fiches=02G0-UTSC,02R5-Y0DG   plusieurs feuilles
+//   &vue=corrige                  le corrigé seul (lien à partager, sans compte)
+//   &methode=0 &nom=0             l'affichage exact de la feuille imprimée
+function ouvrirDepuisURL() {
+  const p = new URLSearchParams(window.location.search);
+  const codes = (p.get('fiches') || p.get('fiche') || '').split(',').map((c) => c.trim()).filter(Boolean).slice(0, 12);
+  if (!codes.length) return false;
+
+  const trouves = codes.map(decoder).filter(Boolean);
+  if (!trouves.length || trouves.some((t) => t.fiche !== trouves[0].fiche)) return false;
+
+  preparerFiche({
+    id: trouves[0].fiche.id,
+    options: trouves[0].options,
+    graines: trouves.map((t) => t.graine),
+    affichage: {
+      methode: p.get('methode') !== '0',
+      identite: p.get('nom') !== '0',
+      // vue=eleve : les exercices seuls. vue=corrige : la correction seule.
+      // Sans précision (ancien lien), on montre les deux.
+      corrige: p.get('vue') !== 'eleve',
+      eleve: p.get('vue') !== 'corrige',
+    },
+  });
   vue = { nom: 'fiches' };
   window.history.replaceState(null, '', window.location.pathname);
+  return true;
 }
+
+ouvrirDepuisURL();
 
 rendre();
 
