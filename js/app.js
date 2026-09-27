@@ -7,6 +7,7 @@ import * as P from './progression.js';
 import * as Son from './son.js';
 import { zigo, phrase, carte, jardin, LIEUX, DECORS, decorParId } from './univers.js';
 import * as A11y from './accessibilite.js';
+import { FICHES, fichesDe, ficheParId, optionsParDefaut, tirer, decoder, rendre as rendreFiche } from './fiches.js';
 import { visuel } from './visuels.js';
 import { shuffle, pick, leurres } from './utils.js';
 
@@ -26,6 +27,7 @@ const ENCOURAGEMENTS = [
 
 let vue = { nom: 'accueil' };
 let session = null;
+let fiche = null;   // { id, options, corrige, contenu } — le contenu n'est retiré que sur demande
 
 const classeCourante = () => classeParId(P.get().classe || CLASSE_DEFAUT);
 const nomLieu = (moduleId, secours) => (LIEUX[moduleId] || {}).lieu || secours;
@@ -172,6 +174,7 @@ function vueAccueil() {
     <div class="rangee-actions">
       <button class="btn btn--vert" data-jouer="melange">🎒 Faire le tour de l’île</button>
       <button class="btn btn--jaune" data-aller="jardin">🌻 Mon jardin</button>
+      <button class="btn btn--jaune" data-aller="fiches">🖨️ Fiches à imprimer</button>
     </div>
     <div class="pied-page">
       <button class="btn btn--fantome" data-aller="progres">📊 Mes progrès</button>
@@ -221,6 +224,119 @@ function vueJardin() {
       <button class="btn btn--large btn--vert" data-jouer="melange">Gagner des étoiles ▶</button>
       <button class="btn btn--fantome" data-aller="accueil">← Retour à l’île</button>
     </div>`;
+}
+
+/* ------------------------------------------------------------------ */
+/* Écran : fiches de révision à imprimer                               */
+/* ------------------------------------------------------------------ */
+
+// `retirer` : faut-il piocher de nouveaux exercices ? Non quand on change simplement
+// l'affichage du corrigé — l'enfant garde exactement la fiche qu'il a sous les yeux.
+function preparerFiche(id, options, corrige, retirer = true, graine) {
+  const f = ficheParId(id) || FICHES[0];
+  const opts = options || optionsParDefaut(f);
+  const contenu = retirer || !fiche ? tirer(f, opts, graine) : fiche.contenu;
+  fiche = { id: f.id, options: opts, corrige: corrige !== false, contenu };
+}
+
+// Adresse de l'application, pour que le QR code de la fiche y ramène.
+const baseURL = () => window.location.href.replace(/[?#].*$/, '').replace(/[^/]*$/, '');
+
+const ficheHTML = () => rendreFiche(ficheParId(fiche.id), fiche.contenu, fiche.corrige, baseURL());
+
+// Retrouve une fiche déjà imprimée à partir de son code (ou de son QR code).
+function retrouverFiche(code) {
+  const trouve = decoder(code);
+  if (!trouve) return false;
+  preparerFiche(trouve.fiche.id, trouve.options, fiche ? fiche.corrige : true, true, trouve.graine);
+  return true;
+}
+
+function vueFiches() {
+  const c = classeCourante();
+  const disponibles = fichesDe(c.id);
+  const liste = disponibles.length ? disponibles : FICHES;
+
+  if (!fiche || !liste.some((f) => f.id === fiche.id)) preparerFiche(liste[0].id);
+  const active = ficheParId(fiche.id);
+
+  app.innerHTML = `
+    <div class="no-print">
+      ${entete('Une fiche à imprimer, puis un crayon !')}
+      ${bulle('Choisis une leçon : je fabrique une fiche neuve à chaque fois, avec son corrigé. Tu peux la faire sur papier, tranquillement.', 'curieux', 78)}
+      ${disponibles.length ? '' : `<p class="note">Pas encore de fiche pour le ${c.nom} — voici celles qui existent aujourd’hui.</p>`}
+      <div class="grille">
+        ${liste.map((f) => `
+          <button class="module ${f.id === fiche.id ? 'module--actif' : ''}" style="--couleur:#E84393" data-fiche="${f.id}">
+            <div class="module__emoji">${f.emoji}</div>
+            <div class="module__titre">${f.titre}</div>
+            <div class="module__pied"><span>${f.classe.toUpperCase()}</span><span>${f.domaine}</span></div>
+          </button>`).join('')}
+      </div>
+
+      <div class="section-titre">Réglages de la fiche</div>
+      <div class="carte reglages">
+        ${(active.options || []).map((o) => `
+          <div class="reglage">
+            <div class="reglage__libelle">${o.libelle}</div>
+            <div class="reglage__options">
+              ${o.valeurs.map((v) => `
+                <button class="option" data-fiche-option="${o.id}" data-valeur="${v.v}"
+                        aria-pressed="${fiche.options[o.id] === v.v}">${v.nom}</button>`).join('')}
+            </div>
+          </div>`).join('')}
+        <div class="reglage">
+          <div class="reglage__libelle">Corrigé</div>
+          <div class="reglage__options">
+            <button class="option" data-fiche-corrige="oui" aria-pressed="${fiche.corrige}">Avec le corrigé</button>
+            <button class="option" data-fiche-corrige="non" aria-pressed="${!fiche.corrige}">Sans le corrigé</button>
+          </div>
+          <div class="reglage__aide">Le corrigé s’imprime sur une deuxième page, à garder par l’adulte.</div>
+        </div>
+      </div>
+
+      <div class="barre-fiche">
+        <button class="btn btn--vert" id="imprimer">🖨️ Imprimer</button>
+        <button class="btn btn--jaune" id="regenerer">🎲 Autres exercices</button>
+      </div>
+      <div class="carte reglages">
+        <div class="reglage">
+          <div class="reglage__libelle">Retrouver une fiche déjà imprimée</div>
+          <div class="recherche-code">
+            <input class="champ" id="code-fiche" maxlength="12" placeholder="Code : ${fiche.contenu.code}"
+                   aria-label="Code de la fiche à retrouver" />
+            <button class="btn" id="retrouver">Retrouver</button>
+          </div>
+          <div class="reglage__aide" id="message-code">Chaque fiche imprimée porte un code et un QR code :
+            ils redonnent exactement les mêmes exercices, et leur corrigé. Cette fiche-ci est la
+            <strong>${fiche.contenu.code}</strong>.</div>
+        </div>
+      </div>
+      <p class="note">Aperçu ci-dessous : c’est exactement ce qui sortira de l’imprimante.</p>
+      <div class="pied-page"><button class="btn btn--fantome" data-aller="accueil">← Retour à l’île</button></div>
+    </div>
+    <div id="impression">${ficheHTML()}</div>`;
+
+  app.querySelector('#imprimer').addEventListener('click', () => window.print());
+  app.querySelector('#retrouver').addEventListener('click', () => {
+    const saisie = app.querySelector('#code-fiche').value.trim();
+    if (!saisie) return;
+    if (retrouverFiche(saisie)) {
+      Son.jouer('achat');
+      vueFiches();
+    } else {
+      app.querySelector('#message-code').innerHTML =
+        `Ce code n’est pas reconnu : vérifie les lettres et les chiffres (par exemple ${fiche.contenu.code}).`;
+    }
+  });
+  app.querySelector('#code-fiche').addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter') app.querySelector('#retrouver').click();
+  });
+  app.querySelector('#regenerer').addEventListener('click', () => {
+    Son.jouer('clic');
+    preparerFiche(fiche.id, fiche.options, fiche.corrige);
+    vueFiches();
+  });
 }
 
 /* ------------------------------------------------------------------ */
@@ -512,6 +628,7 @@ function rendre() {
     progres: vueProgres,
     jardin: vueJardin,
     reglages: vueReglages,
+    fiches: vueFiches,
   }[vue.nom] || vueAccueil)();
 }
 
@@ -523,8 +640,21 @@ function majArdoise() {
 }
 
 app.addEventListener('click', (ev) => {
-  const cible = ev.target.closest('[data-aller],[data-jouer],[data-touche],[data-choix],[data-decor],[data-reglage],#suivant,#ecouter');
+  const cible = ev.target.closest('[data-aller],[data-jouer],[data-touche],[data-choix],[data-decor],[data-reglage],[data-fiche],[data-fiche-option],[data-fiche-corrige],#suivant,#ecouter');
   if (!cible) return;
+
+  if (cible.dataset.fiche) {
+    preparerFiche(cible.dataset.fiche, null, fiche ? fiche.corrige : true);
+    return vueFiches();
+  }
+  if (cible.dataset.ficheOption) {
+    preparerFiche(fiche.id, { ...fiche.options, [cible.dataset.ficheOption]: cible.dataset.valeur }, fiche.corrige);
+    return vueFiches();
+  }
+  if (cible.dataset.ficheCorrige) {
+    preparerFiche(fiche.id, fiche.options, cible.dataset.ficheCorrige === 'oui', false);
+    return vueFiches();
+  }
 
   if (cible.dataset.reglage) {
     reglages = A11y.appliquer(P.setReglage(cible.dataset.reglage, cible.dataset.valeur));
@@ -582,6 +712,13 @@ window.addEventListener('keydown', (ev) => {
   else return;
   majArdoise();
 });
+
+// Ouverture directe depuis le QR code d'une fiche imprimée : ?fiche=02G0-UTSC
+const codeDemande = new URLSearchParams(window.location.search).get('fiche');
+if (codeDemande && retrouverFiche(codeDemande)) {
+  vue = { nom: 'fiches' };
+  window.history.replaceState(null, '', window.location.pathname);
+}
 
 rendre();
 

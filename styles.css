@@ -533,3 +533,198 @@ svg.visuel {
   height: auto;
   margin: 0 auto;
 }
+
+/* ---------- fiches de révision à imprimer ---------- */
+
+.feuille {
+  background: #fff;
+  color: #111;
+  border-radius: 14px;
+  box-shadow: var(--ombre);
+  padding: 22px 24px 18px;
+  margin: 0 0 22px;
+  font-family: "Trebuchet MS", "Segoe UI", Verdana, sans-serif;
+  line-height: 1.45;
+}
+
+.feuille__entete {
+  border-bottom: 3px solid #E84393;
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+.feuille__entete__texte { flex: 1; min-width: 0; }
+.feuille__qr { text-align: center; flex: none; }
+.feuille__qr .qr { display: block; }
+.feuille__code {
+  font-size: .68rem;
+  font-weight: 800;
+  letter-spacing: .06em;
+  color: #666;
+  margin-top: 1px;
+}
+.feuille__domaine {
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  font-size: .72rem;
+  font-weight: 800;
+  color: #E84393;
+}
+.feuille__titre { font-size: 1.35rem; margin: 2px 0 8px; color: #111; }
+.feuille__identite { display: flex; gap: 26px; font-size: .9rem; flex-wrap: wrap; }
+.pointilles {
+  display: inline-block;
+  min-width: 190px;
+  border-bottom: 1.5px dotted #777;
+  vertical-align: bottom;
+  height: 1.1em;
+}
+.pointilles--court { min-width: 110px; }
+
+.objectif {
+  background: #F6F2FF;
+  border-left: 5px solid var(--violet);
+  padding: 8px 12px;
+  font-weight: 700;
+  font-size: .95rem;
+  margin-bottom: 14px;
+}
+.objectif--corrige { background: #FFF4DC; border-left-color: #E17055; font-weight: 600; }
+
+.feuille .bloc { margin-bottom: 11px; break-inside: avoid; }
+.feuille .bloc h2 {
+  font-size: 1rem;
+  margin: 0 0 8px;
+  padding: 5px 10px;
+  background: #F0EEE8;
+  border-radius: 6px;
+  color: #111;
+}
+.bloc--methode { background: #FBFAF6; border: 2px dashed #CFC9BC; border-radius: 10px; padding: 10px 12px; }
+.bloc--methode h2 { background: none; padding: 0 0 4px; }
+
+.methode { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+.methode__exemple { text-align: center; }
+.methode__egalite { font-weight: 800; margin-top: 4px; font-size: .95rem; }
+.methode__etapes { margin: 0; padding-left: 18px; flex: 1; min-width: 240px; font-size: .82rem; line-height: 1.35; }
+.methode__etapes li { margin-bottom: 2px; }
+
+/* Une addition posée : entêtes m c d u, ligne de retenues, cases à remplir. */
+.operations {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 26px;
+  justify-content: flex-start;
+}
+.op { text-align: center; }
+.op__titre { font-weight: 700; font-size: .88rem; margin-bottom: 2px; min-height: 1.2em; }
+.pose { border-collapse: collapse; margin: 0 auto; font-variant-numeric: tabular-nums; }
+.pose td {
+  width: 30px;
+  height: 30px;
+  text-align: center;
+  font-size: 1.15rem;
+  font-weight: 700;
+  padding: 0;
+}
+.pose__entetes td {
+  height: 15px;
+  font-size: .62rem;
+  font-weight: 800;
+  color: #E84393;
+  text-transform: lowercase;
+}
+.pose__retenues td { height: 17px; font-size: .78rem; color: #E84393; font-weight: 800; }
+.pose__nombre--derniere td { border-bottom: 2.5px solid #111; }
+.pose .signe { font-weight: 800; width: 22px; }
+.pose .case { border: 1px dashed #BFBFBF; }
+.pose__nombre--derniere .case { border-bottom: 2.5px solid #111; }
+.pose__resultat td { height: 32px; }
+.pose .reponse { color: #C0392B; }
+.pose .retenue { color: #C0392B; }
+
+.estimations { list-style: none; margin: 0; padding: 0; }
+.estimations li {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 3px 0;
+  border-bottom: 1px dotted #DDD;
+}
+.estimation__op { font-weight: 700; min-width: 160px; }
+.estimation__choix { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.pastille-choix {
+  border: 2px solid #BBB;
+  border-radius: 999px;
+  padding: 3px 14px;
+  font-weight: 700;
+}
+.pastille-choix--bonne { border-color: #C0392B; color: #C0392B; }
+.estimation__exact { font-size: .85rem; color: #666; }
+
+/* Deux problèmes côte à côte : la fiche tient ainsi sur une seule page A4. */
+.problemes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 22px; }
+.probleme { margin-bottom: 8px; break-inside: avoid; }
+.probleme__enonce { margin: 0 0 4px; font-size: .88rem; }
+.probleme__espace { display: flex; gap: 14px; align-items: flex-start; flex-wrap: wrap; }
+.probleme__phrase { flex: 1; min-width: 150px; font-size: .85rem; }
+.probleme__phrase .pointilles { min-width: 100%; margin-bottom: 8px; }
+.probleme--corrige .probleme__phrase { color: #C0392B; font-weight: 600; }
+
+.pied-feuille { text-align: right; font-size: .7rem; color: #999; margin-top: 10px; }
+
+.module--actif { outline: 4px solid var(--violet); }
+
+.barre-fiche { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+.recherche-code { display: flex; gap: 10px; flex-wrap: wrap; }
+.recherche-code .champ { flex: 1; min-width: 180px; text-transform: uppercase; }
+.barre-fiche .btn { flex: 1; min-width: 150px; }
+
+/* ---------- impression ---------- */
+
+@page { size: A4 portrait; margin: 11mm 12mm; }
+
+@media print {
+  .no-print { display: none !important; }
+  html, body {
+    background: #fff !important;
+    font-size: 11.5pt;
+  }
+  .app { max-width: none; padding: 0; margin: 0; }
+  .feuille {
+    box-shadow: none;
+    border-radius: 0;
+    padding: 0;
+    margin: 0;
+    break-after: page;
+    page-break-after: always;
+  }
+  .feuille:last-child { break-after: auto; page-break-after: auto; }
+  .feuille .bloc { break-inside: avoid; page-break-inside: avoid; }
+  .pose td { width: 8.5mm; height: 8mm; font-size: 12pt; }
+  .pose .signe { width: 6mm; }
+  .pose__entetes td { height: 3.5mm; font-size: 6pt; }
+  .pose__retenues td { height: 4.5mm; font-size: 8pt; }
+  .pose__resultat td { height: 7.5mm; }
+  .methode .pose td { width: 7mm; height: 7mm; font-size: 11pt; }
+  .feuille .bloc h2 { font-size: 10.5pt; padding: 3px 8px; margin-bottom: 4px; }
+  .operations { gap: 8px 18px; }
+  .objectif { padding: 4px 9px; margin-bottom: 7px; font-size: 10pt; }
+  .methode__etapes { font-size: 8.3pt; }
+  .feuille__titre { font-size: 15pt; margin: 1px 0 5px; }
+  .feuille__entete { padding-bottom: 5px; margin-bottom: 8px; }
+  .probleme__enonce { font-size: 8.6pt; }
+  .pied-feuille { display: none; }
+  .feuille .bloc { margin-bottom: 5px; }
+  .bloc--methode { padding: 6px 9px; }
+  .methode .pose td { width: 6mm; height: 6mm; font-size: 10pt; }
+  .op__titre { font-size: 9pt; min-height: 1em; margin-bottom: 1px; }
+  .estimations li { padding: 1px 0; }
+  .pastille-choix { padding: 2px 12px; }
+  .probleme__phrase .pointilles { margin-bottom: 5px; }
+  .feuille__identite { font-size: 9.5pt; }
+  .feuille__qr .qr { width: 19mm; height: 19mm; }
+}

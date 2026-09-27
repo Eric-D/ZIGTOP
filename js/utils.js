@@ -1,13 +1,31 @@
 // Petites fonctions utilitaires partagées par les générateurs d'exercices.
 
-export const rnd = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+// Source de hasard remplaçable : par défaut le hasard du navigateur, mais on peut
+// y brancher un générateur à graine pour rejouer exactement la même fiche.
+let sourceAlea = Math.random;
+export const setAlea = (f) => { sourceAlea = f || Math.random; };
+export const alea = () => sourceAlea();
 
-export const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+// Générateur déterministe (mulberry32) : une graine, toujours la même suite.
+export function generateurAleatoire(graine) {
+  let a = graine >>> 0;
+  return function () {
+    a = (a + 0x6D2B79F5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+export const rnd = (min, max) => Math.floor(alea() * (max - min + 1)) + min;
+
+export const pick = (arr) => arr[Math.floor(alea() * arr.length)];
 
 export function shuffle(arr) {
   const a = arr.slice();
   for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(alea() * (i + 1));
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
@@ -55,7 +73,7 @@ export function leurres(bonne, n = 3, ecart = 10, min = 0) {
   const set = new Set([bonne]);
   let garde = 0;
   while (set.size < n + 1 && garde++ < 200) {
-    const delta = rnd(1, ecart) * (Math.random() < 0.5 ? -1 : 1);
+    const delta = rnd(1, ecart) * (alea() < 0.5 ? -1 : 1);
     const v = bonne + delta;
     if (v >= min) set.add(v);
   }

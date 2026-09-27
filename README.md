@@ -20,6 +20,39 @@ C'est la règle qui guide toute l'interface :
 - la difficulté s'ajuste toute seule (3 niveaux par thème) pour que l'enfant reste dans la zone
   où il réussit souvent : elle monte au-dessus de 85 % de réussite, et redescend en douceur en dessous de 45 %.
 
+## Fiches de révision à imprimer
+
+Depuis l'accueil, **🖨️ Fiches à imprimer** fabrique une fiche A4 prête à sortir de
+l'imprimante, régénérée à chaque clic : la leçon rappelée en haut, puis des exercices,
+et le **corrigé sur une deuxième page** pour l'adulte.
+
+Première fiche disponible : **CE2 — Opérations : addition posée**, calquée sur la
+progression du manuel (unités, puis dizaines, puis centaines, puis milliers) :
+
+1. rappel de la méthode, avec l'exemple `685 + 267` entièrement posé ;
+2. quatre additions déjà posées à calculer, de la plus simple (sans retenue) aux plus
+   costaudes (plusieurs retenues) ;
+3. trois additions à **poser soi-même** dans une grille vide avec les colonnes m/c/d/u ;
+4. trois ordres de grandeur à entourer, comme le « je vérifie mon résultat » de la leçon ;
+5. deux problèmes, avec la place pour poser l'opération et écrire la phrase réponse.
+
+Option : nombres jusqu'à 999, jusqu'à 9 999, ou les deux.
+
+### Le code de la fiche et son QR code
+
+Chaque fiche porte en haut à droite un **QR code** et un **code à huit caractères**
+(par exemple `02LT-RF7I`). Ce code contient tout : la fiche, ses options et la graine
+du tirage aléatoire.
+
+- Scanner le QR code rouvre l'application **sur cette fiche exacte**, corrigé compris —
+  pratique deux semaines plus tard, quand la feuille remplie ressort du cartable.
+- Sans téléphone, on saisit le code dans « Retrouver une fiche déjà imprimée ».
+- Changer d'option ou cliquer sur « autres exercices » tire une nouvelle fiche ;
+  masquer ou afficher le corrigé ne change **pas** les exercices affichés.
+
+Le QR code est encodé par `js/qr.js`, écrit à la main (mode octet, correction niveau M,
+versions 1 à 10) : aucune librairie, donc une fiche reste imprimable hors connexion.
+
 ## Accessibilité : que rien ne soit un frein
 
 Un enfant dyslexique, dyspraxique, TDAH, dys- quelque chose ou simplement fatigué doit
@@ -169,6 +202,8 @@ js/app.js                 écrans, session d'exercices, retours bienveillants
 js/univers.js             Zigo, la carte de l'île, le jardin et la boutique
 js/accessibilite.js       réglages de confort (lecture, calme, voix, saisie, dessins)
 js/visuels.js             schémas d'aide : jetons, ligne des nombres, parts, dizaines
+js/fiches.js              fiches imprimables : tirage, codes de fiche, mise en page A4
+js/qr.js                  encodeur QR sans dépendance (pour le code des fiches)
 js/son.js                 petites mélodies WebAudio (aucun fichier audio)
 js/exercices.js           registre des classes et fabrique de séries
 js/niveaux/cp.js          catalogue CP : un générateur par thème
@@ -191,6 +226,11 @@ node tests/parcours-complet.mjs   # les 3 classes : profil → île → série �
 node tests/bonnes-reponses.mjs    # étoiles, badges, montée automatique de niveau
 node tests/jardin.mjs             # boutique, plantations, et encouragement quand il manque des étoiles
 node tests/accessibilite.mjs      # réglages appliqués, séries courtes, réponses à choisir, dessins d'aide
+node tests/fiches.mjs             # corrigé juste, retenues bien placées, codes de fiche reproductibles
+
+# vérification approfondie du QR code (dépendances en plus) :
+npm i --no-save playwright jsqr pngjs && npx playwright install chromium
+node tests/qr-lecture.mjs         # les QR produits sont relus par un décodeur indépendant
 ```
 
 ## Ajouter une classe
