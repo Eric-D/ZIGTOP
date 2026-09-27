@@ -117,7 +117,7 @@ for (const methode of [true, false]) {
   const [pageEleve, pageCorrige] = doc.querySelectorAll('.feuille');
   const nbEleve = pageEleve.querySelectorAll('.operations .op').length;
   const nbCorrige = pageCorrige.querySelectorAll('.operations .op').length;
-  verifier(nbEleve === nbCorrige && nbEleve === (methode ? 7 : 10),
+  verifier(nbEleve === nbCorrige && nbEleve === (methode ? 7 : 12),
     `${methode ? 'avec' : 'sans'} la méthode : ${nbEleve} opérations imprimées, ${nbCorrige} corrigées`);
 }
 

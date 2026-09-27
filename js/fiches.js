@@ -64,7 +64,7 @@ function operationPosee({ a, b, largeur, mode, numero }) {
   return `
     <div class="op">
       ${numero || mode === 'vide' ? `<div class="op__titre">${numero ? `${numero}.` : ''} ${mode === 'vide' && numero ? `${fmt(a)} + ${fmt(b)} =` : ''}</div>` : ''}
-      <table class="pose">
+      <table class="pose${mode === 'vide' ? ' pose--vide' : ''}">
         ${ligneEntetes}
         ${ligneRetenues}
         ${lignesNombres}
@@ -172,8 +172,8 @@ function genererAdditionPosee(options) {
         'Je vérifie avec un ordre de grandeur : 700 + 250 = 950, tout près de 952. C’est cohérent !',
       ],
     },
-    // Les deux dernières additions de chaque liste ne sont imprimées que lorsque
-    // le rappel de méthode est masqué : la page libérée sert à s'entraîner plus.
+    // Les additions supplémentaires ne sont imprimées que lorsque le rappel de
+    // méthode est masqué : la place libérée sert alors à s'entraîner davantage.
     posees: [
       { ...additionAvec(tailles[0], 'aucune'), largeur: tailles[0] },
       { ...additionAvec(tailles[1], 'une'), largeur: tailles[1] },
@@ -181,6 +181,8 @@ function genererAdditionPosee(options) {
       { ...additionAvec(tailles[3], 'plusieurs'), largeur: tailles[3] },
       { ...additionAvec(tailles[1], 'plusieurs'), largeur: tailles[1] },
       { ...additionAvec(tailles[3], 'une'), largeur: tailles[3] },
+      { ...additionAvec(tailles[2], 'plusieurs'), largeur: tailles[2] },
+      { ...additionAvec(tailles[0], 'plusieurs'), largeur: tailles[0] },
     ],
     aposer: [
       { ...additionAvec(tailles[0], 'une'), largeur: tailles[0] },
@@ -222,7 +224,7 @@ function enTete(fiche, sousTitre, contenu, base, identite = true) {
 
 // Combien d'exercices tiennent sur la page, selon qu'on imprime ou non la méthode.
 const combien = (contenu, methode) => ({
-  posees: contenu.posees.slice(0, methode ? 4 : 6),
+  posees: contenu.posees.slice(0, methode ? 4 : 8),
   aposer: contenu.aposer.slice(0, methode ? 3 : 4),
 });
 

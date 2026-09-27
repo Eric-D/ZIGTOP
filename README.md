@@ -43,7 +43,7 @@ Réglages de la fiche :
   son propre code. À l'impression, toutes les pages élève sortent d'abord, les corrigés
   ensuite : on donne la pile du dessus à l'enfant et on garde le reste ;
 - **rappel de la méthode** : avec ou sans. Sans le rappel, la place libérée sert à
-  deux additions et une opération à poser de plus (6 et 4 au lieu de 4 et 3) ;
+  quatre additions et une opération à poser de plus (8 et 4 au lieu de 4 et 3) ;
 - **ligne « Nom / Date »** : avec ou sans ;
 - **corrigé** : avec ou sans. Le corrigé n'a jamais de ligne Nom / Date.
 

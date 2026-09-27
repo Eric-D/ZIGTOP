@@ -706,6 +706,9 @@ svg.visuel {
   .feuille .bloc { break-inside: avoid; page-break-inside: avoid; }
   .pose td { width: 8.5mm; height: 8mm; font-size: 12pt; }
   .pose .signe { width: 6mm; }
+  /* Grilles vides un peu plus étroites : quatre opérations à poser tiennent ainsi
+     sur une seule rangée, et la page ne déborde pas. */
+  .pose--vide td { width: 7.4mm; }
   .pose__entetes td { height: 3.5mm; font-size: 6pt; }
   .pose__retenues td { height: 4.5mm; font-size: 8pt; }
   .pose__resultat td { height: 7.5mm; }
