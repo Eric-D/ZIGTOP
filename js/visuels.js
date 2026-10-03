@@ -589,3 +589,144 @@ export function patronCube(numero, { taille = 120, quart = 0, miroir = false } =
     width="${taille}" height="${Math.round(taille * 0.64)}" role="img" aria-label="Assemblage de six carrés">${carres}</svg>`;
   return { svg, estPatron, cases };
 }
+
+/* ------------------------------------------------------------------ */
+/* Figures planes : polygones, non-polygones, cercle                    */
+/* ------------------------------------------------------------------ */
+
+const TRAIT_PLAN = '#222';
+const ROUGE_PLAN = '#C0392B';
+
+// Sommets des polygones (boîte de dessin 120 × 100). Toutes les formes sont convexes ;
+// chaque nom a plusieurs variantes (régulières ou non) pour que deux figures du même nom ne se ressemblent pas.
+const POLYGONES = {
+  triangle: [
+    [[60, 10], [10, 88], [110, 88]],
+    [[18, 16], [108, 68], [24, 90]],
+    [[22, 12], [22, 88], [106, 88]],
+  ],
+  quadrilatere: [
+    [[32, 20], [92, 20], [112, 84], [10, 84]],
+    [[60, 8], [108, 50], [60, 92], [12, 50]],
+    [[14, 24], [100, 12], [112, 76], [30, 90]],
+    [[10, 22], [110, 22], [110, 78], [10, 78]],
+  ],
+  pentagone: [
+    [[60, 8], [108, 43], [90, 90], [30, 90], [12, 43]],
+    [[20, 30], [62, 8], [108, 34], [96, 88], [28, 84]],
+    [[10, 42], [60, 10], [110, 42], [92, 90], [28, 90]],
+  ],
+  hexagone: [
+    [[32, 12], [88, 12], [114, 50], [88, 88], [32, 88], [6, 50]],
+    [[22, 16], [84, 10], [112, 42], [100, 84], [44, 90], [8, 58]],
+  ],
+};
+
+// Figures qui ne sont pas des polygones : une ligne qui ne se ferme pas, ou une figure fermée avec une partie courbe.
+const NON_POLYGONES = {
+  cercle: [() => '<circle cx="60" cy="50" r="38" fill="#fff"/>'],
+  ovale: [
+    () => '<ellipse cx="60" cy="50" rx="52" ry="32" fill="#fff"/>',
+    () => '<ellipse cx="60" cy="50" rx="50" ry="29" fill="#fff" transform="rotate(-24 60 50)"/>',
+  ],
+  'ligne ouverte': [
+    () => '<polyline points="10,82 34,22 60,78 84,20 110,70" fill="none" stroke-linecap="round"/>',
+    () => '<polyline points="64,80 22,80 22,22 98,22 98,80" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
+  ],
+  'courbe fermée': [
+    () => '<path d="M18 68 L18 12 L102 12 L102 68 A42 26 0 0 1 18 68 Z" fill="#fff"/>',
+    () => '<path d="M60 8 L108 70 Q60 108 12 70 Z" fill="#fff"/>',
+  ],
+  'demi-disque': [
+    () => '<path d="M8 76 A52 52 0 0 1 112 76 Z" fill="#fff"/>',
+    () => '<path d="M72 8 A44 44 0 0 1 72 92 Z" fill="#fff"/>',
+  ],
+};
+const ARTICLE_FIGURE = {
+  triangle: 'un triangle', quadrilatere: 'un quadrilatère', pentagone: 'un pentagone', hexagone: 'un hexagone',
+  cercle: 'un cercle', ovale: 'un ovale', 'ligne ouverte': 'une ligne ouverte', 'courbe fermée': 'une courbe fermée', 'demi-disque': 'un demi-disque',
+};
+export const FIGURES_POLYGONES = Object.keys(POLYGONES);
+export const FIGURES_NON_POLYGONES = Object.keys(NON_POLYGONES);
+export const NB_VARIANTES_FIGURE = Object.fromEntries([...Object.entries(POLYGONES), ...Object.entries(NON_POLYGONES)].map(([n, v]) => [n, v.length]));
+
+// `figurePlane(nom, { taille, variante, etiquette, reperes })` : une figure en SVG, traits nets, fond blanc.
+// Polygones : 'triangle', 'quadrilatere', 'pentagone', 'hexagone'. Autres : 'cercle', 'ovale', 'ligne ouverte',
+// 'courbe fermée', 'demi-disque'. Retourne { svg, estPolygone, cotes, sommets, nom, variante } (cotes et sommets
+// valent null pour une figure qui n'est pas un polygone). Le `<svg>` porte `data-figure`, `data-polygone`
+// ('oui' ou 'non'), `data-cotes`, `data-sommets` ; pour un polygone, `<polygon points>` donne les sommets.
+// `reperes: true` (polygones seulement) dessine la figure avec les mots « un sommet » et « un côté ».
+export function figurePlane(nom, { taille = 96, variante = 0, etiquette, reperes = false } = {}) {
+  const poly = POLYGONES[nom], autre = NON_POLYGONES[nom];
+  if (!poly && !autre) throw new Error(`figurePlane : « ${nom} » inconnue`);
+  const liste = poly || autre;
+  const v = ((variante % liste.length) + liste.length) % liste.length;
+  const estPolygone = !!poly;
+  const attrs = `fill="#fff" stroke="${TRAIT_PLAN}" stroke-width="3" stroke-linejoin="miter"`;
+  let corps, cotes = null, sommets = null;
+  const dec = reperes && estPolygone ? 70 : 0;
+  if (estPolygone) {
+    const P = liste[v].map(([x, y]) => [x + dec, y]);
+    cotes = sommets = P.length;
+    corps = `<polygon points="${P.map((p) => p.join(',')).join(' ')}" ${attrs}/>`;
+    if (reperes) {
+      const S = P[0], a = P[2], b = P[3], m = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+      corps += `<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke="${TRAIT_PLAN}" stroke-width="6" stroke-linecap="round"/>`
+        + `<circle cx="${S[0]}" cy="${S[1]}" r="4.6" fill="${TRAIT_PLAN}"/>`
+        + `<line x1="52" y1="19" x2="${S[0] - 5}" y2="${S[1] - 2}" stroke="${TRAIT_PLAN}" stroke-width="1.6"/>`
+        + `<text x="2" y="16" font-size="13" font-weight="700" fill="#222">un sommet</text>`
+        + `<line x1="${m[0] + 7}" y1="${m[1] + 2}" x2="${m[0] + 20}" y2="${m[1] + 4}" stroke="${TRAIT_PLAN}" stroke-width="1.6"/>`
+        + `<text x="${m[0] + 24}" y="${m[1] + 9}" font-size="13" font-weight="700" fill="#222">un côté</text>`;
+    }
+  } else {
+    const dessin = liste[v]();
+    corps = dessin.replace(/^<(\w[\w-]*)/, `<$1 stroke="${TRAIT_PLAN}" stroke-width="3" stroke-linejoin="miter"`);
+  }
+  const L = reperes && estPolygone ? 250 : 120, H = 100;
+  const libelle = etiquette || `Figure : ${ARTICLE_FIGURE[nom]}`;
+  const svg = `<svg class="figure-plane" data-figure="${nom}" data-variante="${v}" data-polygone="${estPolygone ? 'oui' : 'non'}"${estPolygone ? ` data-cotes="${cotes}" data-sommets="${sommets}"` : ''} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${L} ${H}" width="${taille}" height="${Math.round((taille * H) / L)}" role="img" aria-label="${libelle}">${corps}</svg>`;
+  return { svg, estPolygone, cotes, sommets, nom, variante: v };
+}
+
+export const PX_PAR_CM = 37.8;   // 1 cm à 96 dpi : un cercle dessiné « à l'échelle » mesure ce rayon à l'impression
+
+// `cercle({ rayon, centre, rayonTrace, diametreTrace, taille })` : un cercle de `rayon` cm avec son centre marqué
+// (le point `nom`, « O » par défaut), et, selon les options, un rayon ou un diamètre tracé et coté (« r = 3 cm »).
+// `lettres: true` ajoute les points A (bout du rayon), B et C (bouts du diamètre).
+// Avec `echelle` (pixels par centimètre, ex. PX_PAR_CM), le rayon du cercle vaut `rayon × echelle` : il est à l'échelle
+// et la taille de l'image est fixée en pixels, `largeur` et `hauteur` en pixels la prolongent d'un espace vide
+// autour du cercle (le centre reste au milieu). `trace: false` ne dessine que le centre (espace où l'élève trace).
+// Le `<svg>` porte `data-rayon`, `data-diametre` (en cm) et le `<circle>` du tracé a pour attribut `r` son rayon en pixels.
+export function cercle({ rayon, centre = true, rayonTrace = false, diametreTrace = false, taille = 150, nom = 'O', lettres = false,
+  echelle, largeur, hauteur, trace = true, couleur = TRAIT_PLAN } = {}) {
+  const cm = (x) => `${String(x).replace('.', ',')} cm`;
+  const diametre = rayon * 2;
+  let W, H, R;
+  if (echelle) {
+    R = rayon * echelle;
+    W = largeur || Math.round(2 * R + 20); H = hauteur || Math.round(2 * R + 20);
+  } else {
+    W = 150; H = 112; R = 44;
+  }
+  const cx = W / 2, cy = H / 2;
+  const txt = (x, y, t, ancre = 'middle') => `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" font-size="${echelle ? 14 : 10.5}" font-weight="700" fill="#222" text-anchor="${ancre}">${t}</text>`;
+  const point = (x, y) => `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.3" fill="#222"/>`;
+  let corps = '';
+  if (trace) corps += `<circle class="trace-cercle" cx="${cx}" cy="${cy}" r="${R}" fill="#fff" stroke="${couleur}" stroke-width="${echelle ? 2.4 : 3}"/>`;
+  if (trace && diametreTrace) {
+    corps += `<line x1="${cx - R}" y1="${cy}" x2="${cx + R}" y2="${cy}" stroke="#222" stroke-width="2"/>`;
+    if (lettres) corps += point(cx - R, cy) + point(cx + R, cy) + txt(cx - R - 9, cy + 5, 'B') + txt(cx + R + 9, cy + 5, 'C');
+    corps += txt(cx, cy + 15, `${lettres ? '' : 'd = '}${cm(diametre)}`);
+  }
+  if (trace && rayonTrace) {
+    const ang = (diametreTrace ? -50 : -30) * Math.PI / 180;
+    const ax = cx + R * Math.cos(ang), ay = cy + R * Math.sin(ang);
+    corps += `<line x1="${cx}" y1="${cy}" x2="${ax.toFixed(1)}" y2="${ay.toFixed(1)}" stroke="#222" stroke-width="2"/>`;
+    const mx = cx + (R / 2) * Math.cos(ang) + Math.sin(ang) * 6, my = cy + (R / 2) * Math.sin(ang) - Math.cos(ang) * 6;
+    if (lettres) corps += point(ax, ay) + txt(ax + 5, ay - 5, 'A', 'start');
+    corps += txt(diametreTrace && !echelle ? cx + 15 : mx - 2, diametreTrace && !echelle ? cy - 20 : my + 1, `${lettres ? '' : 'r = '}${cm(rayon)}`, 'end');
+  }
+  if (centre) corps += point(cx, cy) + (nom ? txt(cx - 8, cy - 6, nom) : '');
+  const dim = echelle ? ` width="${W}" height="${H}"` : ` width="${taille}" height="${Math.round((taille * H) / W)}"`;
+  return `<svg class="cercle-fig" data-rayon="${rayon}" data-diametre="${diametre}" data-trace="${trace ? 'oui' : 'non'}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}"${dim} role="img" aria-label="${trace ? `Cercle de rayon ${cm(rayon)}` : `Le point ${nom}`}">${corps}</svg>`;
+}

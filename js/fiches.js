@@ -4,7 +4,7 @@
 
 import { rnd, pick, shuffle, fmt, enLettres, setAlea, generateurAleatoire } from './utils.js';
 import { qrSVG } from './qr.js';
-import { demiDroite, figureFraction, regleFractions, monnaie, polygoneCote, horloge, ligneDuTemps, solide, patronCube, NB_PATRONS, NB_ASSEMBLAGES, PIECES_EURO, BILLETS_EURO } from './visuels.js';
+import { demiDroite, figureFraction, regleFractions, monnaie, polygoneCote, horloge, ligneDuTemps, solide, patronCube, figurePlane, cercle, PX_PAR_CM, FIGURES_POLYGONES, FIGURES_NON_POLYGONES, NB_VARIANTES_FIGURE, NB_PATRONS, NB_ASSEMBLAGES, PIECES_EURO, BILLETS_EURO } from './visuels.js';
 
 /* ------------------------------------------------------------------ */
 /* Outils de mise en page                                              */
@@ -3381,6 +3381,162 @@ const miseSolides = {
   corriges(contenu, methode) { return this.exercices(contenu, methode, true); },
 };
 
+/* ------------------------------------------------------------------ */
+/* CE2 — polygones : reconnaître, décrire, cercle                       */
+/* ------------------------------------------------------------------ */
+
+// Pages 48 à 50 du livret. Nombre de côtés (= de sommets) de chaque polygone nommé.
+const NOMBRE_COTES = { triangle: 3, quadrilatere: 4, pentagone: 5, hexagone: 6 };
+const NOM_POLYGONE = { triangle: 'triangle', quadrilatere: 'quadrilatère', pentagone: 'pentagone', hexagone: 'hexagone' };
+
+// Phrases à trous : { avant, apres, mot } ; la leçon fournit les formulations.
+const PHRASES_POLYGONES = [
+  { id: 'triangle', avant: 'Un', apres: 'est un polygone qui a trois côtés et trois sommets.', mot: 'triangle' },
+  { id: 'quadrilatere', avant: 'Un', apres: 'est un polygone qui a quatre côtés et quatre sommets.', mot: 'quadrilatère' },
+  { id: 'pentagone', avant: 'Un', apres: 'a 5 côtés et 5 sommets.', mot: 'pentagone' },
+  { id: 'hexagone', avant: 'Un', apres: 'a 6 côtés et 6 sommets.', mot: 'hexagone' },
+  { id: 'centre', avant: 'Le', apres: 'est le point au milieu du cercle.', mot: 'centre' },
+  { id: 'rayon', avant: 'Le diamètre est égal au double du', apres: '.', mot: 'rayon' },
+  { id: 'diametre', avant: 'Le', apres: 'est égal au double du rayon.', mot: 'diamètre' },
+  { id: 'compas', avant: 'On construit un cercle avec un', apres: '.', mot: 'compas' },
+  { id: 'fermee', avant: 'Un polygone est une figure', apres: 'qu’on peut tracer avec une règle.', mot: 'fermée' },
+];
+
+// Une figure : { nom, variante } ; les polygones et les non-polygones sont tirés sans répétition de forme.
+function figuresPolygones(nbPoly, nbAutres) {
+  const polys = shuffle(FIGURES_POLYGONES.flatMap((nom) => Array.from({ length: NB_VARIANTES_FIGURE[nom] }, (_, variante) => ({ nom, variante })))).slice(0, nbPoly);
+  const autres = shuffle(FIGURES_NON_POLYGONES).slice(0, nbAutres).map((nom) => ({ nom, variante: rnd(0, NB_VARIANTES_FIGURE[nom] - 1) }));
+  return shuffle([...polys, ...autres]);
+}
+
+function genererPolygones() {
+  // Ex. 1 : 10 figures dont 6 polygones (les 8 premières, quand le rappel est là, en gardent 4 à 6).
+  const reconnaitre = figuresPolygones(6, 4);
+  // Ex. 2 : 8 polygones, deux de chaque nom, les quatre noms d'abord (les 6 premiers en couvrent donc les quatre).
+  const noms = FIGURES_POLYGONES;
+  const variantes = Object.fromEntries(noms.map((n) => [n, shuffle(Array.from({ length: NB_VARIANTES_FIGURE[n] }, (_, i) => i))]));
+  const nommer = [...shuffle(noms).map((nom) => ({ nom, variante: variantes[nom][0] })), ...shuffle(noms).map((nom) => ({ nom, variante: variantes[nom][1] }))];
+  // Ex. 3 : rayon → diamètre et diamètre → rayon, valeurs toutes différentes, en alternance.
+  const rayons = shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9]).slice(0, 6);
+  const cas = rayons.map((r, i) => (i % 2 === 0 ? { sens: 'rayon', rayon: r, diametre: 2 * r } : { sens: 'diametre', rayon: r, diametre: 2 * r }));
+  const tracer = [{ type: 'rayon', rayon: 2, nom: 'O' }, pick([{ type: 'rayon', rayon: 3, nom: 'P' }, { type: 'diametre', rayon: 3, nom: 'P' }])];
+  // Ex. 4 : six phrases à trous de la leçon, au moins un polygone et un mot du cercle.
+  let phrases;
+  do { phrases = shuffle(PHRASES_POLYGONES).slice(0, 6); }
+  while (phrases.slice(0, 4).every((p) => NOMBRE_COTES[p.id]) || phrases.slice(0, 4).every((p) => !NOMBRE_COTES[p.id]));
+  return { objectif: 'Je sais reconnaître un polygone et construire un cercle avec un compas.', reconnaitre, nommer, cas, tracer, phrases };
+}
+
+const cocheOuiNon = (mot, cochee) => case_(mot, cochee);
+const CM_PX = PX_PAR_CM;
+const hautEspace = (rayon) => Math.round(2 * rayon * CM_PX + 16);
+const LARGEUR_ESPACE = 326;
+const enonceTrace = (t) => `Trace un cercle de ${t.type === 'rayon' ? 'rayon' : 'diamètre'} ${t.type === 'rayon' ? t.rayon : 2 * t.rayon}${NBSP}cm de centre ${t.nom}.`;
+
+const misePolygones = {
+  signe: '',
+  combien: (contenu, methode) => ({
+    reconnaitre: contenu.reconnaitre.slice(0, methode ? 8 : 10),
+    nommer: contenu.nommer.slice(0, methode ? 6 : 8),
+    cas: contenu.cas.slice(0, methode ? 4 : 6),
+    tracer: contenu.tracer.slice(0, methode ? 1 : 2),
+    phrases: contenu.phrases.slice(0, methode ? 4 : 6),
+  }),
+  noteCorrige: 'réponses en rouge, case cochée = bonne réponse, cercles tracés à leur vraie taille.',
+  // Rappel : la définition et les exemples de la page 48, les phrases de la page 49, le cercle de la page 50.
+  rappel() {
+    const petite = (nom, variante) => `<span class="rappel-po__petite">${figurePlane(nom, { taille: 50, variante }).svg}</span>`;
+    return `
+      <div class="rappel-po">
+        <div class="rappel-po__definition">
+          <p><b>Un polygone est une figure fermée qu’on peut tracer avec une règle.</b></p>
+          ${figurePlane('pentagone', { taille: 170, variante: 1, reperes: true }).svg}
+        </div>
+        <div class="rappel-po__exemples">
+          <p>Ces figures sont des polygones.</p>
+          <div class="rappel-po__rang">${petite('triangle', 1)}${petite('quadrilatere', 0)}${petite('hexagone', 1)}</div>
+          <p>Ces figures ne sont pas des polygones.</p>
+          <div class="rappel-po__rang">${petite('ligne ouverte', 1)}${petite('courbe fermée', 0)}${petite('ovale', 0)}</div>
+        </div>
+        <div class="rappel-po__cercle">
+          ${cercle({ rayon: 2, rayonTrace: true, diametreTrace: true, lettres: true, taille: 100 })}
+          <p><b>O</b> est <b>le centre</b>, [OA] est <b>un rayon</b>, [BC] est <b>un diamètre</b>. Le <b>diamètre</b> est égal au double du <b>rayon</b> : rayon 2${NBSP}cm, donc diamètre 4${NBSP}cm.</p>
+        </div>
+        <ul class="rappel-po__noms">
+          <li>Un <b>triangle</b> est un polygone qui a trois côtés et trois sommets.</li>
+          <li>Un <b>quadrilatère</b> est un polygone qui a quatre côtés et quatre sommets.</li>
+          <li>Un <b>pentagone</b> a 5 côtés et 5 sommets. Un <b>hexagone</b> a 6 côtés et 6 sommets.</li>
+          <li>Je sais construire un cercle <b>avec un compas</b>, à partir du centre et du diamètre ou du rayon.</li>
+        </ul>
+      </div>`;
+  },
+  exercices(contenu, methode, corrige = false) {
+    const { reconnaitre, nommer, cas, tracer, phrases } = this.combien(contenu, methode);
+    const fig = (f, titre, t) => figurePlane(f.nom, { taille: t || (methode ? 62 : 54), variante: f.variante, etiquette: corrige ? undefined : titre });
+    const polygone = (f) => NOMBRE_COTES[f.nom] !== undefined;
+    const trou = '<span class="pointilles pointilles--mini"></span>';
+    const ligne = '<span class="pointilles pointilles--ligne"></span>';
+
+    const cellule1 = (f, i) => `<div class="fig-pc fig-pc--${reconnaitre.length}"><b>${lettre(i)}.</b>${fig(f, 'Figure à reconnaître').svg}<span class="oui-non">${cocheOuiNon('oui', corrige && polygone(f))}${cocheOuiNon('non', corrige && !polygone(f))}</span></div>`;
+
+    const cellule2 = (f, i) => {
+      const n = NOMBRE_COTES[f.nom];
+      const rep = (x) => (corrige ? `<span class="reponse rouge">${x}</span>` : ligne);
+      const nb = (x, mot) => (corrige ? `<span class="reponse rouge">${x}</span>` : trou);
+      return `<div class="fig-nom fig-nom--${nommer.length}"><b>${lettre(i)}.</b>${fig(f, 'Polygone à nommer', methode ? 54 : 48).svg}<span class="fig-nom__lignes"><span class="fig-nom__ligne">${corrige && nommer.length === 8 ? '' : 'Nom : '}${rep(NOM_POLYGONE[f.nom])}</span><span class="fig-nom__ligne">${nb(n)} côtés</span><span class="fig-nom__ligne">${nb(n)} sommets</span></span></div>`;
+    };
+
+    const casCercle = (c, i) => {
+      const [donne, cherche] = c.sens === 'rayon' ? ['rayon', 'diamètre'] : ['diamètre', 'rayon'];
+      const valeur = c.sens === 'rayon' ? c.rayon : c.diametre, reponse = c.sens === 'rayon' ? c.diametre : c.rayon;
+      return `<div class="cas-cercle" data-rayon="${c.rayon}" data-diametre="${c.diametre}" data-sens="${c.sens}"><b>${lettre(i)}.</b><span>${donne} = ${valeur}${NBSP}cm</span><span class="cas-cercle__fleche">→</span><span>${cherche} =</span>${corrige ? `<span class="reponse rouge">${reponse}</span>` : trou}<span>cm</span></div>`;
+    };
+
+    const consigneTrace = (t, i) => `<div class="trace-cercle-bloc__consigne"><b>${lettre(cas.length + i)}.</b> ${enonceTrace(t)}</div>`;
+    const espace = (t, i) => {
+      const dessin = cercle({ rayon: t.rayon, echelle: CM_PX, largeur: LARGEUR_ESPACE, hauteur: hautEspace(t.rayon), nom: t.nom, trace: corrige, couleur: ROUGE_CERCLE });
+      return `<div class="trace-cercle-bloc" data-rayon="${t.rayon}">${methode ? '' : consigneTrace(t, i)}<div class="espace-cercle">${dessin}</div></div>`;
+    };
+
+    const mots = phrases.map((p) => p.mot).sort((a, b) => a.localeCompare(b, 'fr'));
+    const phrase = (p, i) => `<li class="phrase-po" data-mot="${p.mot}"><b>${lettre(i)}.</b> <span>${p.avant}</span>${corrige ? `<span class="reponse rouge phrase-po__mot">${p.mot}</span>` : '<span class="pointilles pointilles--mot"></span>'}<span>${p.apres}</span></li>`;
+
+    return `
+    <div class="bloc">
+      <h2>Exercice 1 — Ces figures sont-elles des polygones ? Coche oui ou non.</h2>
+      <div class="figs-pc figs-pc--${reconnaitre.length}">
+        ${reconnaitre.map(cellule1).join('')}
+      </div>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 2 — Écris le nom de chaque polygone, puis compte ses côtés et ses sommets.</h2>
+      <div class="figs-nom figs-nom--${nommer.length}">
+        ${nommer.map(cellule2).join('')}
+      </div>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 3 — Complète, puis trace avec ton compas.</h2>
+      <div class="cercles cercles--${methode ? 'avec' : 'sans'}">
+        <div class="cas-cercles">${cas.map(casCercle).join('')}${methode ? consigneTrace(tracer[0], 0) : ''}</div>
+        <div class="traces-cercles">${tracer.map(espace).join('')}</div>
+      </div>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 4 — Complète chaque phrase avec un mot de la banque.</h2>
+      <div class="banque-mots" data-banque="${mots.join(',')}"><span class="banque-mots__titre">Banque de mots</span>${mots.map((m) => `<span class="banque-mots__mot">${m}</span>`).join('')}</div>
+      <ul class="phrases-po">
+        ${phrases.map(phrase).join('')}
+      </ul>
+    </div>
+`;
+  },
+  corriges(contenu, methode) { return this.exercices(contenu, methode, true); },
+};
+const ROUGE_CERCLE = '#C0392B';
+
 function pageExercices(fiche, contenu, { base = '', methode = true, identite = true } = {}) {
   const { signe } = fiche.mise;
   if (fiche.mise.rappel) return pageExercicesLibre(fiche, contenu, { base, methode, identite });
@@ -3678,6 +3834,16 @@ export const FICHES = [
     options: [],
     generer: genererSolides,
     mise: miseSolides,
+  },
+  {
+    id: 'ce2-polygones',
+    classe: 'ce2',
+    domaine: 'Géométrie',
+    titre: 'Les polygones et le cercle',
+    emoji: '🔷',
+    options: [],
+    generer: genererPolygones,
+    mise: misePolygones,
   },
 ];
 

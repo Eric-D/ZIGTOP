@@ -37,6 +37,11 @@ et le **corrigé sur une deuxième page** pour l'adulte.
 
 Fiches disponibles (le plan complet est dans [`programme/ce2/PLAN-FICHES.md`](programme/ce2/PLAN-FICHES.md)) :
 
+- **CE2 — Les polygones et le cercle** (p. 48–50 du livret) : « Un polygone est une figure
+  fermée qu'on peut tracer avec une règle », côtés et sommets, triangle, quadrilatère,
+  pentagone, hexagone, le cercle (centre, rayon, diamètre, compas) ; polygone ou pas,
+  figures à nommer et à décrire, rayon ↔ diamètre et cercle à tracer, vocabulaire. À
+  compléter quand les pages 51 à 54 du livret auront été photographiées.
 - **CE2 — Les solides : reconnaître, décrire, patrons du cube** (p. 45–47 du livret) : les
   six solides de la leçon dessinés en perspective, face / arête / sommet dans ses mots ;
   solides à nommer, tableau faces-sommets-arêtes, patrons du cube à reconnaître, vrai ou

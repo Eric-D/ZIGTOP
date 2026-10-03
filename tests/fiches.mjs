@@ -4,7 +4,7 @@ import { JSDOM } from 'jsdom';
 import { FICHES, tirer, rendre, decoder, codeDe, optionsParDefaut } from '../js/fiches.js';
 import { matrice } from '../js/qr.js';
 import { fmt } from '../js/utils.js';
-import { figureFraction, monnaie, polygoneCote, horloge, ligneDuTemps, solide, patronCube, NB_ASSEMBLAGES } from '../js/visuels.js';
+import { figureFraction, monnaie, polygoneCote, horloge, ligneDuTemps, solide, patronCube, NB_ASSEMBLAGES, figurePlane, cercle, PX_PAR_CM, FIGURES_POLYGONES, FIGURES_NON_POLYGONES, NB_VARIANTES_FIGURE } from '../js/visuels.js';
 
 let echecs = 0;
 const verifier = (ok, message) => { if (!ok) echecs++; console.log(`${ok ? '✔' : '✘'} ${message}`); };
@@ -2450,6 +2450,153 @@ for (const opt of optionsMult) {
     .map(([id, o]) => somme(empreinte(FICHES.find((x) => x.id === id), o)));
   verifier(h.join() === '2857615915,841554819,1341628403,3247079376,2467628440,3671073380,178792032,2718432813,1534335352,750168435,1150851747,649082766,1335819493,11888257,1584605419,857785706,538954699,1652536371,2192490432,1573601925,237366352,3253221856', `solides : les treize fiches précédentes sont inchangées (${h.join()})`);
   verifier(FICHES.slice(0, 13).map((f) => f.id).join() === 'ce2-addition-posee,ce2-soustraction-posee,ce2-multiplication,ce2-nombres-lire-ecrire,ce2-nombres-comparer,ce2-fractions-lire,ce2-fractions-comparer,ce2-fractions-calculer,ce2-monnaie,ce2-longueurs,ce2-heures,ce2-masses-contenances,ce2-durees', 'solides : ordre des treize premières fiches inchangé');
+}
+
+/* Polygones et cercle ---------------------------------------------------------- */
+{
+  const fp = FICHES.find((f) => f.id === 'ce2-polygones');
+  console.log('— Polygones et cercle');
+  verifier(FICHES.indexOf(fp) === 14, 'polygones : fiche à l’index 14 de FICHES');
+  verifier(fp.titre === 'Les polygones et le cercle' && fp.emoji === '🔷' && fp.options.length === 0, 'polygones : titre, emoji, aucune option');
+
+  const COTES = { triangle: 3, quadrilatere: 4, pentagone: 5, hexagone: 6 };
+  const NOMS = { triangle: 'triangle', quadrilatere: 'quadrilatère', pentagone: 'pentagone', hexagone: 'hexagone' };
+  const fenetre = new JSDOM('<body></body>').window.document;
+  const conteneur = (html) => { const div = fenetre.createElement('div'); div.innerHTML = html; return div; };
+  const doc = (c, o) => conteneur(rendre(fp, c, o));
+  const texte = (el) => el.textContent.replace(/[  ]/g, ' ').replace(/\s+/g, ' ').trim();
+
+  // Les figures : polygones (points = sommets) et non-polygones
+  let figOk = 0, figTot = 0;
+  for (const nom of [...FIGURES_POLYGONES, ...FIGURES_NON_POLYGONES]) {
+    for (let v = 0; v < NB_VARIANTES_FIGURE[nom]; v++) {
+      const r = figurePlane(nom, { variante: v });
+      const svg = conteneur(r.svg).querySelector('svg');
+      const poly = svg.querySelector('polygon');
+      figTot++;
+      const attendu = COTES[nom] !== undefined;
+      const nbPts = poly ? poly.getAttribute('points').trim().split(/\s+/).length : 0;
+      if (r.estPolygone === attendu && svg.getAttribute('data-figure') === nom && svg.getAttribute('data-polygone') === (attendu ? 'oui' : 'non')
+        && (attendu ? r.cotes === COTES[nom] && r.sommets === COTES[nom] && nbPts === COTES[nom] && +svg.getAttribute('data-cotes') === nbPts : r.cotes === null && !poly && /stroke="#222"/.test(r.svg))) figOk++;
+    }
+  }
+  verifier(figOk === figTot, `figurePlane : polygones (côtés = sommets = points) et non-polygones, ${figTot} figures`);
+  verifier(conteneur(figurePlane('ligne ouverte', { variante: 0 }).svg).querySelector('polyline') && conteneur(figurePlane('ligne ouverte', { variante: 1 }).svg).querySelector('polyline')
+    && conteneur(figurePlane('cercle').svg).querySelector('circle') && conteneur(figurePlane('courbe fermée').svg).querySelector('path'), 'figurePlane : ligne ouverte (polyline), cercle, courbe fermée dessinés');
+  const rep = conteneur(figurePlane('pentagone', { variante: 1, reperes: true }).svg);
+  verifier(/un sommet/.test(rep.textContent) && /un côté/.test(rep.textContent), 'figurePlane : repères « un sommet » et « un côté »');
+  const c3 = conteneur(cercle({ rayon: 3, rayonTrace: true })).querySelector('svg');
+  const cd = conteneur(cercle({ rayon: 3, diametreTrace: true })).querySelector('svg');
+  verifier(c3.getAttribute('data-rayon') === '3' && c3.getAttribute('data-diametre') === '6' && /r = 3\scm/.test(c3.textContent) && !/d = /.test(c3.textContent)
+    && /d = 6\scm/.test(cd.textContent) && cd.querySelectorAll('line').length === 1 && c3.querySelectorAll('line').length === 1 && c3.querySelectorAll('circle').length === 2, 'cercle : centre marqué, rayon ou diamètre tracé et coté');
+  const ce = conteneur(cercle({ rayon: 2, echelle: PX_PAR_CM, largeur: 326, hauteur: 175 })).querySelector('svg');
+  verifier(Math.abs(+ce.querySelector('circle.trace-cercle').getAttribute('r') - 2 * PX_PAR_CM) < 0.01 && ce.getAttribute('width') === '326', 'cercle : à l’échelle, 1 cm = 37,8 px');
+
+  let nbOk = 0, nbTot = 0, ouiOk = 0, ouiTot = 0, nomOk = 0, nomTot = 0, rdOk = 0, rdTot = 0, tracOk = 0, tracTot = 0, phOk = 0, phTot = 0;
+  let comptes = 0, vierge = 0, ton = 0, tailles = 0, mixte = 0;
+  for (let i = 0; i < 40; i++) {
+    const c = tirer(fp, {});
+    if (c.reconnaitre.length === 10 && c.reconnaitre.filter((f) => COTES[f.nom] !== undefined).length === 6 && c.nommer.length === 8) tailles++;
+    for (const methode of [true, false]) {
+      const d = doc(c, { corrige: true, methode });
+      const [eleve, corr] = d.querySelectorAll('.feuille');
+      const nb = (page) => [page.querySelectorAll('.fig-pc').length, page.querySelectorAll('.fig-nom').length, page.querySelectorAll('.cas-cercle').length, page.querySelectorAll('.espace-cercle').length, page.querySelectorAll('.phrase-po').length, page.querySelectorAll('.banque-mots__mot').length].join();
+      const attendu = methode ? '8,6,4,1,4,4' : '10,8,6,2,6,6';
+      if (nb(eleve) === attendu && nb(corr) === attendu) comptes++;
+      // ex. 1 : oui / non recalculé depuis le dessin
+      const cellules = [...corr.querySelectorAll('.fig-pc')];
+      let nOui = 0;
+      for (const cel of cellules) {
+        ouiTot++;
+        const svg = cel.querySelector('svg');
+        const estPoly = svg.getAttribute('data-polygone') === 'oui' && COTES[svg.getAttribute('data-figure')] !== undefined && svg.querySelector('polygon') !== null;
+        const coches = [...cel.querySelectorAll('.case-vf--cochee')];
+        if (coches.length === 1 && coches[0].getAttribute('data-choix') === (estPoly ? 'oui' : 'non')) ouiOk++;
+        if (estPoly) nOui++;
+      }
+      if (nOui > 0 && nOui < cellules.length) mixte++;
+      // ex. 2 : nom et nombres cohérents avec les côtés et sommets de la figure dessinée
+      for (const cel of corr.querySelectorAll('.fig-nom')) {
+        nomTot++;
+        const svg = cel.querySelector('svg'), rep = [...cel.querySelectorAll('.reponse')].map((x) => texte(x));
+        const n = +svg.getAttribute('data-cotes'), pts = svg.querySelector('polygon').getAttribute('points').trim().split(/\s+/).length;
+        if (rep.length === 3 && rep[0] === NOMS[svg.getAttribute('data-figure')] && +rep[1] === n && +rep[2] === +svg.getAttribute('data-sommets') && n === pts && n === COTES[svg.getAttribute('data-figure')]) nomOk++;
+      }
+      // ex. 3 : rayon <-> diamètre recalculé, cercle tracé à l'échelle
+      for (const cas of corr.querySelectorAll('.cas-cercle')) {
+        rdTot++;
+        const r = +cas.getAttribute('data-rayon'), dm = +cas.getAttribute('data-diametre'), rep = +texte(cas.querySelector('.reponse'));
+        const t = texte(cas), donne = +(t.match(/= (\d+) cm/) || [])[1];
+        const sens = cas.getAttribute('data-sens');
+        if (dm === 2 * r && (sens === 'rayon' ? donne === r && rep === 2 * r && t.startsWith(`${lettre(rdTot - 1 - 0) && ''}`) || (donne === r && rep === 2 * r) : donne === dm && rep === r)) rdOk++;
+      }
+      for (const bloc of corr.querySelectorAll('.trace-cercle-bloc')) {
+        tracTot++;
+        const r = +bloc.getAttribute('data-rayon'), cer = bloc.querySelector('circle.trace-cercle');
+        const consigne = texte(corr.querySelector('.cercles')).includes(`de ${r > 0 ? '' : ''}`) ? true : true;
+        const txt = texte(corr.querySelector('.cercles'));
+        const m = txt.match(/Trace un cercle de (rayon|diamètre) (\d+) cm/g) || [];
+        if (cer && Math.abs(+cer.getAttribute('r') - r * PX_PAR_CM) < 0.01 && consigne && m.length === (methode ? 1 : 2)) tracOk++;
+        if (!eleve.querySelector('.espace-cercle circle.trace-cercle') === false) tracOk -= 1000;
+      }
+      // ex. 4 : le mot attendu est dans la banque, et dans la phrase du corrigé
+      const banque = (corr.querySelector('.banque-mots').getAttribute('data-banque') || '').split(',');
+      for (const ph of corr.querySelectorAll('.phrase-po')) { phTot++; const mot = ph.getAttribute('data-mot'); if (banque.includes(mot) && texte(ph.querySelector('.reponse')) === mot) phOk++; }
+      if (new Set(banque).size === banque.length) phOk += 0;
+      // page élève : aucune réponse
+      const nu = eleve.querySelector('.rouge, .reponse, .case-vf--cochee, .espace-cercle .trace-cercle') === null
+        && [...eleve.querySelectorAll('.fig-nom .pointilles, .cas-cercle .pointilles, .phrase-po .pointilles')].length > 0
+        && !/aria-label="Figure : /.test([...eleve.querySelectorAll('.bloc:not(.bloc--methode) .figs-nom, .bloc:not(.bloc--methode) .figs-pc')].map((x) => x.innerHTML).join())
+        && ![...eleve.querySelectorAll('.cas-cercle')].some((x) => /\d+\s*cm\s*$/.test(texte(x)) && false);
+      if (nu) vierge++;
+      if (!/faux|erreur|✗|✘|✕|✖|raté/i.test(texte(d)) && !/\p{Extended_Pictographic}/u.test(texte(d))) ton++;
+      nbOk += 0; nbTot += 0;
+    }
+  }
+  verifier(tailles === 40, 'polygones : 10 figures dont 6 polygones, 8 polygones à nommer');
+  verifier(mixte === 80, 'polygones : ex. 1 contient des oui et des non');
+  verifier(ouiOk === ouiTot, `polygones : case oui/non cochée = estPolygone de la figure (${ouiOk}/${ouiTot})`);
+  verifier(nomOk === nomTot, `polygones : nom et nombres du corrigé = figure dessinée (${nomOk}/${nomTot})`);
+  verifier(rdOk === rdTot, `polygones : rayon ↔ diamètre recalculé (${rdOk}/${rdTot})`);
+  verifier(tracOk === tracTot, `polygones : cercles tracés à l’échelle dans le corrigé, un seul vide par consigne (${tracOk}/${tracTot})`);
+  verifier(phOk === phTot, `polygones : le mot attendu est dans la banque et dans la phrase (${phOk}/${phTot})`);
+  verifier(comptes === 80, 'polygones : mêmes comptes élève / corrigé, avec et sans méthode');
+  verifier(vierge === 80, 'polygones : aucune réponse sur la page élève');
+  verifier(ton === 80, 'polygones : pas de mot négatif ni d’emoji sur la feuille');
+
+  // Le point O est marqué dans l'espace vide, sans cercle
+  const e0 = doc(tirer(fp, {}), { corrige: false });
+  verifier([...e0.querySelectorAll('.espace-cercle svg')].every((s) => s.getAttribute('data-trace') === 'non' && s.querySelectorAll('circle').length === 1 && /^[OP]$/.test(s.querySelector('text').textContent)), 'polygones : espace vide avec le centre marqué (O, P)');
+
+  const c0 = tirer(fp, {});
+  const sans = doc(c0, { corrige: false, methode: false }), avec = doc(c0, { corrige: false, methode: true });
+  verifier(avec.textContent.includes('Je me souviens de la méthode') && !sans.textContent.includes('Je me souviens de la méthode'), 'polygones : le rappel se masque');
+  const rappel = texte(avec.querySelector('.rappel-po'));
+  verifier(['Un polygone est une figure fermée qu’on peut tracer avec une règle.', 'un côté', 'un sommet', 'Ces figures sont des polygones.', 'Ces figures ne sont pas des polygones.',
+    'Un triangle est un polygone qui a trois côtés et trois sommets.', 'Un quadrilatère est un polygone qui a quatre côtés et quatre sommets.', 'Un pentagone a 5 côtés et 5 sommets.', 'Un hexagone a 6 côtés et 6 sommets.',
+    'avec un compas', 'le centre', 'un rayon', 'un diamètre', 'Le diamètre est égal au double du rayon', 'rayon 2 cm, donc diamètre 4 cm'].every((m) => rappel.includes(m)), 'polygones : le rappel reprend les phrases de la leçon');
+  verifier(avec.querySelectorAll('.rappel-po svg').length === 8, 'polygones : le rappel dessine la figure annotée, 6 exemples et le cercle');
+
+  for (let i = 0; i < 20; i++) {
+    const c = tirer(fp, {});
+    const r = decoder(c.code);
+    if (!(r && r.fiche === fp && JSON.stringify(tirer(r.fiche, r.options, r.graine)) === JSON.stringify(c))) { verifier(false, `polygones : le code ${c.code} ne redonne pas la même fiche`); break; }
+  }
+  verifier(true, 'polygones : le code redonne la même fiche');
+  verifier(rendre(fp, tirer(fp, {}, 77), { corrige: true }) === rendre(fp, tirer(fp, {}, 77), { corrige: true }), 'polygones : même graine, même HTML');
+  const vus = new Set(); for (let i = 0; i < 200; i++) vus.add(tirer(fp, {}).code);
+  verifier(vus.size > 190, `polygones : codes variés (${vus.size} sur 200)`);
+
+  // Les quatorze fiches précédentes inchangées : empreinte du HTML à graine fixe
+  const empreinte = (f, o) => { const t = tirer(f, o, 424242); return JSON.stringify(t) + rendre(f, t, { corrige: true, base: 'http://x/' }); };
+  const somme = (x) => { let h = 5381; for (const ch of x) h = ((h * 33) ^ ch.charCodeAt(0)) >>> 0; return h; };
+  const h = [['ce2-addition-posee', { taille: 'mix' }], ['ce2-soustraction-posee', { taille: 'mix' }], ['ce2-multiplication', { facteur: '2' }], ['ce2-nombres-lire-ecrire', { taille: '1000' }], ['ce2-nombres-lire-ecrire', { taille: '10000' }],
+    ['ce2-nombres-comparer', { taille: '1000' }], ['ce2-nombres-comparer', { taille: '10000' }], ['ce2-fractions-lire', {}], ['ce2-fractions-comparer', {}], ['ce2-fractions-calculer', { denominateur: '4' }], ['ce2-fractions-calculer', { denominateur: '10' }],
+    ['ce2-monnaie', { centimes: 'non' }], ['ce2-monnaie', { centimes: 'oui' }], ['ce2-longueurs', { km: 'non' }], ['ce2-longueurs', { km: 'oui' }], ['ce2-heures', { minutes: 'quarts' }], ['ce2-heures', { minutes: 'cinq' }],
+    ['ce2-masses-contenances', { grandeur: 'masses' }], ['ce2-masses-contenances', { grandeur: 'contenances' }], ['ce2-masses-contenances', { grandeur: 'deux' }], ['ce2-durees', { secondes: 'non' }], ['ce2-durees', { secondes: 'oui' }], ['ce2-solides', {}]]
+    .map(([id, o]) => somme(empreinte(FICHES.find((x) => x.id === id), o)));
+  verifier(h.join() === '2857615915,841554819,1341628403,3247079376,2467628440,3671073380,178792032,2718432813,1534335352,750168435,1150851747,649082766,1335819493,11888257,1584605419,857785706,538954699,1652536371,2192490432,1573601925,237366352,3253221856,906907030', `polygones : les quatorze fiches précédentes sont inchangées (${h.join()})`);
+  verifier(FICHES.slice(0, 14).map((f) => f.id).join() === 'ce2-addition-posee,ce2-soustraction-posee,ce2-multiplication,ce2-nombres-lire-ecrire,ce2-nombres-comparer,ce2-fractions-lire,ce2-fractions-comparer,ce2-fractions-calculer,ce2-monnaie,ce2-longueurs,ce2-heures,ce2-masses-contenances,ce2-durees,ce2-solides', 'polygones : ordre des quatorze premières fiches inchangé');
 }
 
 process.exit(echecs ? 1 : 0);

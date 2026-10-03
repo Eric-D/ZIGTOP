@@ -1325,3 +1325,70 @@ svg.visuel {
   .feuille--corrige .solide-nom { font-size: 10pt; }
   .feuille--corrige .solides-nommer { gap: 0 3mm; }
 }
+
+/* ---------- Fiche CE2 : les polygones et le cercle ---------- */
+.rappel-po { display: grid; grid-template-columns: 200px 1fr 1fr; gap: 2mm 4mm; font-size: .82rem; line-height: 1.25; align-items: start; }
+.rappel-po p { margin: 0 0 2px; }
+.rappel-po__definition svg { display: block; max-width: 100%; height: auto; }
+.rappel-po__rang { display: flex; gap: 6px; margin-bottom: 2px; }
+.rappel-po__exemples p { white-space: nowrap; }
+.rappel-po__exemples .rappel-po__compas { white-space: normal; margin-top: 3px; }
+.rappel-po__petite svg { display: block; }
+.rappel-po__cercle { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; border-left: 1px dashed #CFC9BC; padding-left: 4mm; }
+.rappel-po__cercle svg { flex: none; }
+.rappel-po__noms { grid-column: 1 / -1; list-style: none; margin: 0; padding: 1px 0 0; display: grid; gap: 1px; border-top: 1px dashed #CFC9BC; }
+.figs-pc { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2mm 3mm; }
+.figs-pc--10 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.fig-pc { display: flex; align-items: center; gap: 4px; }
+.fig-pc > b { align-self: flex-start; flex: none; }
+.fig-pc svg { flex: none; }
+.oui-non { display: flex; flex-direction: column; gap: 3px; margin-left: 3px; }
+.figs-nom { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2mm 4mm; }
+.figs-nom--8 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.fig-nom { display: flex; align-items: center; gap: 4px; }
+.fig-nom > b { align-self: flex-start; flex: none; }
+.fig-nom svg { flex: none; }
+.fig-nom__lignes { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; font-size: .85rem; }
+.fig-nom__ligne { display: flex; align-items: flex-end; gap: 3px; white-space: nowrap; min-height: 1.5em; }
+.fig-nom__ligne .pointilles { flex: 1; min-width: 6mm; height: 1.2em; }
+.fig-nom__ligne .pointilles--mini { flex: none; min-width: 6mm; }
+.fig-nom__ligne { overflow: hidden; }
+.cercles--avec { display: flex; gap: 6mm; align-items: flex-start; }
+.cas-cercles { display: flex; flex-direction: column; gap: 3mm; flex: 1; min-width: 0; padding-top: 2mm; }
+.cercles--sans { display: block; }
+.cercles--sans .cas-cercles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2mm 4mm; padding-top: 0; margin-bottom: 2mm; }
+.cas-cercle { display: flex; align-items: flex-end; gap: 4px; white-space: nowrap; font-size: .92rem; min-height: 8mm; }
+.cas-cercle .pointilles--mini { min-width: 9mm; }
+.traces-cercles { display: flex; gap: 6mm; flex: none; }
+.trace-cercle-bloc__consigne { font-size: .88rem; margin-bottom: 1px; }
+.espace-cercle { border: 1.5px dashed #999; border-radius: 6px; width: 330px; line-height: 0; overflow: hidden; }
+.espace-cercle svg { display: block; }
+.banque-mots { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; border: 1.5px solid #333; border-radius: 8px; padding: 3px 10px; margin-bottom: 4px; }
+.banque-mots__titre { font-size: .75rem; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: #555; }
+.banque-mots__mot { font-weight: 700; padding: 0 6px; background: #F4F1EA; border-radius: 4px; }
+.phrases-po { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+.phrase-po { display: flex; align-items: flex-end; flex-wrap: nowrap; white-space: nowrap; gap: 0 4px; min-height: 7mm; padding: 1px 0; font-size: .92rem; border-bottom: 1px dotted #BBB; }
+.pointilles--mot { min-width: 24mm; height: 1.2em; }
+.phrase-po__mot { padding: 0 3px; }
+@media print {
+  .rappel-po { font-size: 8.3pt; line-height: 1.15; }
+  .fig-nom__lignes { font-size: 9.5pt; }
+  .cas-cercle { font-size: 10pt; }
+  .trace-cercle-bloc__consigne { font-size: 9.5pt; }
+  .phrase-po { font-size: 10pt; min-height: 7mm; }
+  .cas-cercles { gap: 2mm; }
+  .banque-mots { font-size: 10pt; }
+}
+@media print {
+  .feuille:has(.figs-pc) .bloc { margin-bottom: 2px; }
+  .feuille:has(.figs-pc) .case-vf { height: 6mm; line-height: calc(6mm - 3px); }
+  .figs-pc { gap: 1mm 3mm; }
+  .fig-nom__lignes { gap: 0; }
+  .figs-nom--8 .fig-nom__lignes { font-size: 8.5pt; }
+  .fig-nom__ligne { min-height: 1.35em; }
+  .figs-nom { gap: 1mm 4mm; }
+  .banque-mots { padding: 1px 10px; margin-bottom: 2px; }
+  .phrase-po { min-height: 6mm; padding: 0; }
+  .cercles--avec .cas-cercles { gap: 1mm; }
+  .feuille:has(.figs-pc) .bloc h2 { margin-bottom: 3px; }
+}
