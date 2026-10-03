@@ -71,6 +71,12 @@ réviser*, *composer* et *imprimer*, et permet des feuilles qui panachent les no
 | 28 | Mode interactif : faire une fiche ou une révision panachée dans l'application, sans papier ; événements `item` dans le carnet | [#28](https://github.com/Eric-D/ZIGTOP/issues/28) | ✅ en ligne : « Faire sur l'application » aux pas 2 et 3 du tunnel |
 | 29 | Maîtrise d'une notion : classement à la Elo par notion (K décroissant, incertitude, oubli, seuils), jamais montré à l'enfant | [#29](https://github.com/Eric-D/ZIGTOP/issues/29) | ✅ branché : difficulté qui suit l'enfant, état et courbe dans *Mes progrès*, révision de la semaine |
 
+## Phase 10 — lisibilité des feuilles imprimées
+
+| # | Sujet | Issue | État |
+| --- | --- | --- | --- |
+| 31 | Vraies marges d'impression (16 mm), air entre les blocs, Zigo monochrome devant chaque exercice, re-mesure complète avec un budget de 1 000 px | [#31](https://github.com/Eric-D/ZIGTOP/issues/31) | 🔧 en cours |
+
 ## Règles communes à toutes les fiches
 
 **Définitions communes, méthodes interchangeables.** Les *définitions* (ce qu'est un
