@@ -346,3 +346,44 @@ export function polygoneCote({ cotes, forme, taille = 150 } = {}) {
     ${droits}${etiquettes.join('')}
   </svg>`;
 }
+
+// Horloge à aiguilles : un cadran rond (12 chiffres, 60 graduations dont 12 plus marquées), la petite
+// aiguille des heures (courte, épaisse, avancée avec les minutes) et la grande aiguille des minutes
+// (longue, fine). `aiguilles: false` donne un cadran vierge. Les angles se lisent dans l'attribut
+// `transform` des groupes `.aiguille-heures` et `.aiguille-minutes` (0° = midi, sens des aiguilles).
+// `titre` remplace le texte lu par les lecteurs d'écran (utile quand l'heure est la réponse à trouver).
+export function horloge({ heures, minutes, taille = 120, aiguilles = true, chiffres = true, titre } = {}) {
+  if (aiguilles && (!Number.isInteger(heures) || !Number.isInteger(minutes) || heures < 0 || heures > 24 || minutes < 0 || minutes > 59)) {
+    throw new Error(`horloge : heure impossible (${heures} h ${minutes})`);
+  }
+  const C = 50, f = (v) => v.toFixed(2).replace(/\.?0+$/, '');
+  const point = (angle, r) => [C + r * Math.sin((angle * Math.PI) / 180), C - r * Math.cos((angle * Math.PI) / 180)];
+
+  let graduations = '';
+  for (let k = 0; k < 60; k++) {
+    const grande = k % 5 === 0;
+    const [x1, y1] = point(k * 6, 46), [x2, y2] = point(k * 6, grande ? 40 : 43.2);
+    graduations += `<line x1="${f(x1)}" y1="${f(y1)}" x2="${f(x2)}" y2="${f(y2)}" stroke-width="${grande ? 2 : 0.8}"/>`;
+  }
+  let nombres = '';
+  if (chiffres) {
+    for (let h = 1; h <= 12; h++) {
+      const [x, y] = point(h * 30, 33);
+      nombres += `<text x="${f(x)}" y="${f(y + 4)}">${h}</text>`;
+    }
+  }
+
+  const aH = ((heures % 12) * 30) + minutes / 2, aM = minutes * 6;
+  const mains = aiguilles ? `
+    <g class="aiguille-heures" transform="rotate(${f(aH)} ${C} ${C})"><line x1="${C}" y1="${C + 5}" x2="${C}" y2="${C - 24}" stroke-width="5.4" stroke-linecap="round"/></g>
+    <g class="aiguille-minutes" transform="rotate(${f(aM)} ${C} ${C})"><line x1="${C}" y1="${C + 8}" x2="${C}" y2="${C - 39}" stroke-width="2" stroke-linecap="round"/></g>` : '';
+  const texte = titre || (aiguilles ? `Horloge à aiguilles : ${heures % 12 || 12} heures ${minutes} minutes` : 'Cadran d’horloge vierge');
+
+  return `<svg class="horloge" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="${taille}" height="${taille}" role="img" aria-label="${texte}">
+    <circle cx="${C}" cy="${C}" r="48.2" fill="#fff" stroke="#222" stroke-width="2.6"/>
+    <g stroke="#222" stroke-linecap="butt">${graduations}</g>
+    <g fill="#222" font-family="Trebuchet MS, Verdana, sans-serif" font-size="9" font-weight="700" text-anchor="middle">${nombres}</g>
+    <g stroke="#222" fill="none">${mains}</g>
+    <circle cx="${C}" cy="${C}" r="3.4" fill="#222"/>
+  </svg>`;
+}

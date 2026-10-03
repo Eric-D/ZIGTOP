@@ -4,7 +4,7 @@ import { JSDOM } from 'jsdom';
 import { FICHES, tirer, rendre, decoder, codeDe, optionsParDefaut } from '../js/fiches.js';
 import { matrice } from '../js/qr.js';
 import { fmt } from '../js/utils.js';
-import { figureFraction, monnaie, polygoneCote } from '../js/visuels.js';
+import { figureFraction, monnaie, polygoneCote, horloge } from '../js/visuels.js';
 
 let echecs = 0;
 const verifier = (ok, message) => { if (!ok) echecs++; console.log(`${ok ? '✔' : '✘'} ${message}`); };
@@ -1541,7 +1541,7 @@ for (const opt of optionsMult) {
 {
   const fl = FICHES.find((f) => f.id === 'ce2-longueurs');
   console.log('— Longueurs : unités, conversions, périmètre');
-  verifier(FICHES.indexOf(fl) === FICHES.length - 1 && FICHES.indexOf(fl) === 9, 'longueurs : fiche ajoutée en fin de FICHES (index 9)');
+  verifier(FICHES.indexOf(fl) === 9, 'longueurs : fiche à l’index 9 de FICHES');
   verifier(fl.titre === 'Les longueurs : unités, conversions, périmètre' && fl.emoji === '📏'
     && fl.options.length === 1 && fl.options[0].id === 'km' && fl.options[0].defaut === 'oui'
     && JSON.stringify(fl.options[0].valeurs) === JSON.stringify([{ v: 'non', nom: 'mm, cm, dm, m' }, { v: 'oui', nom: 'Avec le kilomètre' }]),
@@ -1735,6 +1735,196 @@ for (const opt of optionsMult) {
     .map(([id, o]) => somme(empreinte(FICHES.find((x) => x.id === id), o)));
   verifier(h.join() === '2857615915,841554819,1341628403,3247079376,2467628440,3671073380,178792032,2718432813,1534335352,750168435,1150851747,649082766,1335819493', `longueurs : les neuf fiches précédentes sont inchangées (${h.join()})`);
   verifier(FICHES.slice(0, 9).map((f) => f.id).join() === 'ce2-addition-posee,ce2-soustraction-posee,ce2-multiplication,ce2-nombres-lire-ecrire,ce2-nombres-comparer,ce2-fractions-lire,ce2-fractions-comparer,ce2-fractions-calculer,ce2-monnaie', 'longueurs : ordre des neuf premières fiches inchangé');
+}
+
+/* Heures : lire l'heure sur une horloge à aiguilles ----------------------- */
+{
+  const fh = FICHES.find((f) => f.id === 'ce2-heures');
+  console.log('— Heures : lire l’heure sur une horloge');
+  verifier(FICHES.indexOf(fh) === FICHES.length - 1 && FICHES.indexOf(fh) === 10, 'heures : fiche ajoutée en fin de FICHES (index 10)');
+  verifier(fh.titre === 'Les heures : lire l’heure sur une horloge' && fh.emoji === '🕒' && fh.options.length === 1 && fh.options[0].id === 'minutes' && fh.options[0].defaut === 'cinq'
+    && JSON.stringify(fh.options[0].valeurs) === JSON.stringify([{ v: 'quarts', nom: 'Heures, quarts et demies' }, { v: 'cinq', nom: 'Toutes les 5 minutes' }]),
+    'heures : titre, emoji, option minutes (quarts puis cinq, défaut cinq)');
+
+  // Une seule fenêtre jsdom pour tout le bloc : on y recrée un conteneur par rendu (les rendus précédents sont libérés).
+  const fenetre = new JSDOM('<body></body>').window.document;
+  const conteneur = (html) => { const div = fenetre.createElement('div'); div.innerHTML = html; return div; };
+  const doc = (c, o) => conteneur(rendre(fh, c, o));
+  const blocs = (page) => [...page.querySelectorAll('.bloc:not(.bloc--methode)')];
+  const txt = (el) => { const c = el.cloneNode(true); c.querySelectorAll('svg').forEach((x) => x.remove()); return c.textContent.replace(/[\u00a0\u202f]/g, ' ').replace(/[ \t\n\r]+/g, ' ').trim(); };
+
+  // Lecture d'un cadran SVG : angles des deux aiguilles (lus dans transform), sans rien emprunter au générateur.
+  const angle = (g) => (g ? +/rotate\(([-\d.]+)/.exec(g.getAttribute('transform'))[1] : null);
+  const lireCadran = (svg) => {
+    const aH = angle(svg.querySelector('.aiguille-heures')), aM = angle(svg.querySelector('.aiguille-minutes'));
+    if (aH === null || aM === null) return null;
+    const m = Math.round(aM / 6) % 60;
+    const h12 = Math.floor((aH + 0.01) / 30) % 12 || 12;
+    // cohérence : la petite aiguille a avancé de m / 2 degrés dans son heure
+    const ok = Math.abs(aM - 6 * m) < 0.1 && Math.abs(aH - (((h12 % 12) * 30) + m / 2)) < 0.1;
+    return { h: h12, m, ok };
+  };
+  const hmTexte = (t) => { const r = /(\d+) h (\d\d)/.exec(t); return r ? { h: +r[1], m: +r[2] } : null; };
+  const toutesHm = (t) => [...t.matchAll(/(\d+) h (\d\d)/g)].map((r) => ({ h: +r[1], m: +r[2] }));
+
+  // Le composant horloge
+  {
+    const svg = (o) => conteneur(horloge(o)).querySelector('svg');
+    let ok = true;
+    for (let h = 1; h <= 12; h++) for (const m of [0, 7, 15, 30, 45, 59]) {
+      const c = lireCadran(svg({ heures: h, minutes: m }));
+      if (!c || !c.ok || c.h !== h || c.m !== m) ok = false;
+    }
+    verifier(ok, 'horloge : angles des deux aiguilles exacts pour toutes les heures (la petite avance avec les minutes)');
+    const a = svg({ heures: 3, minutes: 30 });
+    verifier(a.querySelectorAll('text').length === 12 && [...a.querySelectorAll('text')].map((t) => t.textContent).join() === '1,2,3,4,5,6,7,8,9,10,11,12', 'horloge : 12 chiffres');
+    const traits = [...a.querySelectorAll('line')].filter((l) => !l.closest('.aiguille-heures, .aiguille-minutes'));
+    const gros = traits.filter((l) => +l.getAttribute('stroke-width') > 1.5);
+    verifier(traits.length === 60 && gros.length === 12, 'horloge : 60 graduations dont 12 plus marquées');
+    const lH = a.querySelector('.aiguille-heures line'), lM = a.querySelector('.aiguille-minutes line');
+    const long = (l) => Math.abs(+l.getAttribute('y2') - 50);
+    verifier(long(lH) < long(lM) * 0.7 && +lH.getAttribute('stroke-width') > 2 * +lM.getAttribute('stroke-width'), 'horloge : petite aiguille courte et épaisse, grande aiguille longue et fine');
+    const v = svg({ heures: 3, minutes: 30, aiguilles: false });
+    verifier(!v.querySelector('.aiguille-heures') && !v.querySelector('.aiguille-minutes') && v.querySelectorAll('circle').length === 2, 'horloge : cadran vierge sans aiguilles, centre marqué');
+    verifier(!svg({ heures: 3, minutes: 30, chiffres: false }).querySelector('text'), 'horloge : chiffres masquables');
+    let leve = false; try { horloge({ heures: 3, minutes: 75 }); } catch { leve = true; }
+    verifier(leve, 'horloge : une heure impossible est refusée');
+  }
+
+  for (const minutes of ['quarts', 'cinq']) for (const methode of [true, false]) {
+    const k = methode ? { l: 6, m: 4, t: 4, v: 4 } : { l: 8, m: 6, t: 6, v: 6 };
+    const permis = minutes === 'quarts' ? [0, 15, 30, 45] : Array.from({ length: 12 }, (_, i) => 5 * i);
+    const nom = `heures ${minutes}, ${methode ? 'avec' : 'sans'} méthode`;
+    let comptes = 0, lecture = 0, moinsKo = 0, tracerKo = 0, vingtKo = 0, bornes = 0, fuite = 0, mots = 0, couverture = 0, angles = 0;
+    for (let graine = 1; graine <= 30; graine++) {
+      const c = tirer(fh, { minutes }, graine * 7919);
+      const d = doc(c, { corrige: true, methode });
+      const [pe, pc] = d.querySelectorAll('.feuille');
+      const [e1, e2, e3, e4] = blocs(pe), [c1, c2, c3, c4] = blocs(pc);
+      const n = (el, sel) => el.querySelectorAll(sel).length;
+      if (!(n(e1, '.horloge-item') === k.l && n(c1, '.horloge-item') === k.l && n(e2, '.horloge-item') === k.m && n(c2, '.horloge-item') === k.m
+        && n(e3, '.horloge-item') === k.t && n(c3, '.horloge-item') === k.t && n(e4, '.horloge-item') === k.v && n(c4, '.horloge-item') === k.v
+        && n(e1, '.case-h') === 2 * k.l && n(e4, '.case-h') === 2 * k.v)) comptes++;
+
+      // Ex. 1 : heure écrite sous l'horloge = heure lue sur les aiguilles, matin, minutes dans l'option ; aiguilles identiques sur la page élève
+      const vus1 = new Set();
+      [...c1.querySelectorAll('.horloge-item')].forEach((el, i) => {
+        const cad = lireCadran(el.querySelector('svg')), ecrit = hmTexte(txt(el));
+        if (!cad || !cad.ok || !ecrit || ecrit.h !== cad.h || ecrit.m !== cad.m || cad.h < 6 || cad.h > 11 || !permis.includes(cad.m)) lecture++;
+        else vus1.add(cad.m);
+        const eleve = lireCadran(e1.querySelectorAll('.horloge-item')[i].querySelector('svg'));
+        if (!eleve || eleve.h !== cad.h || eleve.m !== cad.m) lecture++;
+        if (!permis.includes(cad.m)) bornes++;
+      });
+      if (![0, 15, 30, 45].every((m) => vus1.has(m))) couverture++;
+
+      // Ex. 2 : « 8 heures moins 10, c'est 7 h 50 » — l'équivalence est recalculée
+      [...c2.querySelectorAll('.horloge-item')].forEach((el) => {
+        const cad = lireCadran(el.querySelector('svg')), t = txt(el).replace(/^[a-z]\.\s*/, '');
+        const lu = hmTexte(t);
+        const moins = /^(\d+) heures moins (le quart|\d+), c’est (\d+) h (\d\d)\.$/.exec(t);
+        const demie = /^(\d+) heures et demie, c’est (\d+) h (\d\d)\.$/.exec(t);
+        if (!cad || !cad.ok || !lu) { moinsKo++; return; }
+        if (moins) {
+          const retire = moins[2] === 'le quart' ? 15 : +moins[2];
+          const total = (+moins[1] * 60 - retire) % 720;
+          if (cad.m < 35 || (minutes === 'quarts' && cad.m !== 45) || (cad.h * 60 + cad.m) % 720 !== total % 720 || lu.h !== cad.h || lu.m !== cad.m || +moins[1] !== (cad.h % 12) + 1 && !(cad.h === 11 && +moins[1] === 12)) moinsKo++;
+          if (moins[2] === 'le quart' && cad.m !== 45) moinsKo++;
+          if ((moins[2] === 'le quart') !== (retire === 15)) moinsKo++;
+        } else if (demie) {
+          if (minutes !== 'quarts' || cad.m !== 30 || +demie[1] !== cad.h || lu.h !== cad.h || lu.m !== 30) moinsKo++;
+        } else moinsKo++;
+        if (!permis.includes(cad.m)) bornes++;
+      });
+      if (minutes === 'cinq' && new Set([...c2.querySelectorAll('.horloge-item svg')].map((s) => lireCadran(s).m)).size < 4) couverture++;
+
+      // Ex. 3 : cadran vierge sur la page élève, heure écrite dessous ; le corrigé trace des aiguilles qui lui correspondent
+      [...e3.querySelectorAll('.horloge-item')].forEach((el, i) => {
+        const ecrit = hmTexte(txt(el)), corr = c3.querySelectorAll('.horloge-item')[i];
+        const cad = lireCadran(corr.querySelector('svg')), ecritC = hmTexte(txt(corr));
+        if (el.querySelector('.aiguille-heures, .aiguille-minutes') || !ecrit || !cad || !cad.ok || !ecritC || ecritC.h !== ecrit.h || ecritC.m !== ecrit.m || cad.h !== ecrit.h || cad.m !== ecrit.m) tracerKo++;
+        if (!permis.includes(ecrit.m) || ecrit.h < 1 || ecrit.h > 12) bornes++;
+        // l'angle de la petite aiguille est cohérent avec l'heure
+        const aH = angle(corr.querySelector('.aiguille-heures'));
+        if (Math.abs(aH - (((ecrit.h % 12) * 30) + ecrit.m / 2)) > 0.1) angles++;
+      });
+
+      // Ex. 4 : 24 h = heure + 12 pour l'après-midi et le soir
+      const periodes = new Set();
+      [...c4.querySelectorAll('.horloge-item')].forEach((el) => {
+        const cad = lireCadran(el.querySelector('svg')), t = txt(el).replace(/^[a-z]\.\s*/, '');
+        const r = /^(\d+) h (\d\d) (l’après-midi|le soir), c’est (\d+) h (\d\d)\.$/.exec(t);
+        if (!cad || !cad.ok || !r || +r[1] !== cad.h || +r[2] !== cad.m || +r[4] !== cad.h + 12 || +r[5] !== cad.m || r[5].length !== 2) vingtKo++;
+        else {
+          periodes.add(r[3]);
+          if (r[3] === 'l’après-midi' && (cad.h < 1 || cad.h > 5)) vingtKo++;
+          if (r[3] === 'le soir' && (cad.h < 6 || cad.h > 11)) vingtKo++;
+        }
+        if (!permis.includes(cad.m)) bornes++;
+      });
+      if (periodes.size !== 2) couverture++;
+      [...e4.querySelectorAll('.horloge-item')].forEach((el, i) => {
+        const cad = lireCadran(el.querySelector('svg')), cc = lireCadran(c4.querySelectorAll('.horloge-item')[i].querySelector('svg'));
+        if (!cad || !cc || cad.h !== cc.h || cad.m !== cc.m) vingtKo++;
+      });
+
+      // Page élève : aucune réponse écrite (hors exemple de la leçon), aucun rouge, libellés d'accessibilité sans l'heure
+      const reps = (bloc) => [...bloc.querySelectorAll('.horloge-item__rep, .horloge-item__periode')].map((x) => x.textContent);
+      const heuresDonnees = reps(e3).map((t) => hmTexte(t.replace(/[\u00a0\u202f]/g, ' ')));
+      if (pe.querySelector('.rouge') || [e1, e2, e4].some((b) => reps(b).some((t) => /\d/.test(t)))
+        || heuresDonnees.length !== k.t || heuresDonnees.some((x) => !x)
+        || [...pe.querySelectorAll('.bloc:not(.bloc--methode) svg')].some((x) => /\d/.test(x.getAttribute('aria-label')))) fuite++;
+
+      const tout = pe.textContent + ' ' + pc.textContent;
+      if (/faux|erreur|raté|✗|✘|❌|[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(tout)) mots++;
+    }
+    verifier(comptes === 0, `${nom} : mêmes comptes élève / corrigé (${k.l} horloges, ${k.m} « moins », ${k.t} cadrans, ${k.v} heures 24 h), cases de réponse, 30 tirages`);
+    verifier(lecture === 0, `${nom} : heures lues exactes (aiguilles relues dans le SVG), matin, mêmes horloges sur les deux pages`);
+    verifier(couverture === 0, `${nom} : heure pile, et quart, et demie, moins le quart présents ; variété des minutes ; matin et soir`);
+    verifier(moinsKo === 0, `${nom} : lectures « moins » et équivalences exactes (ex. 8 heures moins 10 = 7 h 50)`);
+    verifier(tracerKo === 0 && angles === 0, `${nom} : cadrans vierges sur la page élève, aiguilles du corrigé exactes (angle de la petite aiguille cohérent avec l’heure)`);
+    verifier(vingtKo === 0, `${nom} : notation 24 h exacte (heure + 12), après-midi 1 h à 5 h, soir 6 h à 11 h`);
+    verifier(bornes === 0, `${nom} : minutes dans les bornes de l’option`);
+    verifier(fuite === 0, `${nom} : aucune réponse sur la page élève (hors exemple de la leçon)`);
+    verifier(mots === 0, `${nom} : aucun mot négatif ni emoji sur la feuille`);
+    const d0 = doc(tirer(fh, { minutes }, 99), { corrige: true, methode });
+    const [pe0, pc0] = d0.querySelectorAll('.feuille');
+    verifier(pe0.querySelectorAll('.bloc--methode').length === (methode ? 1 : 0) && !pc0.querySelector('.bloc--methode') && !pc0.textContent.includes('Nom :'), `${nom} : rappel seulement avec la méthode, jamais dans le corrigé ni la ligne Nom / Date`);
+  }
+
+  // Le rappel : phrases et exemples de la leçon
+  for (const minutes of ['quarts', 'cinq']) {
+    const m = doc(tirer(fh, { minutes }, 11), { corrige: false, methode: true }).querySelector('.bloc--methode');
+    const t = txt(m);
+    const phrases = ['La petite aiguille indique les heures.', 'La grande aiguille indique les minutes.', 'Il est 20 heures 13 minutes.', 'Le 15 est relié à « et quart » ; le 30 est relié à « et demie ».',
+      '1 heure = 60 minutes', 'une demi-heure = 30 minutes', 'un quart d’heure = 15 minutes', 'trois quarts d’heure = 45 minutes',
+      'Il est 8 heures moins 10.', 'Il est 7 h 50.', 'Il est 7 heures 50 minutes.', 'Dans 10 minutes, il sera 8 heures.',
+      'moins 5 → 55', 'moins 10 → 50', 'moins le quart → 45', 'moins 20 → 40', 'moins 25 → 35'];
+    verifier(phrases.every((p) => t.includes(p)), `heures ${minutes} : le rappel reprend les phrases de la leçon (aiguilles, et quart / et demie, « 8 heures moins 10 », moins 5 à moins 25)`);
+    const svgs = [...m.querySelectorAll('svg')].map(lireCadran);
+    verifier(svgs.length === 2 && svgs[0].ok && svgs[0].h === 8 && svgs[0].m === 13 && svgs[1].ok && svgs[1].h === 7 && svgs[1].m === 50, `heures ${minutes} : horloges d’exemple 8 h 13 (20 h 13) et 7 h 50 (8 heures moins 10)`);
+  }
+
+  // Codes reproductibles et options
+  for (const minutes of ['quarts', 'cinq']) {
+    const c = tirer(fh, { minutes });
+    const r = decoder(c.code);
+    verifier(r && r.fiche === fh && r.options.minutes === minutes && JSON.stringify(tirer(r.fiche, r.options, r.graine)) === JSON.stringify(c), `heures ${minutes} : le code ${c.code} redonne la même fiche`);
+    verifier(rendre(fh, tirer(fh, { minutes }, 77), { corrige: true }) === rendre(fh, tirer(fh, { minutes }, 77), { corrige: true }), `heures ${minutes} : même graine, même HTML`);
+    const vus = new Set(); for (let i = 0; i < 200; i++) vus.add(tirer(fh, { minutes }).code);
+    verifier(vus.size > 190, `heures ${minutes} : codes variés (${vus.size} sur 200)`);
+  }
+  verifier(codeDe(fh, { minutes: 'quarts' }, 5) !== codeDe(fh, { minutes: 'cinq' }, 5), 'heures : l’option change le code');
+
+  // Les dix fiches précédentes inchangées : empreinte du HTML à graine fixe, mesurée avant l’ajout
+  const empreinte = (f, o) => { const t = tirer(f, o, 424242); return JSON.stringify(t) + rendre(f, t, { corrige: true, base: 'http://x/' }); };
+  const somme = (s) => { let h = 5381; for (const ch of s) h = ((h * 33) ^ ch.charCodeAt(0)) >>> 0; return h; };
+  const h = [['ce2-addition-posee', { taille: 'mix' }], ['ce2-soustraction-posee', { taille: 'mix' }], ['ce2-multiplication', { facteur: '2' }], ['ce2-nombres-lire-ecrire', { taille: '1000' }], ['ce2-nombres-lire-ecrire', { taille: '10000' }],
+    ['ce2-nombres-comparer', { taille: '1000' }], ['ce2-nombres-comparer', { taille: '10000' }], ['ce2-fractions-lire', {}], ['ce2-fractions-comparer', {}], ['ce2-fractions-calculer', { denominateur: '4' }], ['ce2-fractions-calculer', { denominateur: '10' }],
+    ['ce2-monnaie', { centimes: 'non' }], ['ce2-monnaie', { centimes: 'oui' }], ['ce2-longueurs', { km: 'non' }], ['ce2-longueurs', { km: 'oui' }]]
+    .map(([id, o]) => somme(empreinte(FICHES.find((x) => x.id === id), o)));
+  verifier(h.join() === '2857615915,841554819,1341628403,3247079376,2467628440,3671073380,178792032,2718432813,1534335352,750168435,1150851747,649082766,1335819493,11888257,1584605419', `heures : les dix fiches précédentes sont inchangées (${h.join()})`);
+  verifier(FICHES.slice(0, 10).map((f) => f.id).join() === 'ce2-addition-posee,ce2-soustraction-posee,ce2-multiplication,ce2-nombres-lire-ecrire,ce2-nombres-comparer,ce2-fractions-lire,ce2-fractions-comparer,ce2-fractions-calculer,ce2-monnaie,ce2-longueurs', 'heures : ordre des dix premières fiches inchangé');
 }
 
 process.exit(echecs ? 1 : 0);

@@ -4,7 +4,7 @@
 
 import { rnd, pick, shuffle, fmt, enLettres, setAlea, generateurAleatoire } from './utils.js';
 import { qrSVG } from './qr.js';
-import { demiDroite, figureFraction, regleFractions, monnaie, polygoneCote, PIECES_EURO, BILLETS_EURO } from './visuels.js';
+import { demiDroite, figureFraction, regleFractions, monnaie, polygoneCote, horloge, PIECES_EURO, BILLETS_EURO } from './visuels.js';
 
 /* ------------------------------------------------------------------ */
 /* Outils de mise en page                                              */
@@ -2444,6 +2444,172 @@ const miseLongueurs = {
   },
 };
 
+/* ------------------------------------------------------------------ */
+/* CE2 — heures : lire l'heure sur une horloge à aiguilles              */
+/* ------------------------------------------------------------------ */
+
+// « 8 h 05 » : les minutes sur deux chiffres, espaces insécables.
+const hm = (h, m) => `${h}${NBSP}h${NBSP}${String(m).padStart(2, '0')}`;
+const plage = (a, b) => Array.from({ length: b - a + 1 }, (_, i) => a + i);
+const MOINS_H = { 35: 25, 40: 20, 45: 'le quart', 50: 10, 55: 5 };   // la leçon : moins 25 → 35, moins 20 → 40, moins le quart → 45…
+
+// Lecture d'une horloge d'après l'exercice 2 : « 8 heures moins 10 » (7 h 50), « 7 heures et demie » (7 h 30).
+const lectureH = ({ h, m }) => (m === 30 ? `${h} heures et demie` : `${h + 1} heures moins ${MOINS_H[m]}`);
+const heureLue = ({ h, m }) => hm(h, m);
+const nomPeriode = { 'apres-midi': 'l’après-midi', soir: 'le soir' };
+
+function genererHeures(options) {
+  const quarts = options.minutes === 'quarts';
+  const toutes = quarts ? [0, 15, 30, 45] : plage(0, 11).map((k) => 5 * k);
+  const hautes = quarts ? [45] : [35, 40, 45, 50, 55];
+
+  // Une suite de (h, m) tous différents ; `tirage(i)` propose le i-ème couple.
+  const suite = (n, tirage) => {
+    const vus = new Set();
+    return Array.from({ length: n }, (_, i) => {
+      let x;
+      for (let essai = 0; essai < 200; essai++) { x = tirage(i); if (!vus.has(`${x.h}:${x.m}`)) break; }
+      vus.add(`${x.h}:${x.m}`);
+      return x;
+    });
+  };
+
+  // Ex. 1 : huit horloges du matin (six avec le rappel) ; les six premières contiennent toujours une heure pile,
+  // « et quart », « et demie » et « moins le quart », les autres minutes sont tirées dans l'option.
+  const autres = quarts ? Array.from({ length: 4 }, () => pick(toutes)) : shuffle(toutes.filter((m) => m % 15)).slice(0, 4);
+  const minutesLire = [...shuffle([0, 15, 30, 45, autres[0], autres[1]]), autres[2], autres[3]];
+  const lire = suite(8, (i) => ({ h: rnd(6, 11), m: minutesLire[i] }));
+
+  // Ex. 2 : « moins » (minutes 35 à 55) ; avec l'option quarts, « moins le quart » ou « et demie ».
+  const heuresMoins = shuffle(plage(2, 11));
+  const minutesMoins = quarts
+    ? [...shuffle([45, 30, 45, 30]), ...shuffle([45, 30])]
+    : [...shuffle(hautes), pick(hautes)];
+  const moins = minutesMoins.map((m, i) => ({ h: heuresMoins[i], m }));
+
+  // Ex. 3 : cadrans vierges ; parmi les quatre premiers, une heure où la petite aiguille est proche de l'heure suivante.
+  const basses = toutes.filter((m) => m <= 30);
+  const minutesTracer = [...shuffle([pick(basses), pick(hautes), pick(toutes), pick(toutes)]), pick(toutes), pick(toutes)];
+  const heuresTracer = shuffle(plage(1, 12));
+  const tracer = minutesTracer.map((m, i) => ({ h: heuresTracer[i], m }));
+
+  // Ex. 4 : l'après-midi (1 h à 5 h) ou le soir (6 h à 11 h) ; deux de chaque parmi les quatre premières.
+  const periodes = [...shuffle(['apres-midi', 'soir', 'apres-midi', 'soir']), ...shuffle(['apres-midi', 'soir'])];
+  const apresMidi = shuffle(plage(1, 5)), soirs = shuffle(plage(6, 11));
+  const vingtQuatre = periodes.map((periode, i) => {
+    const h = periode === 'apres-midi' ? apresMidi.shift() : soirs.shift();
+    return { h, m: pick(toutes), periode };
+  });
+
+  return {
+    minutes: quarts ? 'quarts' : 'cinq',
+    objectif: 'Je sais lire l’heure sur une horloge à aiguilles et les horaires comme 8 heures moins 10.',
+    methode: {},
+    lire, moins, tracer, vingtQuatre,
+  };
+}
+
+// Une grille d'horloges ; `cartes` : un bloc HTML par horloge.
+const grilleH = (cartes, colonnes, classe = '') => `<div class="horloges${classe ? ` ${classe}` : ''}" style="--nb:${colonnes}">${cartes.join('')}</div>`;
+const caseH = '<span class="case-h"></span>';
+const TITRE_ELEVE = 'Horloge à aiguilles';
+
+const miseHeures = {
+  signe: '',
+  combien: (contenu, methode) => ({
+    lire: contenu.lire.slice(0, methode ? 6 : 8),
+    moins: contenu.moins.slice(0, methode ? 4 : 6),
+    tracer: contenu.tracer.slice(0, methode ? 4 : 6),
+    vingtQuatre: contenu.vingtQuatre.slice(0, methode ? 4 : 6),
+  }),
+  noteCorrige: 'les réponses attendues sont en rouge ; l’heure lue est écrite sous chaque horloge, les aiguilles à tracer sont dessinées sur les cadrans, et l’heure de l’après-midi ou du soir s’écrit sur 24 heures (12 heures de plus).',
+  // Rappel : les phrases et les exemples de la leçon (pages 37 et 38 du livret).
+  rappel() {
+    return `
+      <div class="rappel-h">
+        <div class="rappel-h__partie">
+          ${horloge({ heures: 8, minutes: 13, taille: 84, titre: 'Horloge qui indique 8 heures 13' })}
+          <div class="rappel-h__texte">
+            <p><b>La petite aiguille indique les heures.</b><br><b>La grande aiguille indique les minutes.</b></p>
+            <p>Il est 20 heures 13 minutes.</p>
+          </div>
+        </div>
+        <div class="rappel-h__partie rappel-h__partie--moins">
+          ${horloge({ heures: 7, minutes: 50, taille: 84, titre: 'Horloge qui indique 7 heures 50' })}
+          <div class="rappel-h__texte">
+            <p><b>Il est 8 heures moins 10.</b><br><b>Il est 7 h 50.</b></p>
+            <p>Il est 7 heures 50 minutes.<br>Dans 10 minutes, il sera 8 heures.</p>
+          </div>
+        </div>
+        <p class="rappel-h__ligne">Les minutes se comptent de 5 en 5. Le 15 est relié à « et quart » ; le 30 est relié à « et demie ».
+          <b>1 heure = 60 minutes · une demi-heure = 30 minutes · un quart d’heure = 15 minutes · trois quarts d’heure = 45 minutes</b></p>
+        <p class="rappel-h__ligne rappel-h__ligne--moins"><b>moins 5 → 55 · moins 10 → 50 · moins le quart → 45 · moins 20 → 40 · moins 25 → 35</b></p>
+      </div>`;
+  },
+  exercices(contenu, methode) {
+    const { lire, moins, tracer, vingtQuatre } = this.combien(contenu, methode);
+    const quarts = contenu.minutes === 'quarts';
+    const colLire = lire.length === 8 ? 4 : 6;
+    const taille = (n) => (n >= 6 ? 96 : 98);
+    return `
+    <div class="bloc">
+      <h2>Exercice 1 — Lis l’heure du matin sur chaque horloge.</h2>
+      ${grilleH(lire.map((x, i) => `<div class="horloge-item"><b class="horloge-item__lettre">${lettre(i)}.</b>${horloge({ heures: x.h, minutes: x.m, taille: lire.length === 8 ? 90 : taille(colLire), titre: TITRE_ELEVE })}
+        <div class="horloge-item__rep">${caseH}<span>h</span>${caseH}</div></div>`), colLire)}
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 2 — ${quarts ? 'Lis chaque horloge avec « moins le quart » ou « et demie ».' : 'Lis chaque horloge avec « moins ».'}</h2>
+      ${grilleH(moins.map((x, i) => `<div class="horloge-item"><b class="horloge-item__lettre">${lettre(i)}.</b>${horloge({ heures: x.h, minutes: x.m, taille: taille(4), titre: TITRE_ELEVE })}
+        <div class="horloge-item__rep"><span class="ligne-h">${caseH}<span>heures</span></span><span class="ligne-h"><span>${x.m === 30 ? 'et demie' : x.m === 45 ? 'moins le quart' : 'moins'}</span>${x.m === 30 || x.m === 45 ? '' : caseH}</span></div></div>`), moins.length === 6 ? 3 : 4, moins.length === 6 ? 'horloges--large horloges--moins' : 'horloges--moins')}
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 3 — Dessine les deux aiguilles de chaque horloge.</h2>
+      ${grilleH(tracer.map((x, i) => `<div class="horloge-item"><b class="horloge-item__lettre">${lettre(i)}.</b>${horloge({ heures: x.h, minutes: x.m, taille: taille(tracer.length), aiguilles: false })}
+        <div class="horloge-item__rep horloge-item__rep--heure"><span class="n">${heureLue(x)}</span></div></div>`), tracer.length)}
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 4 — Écris l’heure sur 24 heures. <span class="exemple-h">Exemple : 8${NBSP}h${NBSP}13 le soir, c’est 20${NBSP}h${NBSP}13.</span></h2>
+      ${grilleH(vingtQuatre.map((x, i) => `<div class="horloge-item"><b class="horloge-item__lettre">${lettre(i)}.</b>${horloge({ heures: x.h, minutes: x.m, taille: taille(vingtQuatre.length), titre: TITRE_ELEVE })}
+        <div class="horloge-item__periode">${nomPeriode[x.periode]}</div>
+        <div class="horloge-item__rep">${caseH}<span>h</span>${caseH}</div></div>`), vingtQuatre.length)}
+    </div>
+`;
+  },
+  corriges(contenu, methode) {
+    const { lire, moins, tracer, vingtQuatre } = this.combien(contenu, methode);
+    const colLire = lire.length === 8 ? 4 : 6;
+    const taille = (n) => (n >= 6 ? 88 : 92);
+    return `
+    <div class="bloc">
+      <h2>Exercice 1</h2>
+      ${grilleH(lire.map((x, i) => `<div class="horloge-item"><b class="horloge-item__lettre">${lettre(i)}.</b>${horloge({ heures: x.h, minutes: x.m, taille: lire.length === 8 ? 84 : taille(colLire) })}
+        <div class="horloge-item__rep horloge-item__rep--heure">${rouge(heureLue(x))}</div></div>`), colLire, 'horloges--corrigees')}
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 2</h2>
+      ${grilleH(moins.map((x, i) => `<div class="horloge-item"><b class="horloge-item__lettre">${lettre(i)}.</b>${horloge({ heures: x.h, minutes: x.m, taille: taille(4) })}
+        <div class="horloge-item__rep horloge-item__rep--phrase"><span>${rouge(lectureH(x))}, c’est ${rouge(heureLue(x))}.</span></div></div>`), moins.length === 6 ? 3 : 4, moins.length === 6 ? 'horloges--corrigees horloges--large' : 'horloges--corrigees')}
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 3</h2>
+      ${grilleH(tracer.map((x, i) => `<div class="horloge-item"><b class="horloge-item__lettre">${lettre(i)}.</b>${horloge({ heures: x.h, minutes: x.m, taille: taille(tracer.length) })}
+        <div class="horloge-item__rep horloge-item__rep--heure"><span class="n">${heureLue(x)}</span></div></div>`), tracer.length, 'horloges--corrigees')}
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 4</h2>
+      ${grilleH(vingtQuatre.map((x, i) => `<div class="horloge-item"><b class="horloge-item__lettre">${lettre(i)}.</b>${horloge({ heures: x.h, minutes: x.m, taille: taille(vingtQuatre.length) })}
+        <div class="horloge-item__rep horloge-item__rep--phrase"><span>${heureLue(x)} ${nomPeriode[x.periode]}, c’est ${rouge(heureLue({ h: x.h + 12, m: x.m }))}.</span></div></div>`), vingtQuatre.length, 'horloges--corrigees')}
+    </div>
+`;
+  },
+};
+
 function pageExercices(fiche, contenu, { base = '', methode = true, identite = true } = {}) {
   const { signe } = fiche.mise;
   if (fiche.mise.rappel) return pageExercicesLibre(fiche, contenu, { base, methode, identite });
@@ -2673,6 +2839,25 @@ export const FICHES = [
     ],
     generer: genererLongueurs,
     mise: miseLongueurs,
+  },
+  {
+    id: 'ce2-heures',
+    classe: 'ce2',
+    domaine: 'Grandeurs et mesures',
+    titre: 'Les heures : lire l’heure sur une horloge',
+    emoji: '🕒',
+    options: [
+      {
+        id: 'minutes', libelle: 'Minutes utilisées',
+        valeurs: [
+          { v: 'quarts', nom: 'Heures, quarts et demies' },
+          { v: 'cinq', nom: 'Toutes les 5 minutes' },
+        ],
+        defaut: 'cinq',
+      },
+    ],
+    generer: genererHeures,
+    mise: miseHeures,
   },
 ];
 

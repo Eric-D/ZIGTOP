@@ -37,6 +37,10 @@ et le **corrigé sur une deuxième page** pour l'adulte.
 
 Fiches disponibles (le plan complet est dans [`programme/ce2/PLAN-FICHES.md`](programme/ce2/PLAN-FICHES.md)) :
 
+- **CE2 — Les heures : lire l'heure sur une horloge** (p. 37–38 du livret) : la petite et
+  la grande aiguille dans les mots de la leçon, la lecture « 8 heures moins 10 » ; horloges à
+  lire, lectures en « moins », aiguilles à tracer sur des cadrans vierges, heures de
+  l'après-midi en notation 24 h. Option : heures, quarts et demies, ou toutes les 5 minutes.
 - **CE2 — Les longueurs : unités, conversions, périmètre** (p. 33–36 du livret) : les
   relations de la leçon (1 cm = 10 mm, 1 m = 10 dm = 100 cm, 1 km = 1 000 m), les écritures
   mixtes (« 3 700 m, c'est 3 km 700 m »), la définition du périmètre et son exemple ;
