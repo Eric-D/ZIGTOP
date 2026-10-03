@@ -61,7 +61,7 @@ réviser*, *composer* et *imprimer*, et permet des feuilles qui panachent les no
 | --- | --- | --- | --- |
 | 24 | Aperçu des fiches à l'échelle sur téléphone | [#24](https://github.com/Eric-D/ZIGTOP/issues/24) | ✅ en ligne |
 | 25 | Ne plus parler de numéros de page dans l'interface ; raccourci « jusqu'à telle notion » | [#25](https://github.com/Eric-D/ZIGTOP/issues/25) | ✅ en ligne |
-| 26 | Séparer la notion de sa formulation : définitions communes, méthodes interchangeables | [#26](https://github.com/Eric-D/ZIGTOP/issues/26) | 🔧 11 fiches converties en ligne ; reste masses, durées, solides, polygones, symétrie, données |
+| 26 | Séparer la notion de sa formulation : définitions communes, méthodes interchangeables | [#26](https://github.com/Eric-D/ZIGTOP/issues/26) | ✅ en ligne (17 fiches, deux formulations) |
 
 ## Phase 9 — répondre dans l'application et mesurer ce qui est acquis
 
@@ -105,7 +105,7 @@ compris dans le corrigé. Les consignes sont courtes ; une consigne par exercice
 **Accessibilité.** Grilles et lignes d'écriture généreuses (cellules ≥ 8 mm), police du
 moteur, contrastes nets ; les dessins restent lisibles en noir et blanc.
 
-**Tests.** Dans `tests/fiches.mjs` : résultats du corrigé exacts (recalculés
+**Tests.** Dans `tests/fiches-1.mjs` et `tests/fiches-2.mjs` (lancées par `tests/fiches.mjs`) : résultats du corrigé exacts (recalculés
 indépendamment), figures et quantités cohérentes, reproductibilité par le code, nombre
 d'exercices identique entre page élève et corrigé avec et sans méthode. Puis mesure de la
 hauteur de page.

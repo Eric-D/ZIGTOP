@@ -56,7 +56,15 @@ verifier(JSON.parse(w.localStorage.getItem('mathoo.v1')).reglages.formulation ==
   && d.querySelector('[data-reglage="formulation"][data-valeur="livret"]').getAttribute('aria-pressed') === 'true', 'Réglages : le choix est enregistré et affiché');
 clic(d.querySelector('[data-reglage="formulation"][data-valeur="commune"]'));
 
-/* 2. Tunnel : le pas 2 propose le même choix, le pas 3 change de rendu ---------------------- */
+/* 2. Tunnel : le pas 2 propose le même choix pour toutes les notions, le pas 3 change de rendu --- */
+for (const id of ['ce2-donnees', 'ce2-masses-contenances']) {
+  w = await ouvrir('');
+  d = w.document;
+  clic(d.querySelector('[data-aller="fiches"]'));
+  clic(d.querySelector(`[data-fiche="${id}"]`));
+  continuer();
+  verifier(etape() === '2' && !!d.querySelector('#choix-formulation'), `pas 2 : le choix de la méthode est toujours proposé (${id})`);
+}
 w = await ouvrir('');
 d = w.document;
 clic(d.querySelector('[data-aller="fiches"]'));
@@ -114,8 +122,10 @@ clic(d.querySelector('[data-reglage="formulation"][data-valeur="livret"]'));
 verifier(codeAffiche() === codeZ, 'feuille panachée : même code dans les deux formulations');
 continuer();
 const rappelsLivret = rappels();
-verifier(rappelsLivret[0] === 'Je sais poser et calculer des additions avec des nombres inférieurs à 10 000.' && rappelsLivret[2] === rappelsCommune[2],
-  `mini-rappel panaché en livret (${rappelsLivret[0]}), notion non convertie inchangée`);
+verifier(rappelsLivret[0] === 'Je sais poser et calculer des additions avec des nombres inférieurs à 10 000.'
+  && rappelsLivret[2] === 'Je connais les relations entre g, kg et t, et les unités de contenance (cL, dL, L).'
+  && rappelsCommune[2] === 'Je connais les relations entre unités de masse et de contenance, et je sais les convertir.',
+`mini-rappel panaché en livret (${rappelsLivret[0]}) et pour les masses (${rappelsLivret[2]} / ${rappelsCommune[2]})`);
 verifier(nombresExercices() === nombresZ, 'feuille panachée : les mêmes nombres dans les deux formulations');
 
 process.exit(echecs ? 1 : 0);

@@ -396,6 +396,8 @@ node tests/bonnes-reponses.mjs    # étoiles, badges, montée automatique de niv
 node tests/jardin.mjs             # boutique, plantations, et encouragement quand il manque des étoiles
 node tests/accessibilite.mjs      # réglages appliqués, séries courtes, réponses à choisir, dessins d'aide
 node tests/fiches.mjs             # corrigé juste, retenues bien placées, codes de fiche reproductibles
+                                  # (deux processus, car jsdom ne libère pas ses documents : tests/fiches-1.mjs = fiches 1 à 9,
+                                  # tests/fiches-2.mjs = fiches 10 à 17, formulations et empreintes ; chacune se lance seule)
 node tests/partage.mjs            # liens partagés : corrigé ouvert sans profil, options conservées
 node tests/ecran-fiches.mjs       # écran des fiches : domaines, liens vers les leçons, ordre figé de FICHES
 node tests/panache.mjs            # feuilles panachées : code Z, budget de hauteur, report sur plusieurs feuilles

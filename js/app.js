@@ -614,7 +614,7 @@ function pasReviser(c, liste, disponibles) {
       <div class="pied-page"><button class="btn btn--fantome" data-aller="accueil">← Retour à l’île</button></div>`;
 }
 
-// « Méthode : … » : le même choix que dans les réglages, pour les notions qui ont deux formulations.
+// « Méthode : … » : le même choix que dans les réglages (toutes les notions ont deux formulations).
 function choixFormulation() {
   const g = A11y.FORMULATION;
   const choisie = g.options.find((o) => o.v === A11y.formulationDe(reglages));
@@ -656,7 +656,7 @@ function pasComposer() {
             'Une ligne de rappel par exercice, en haut de la feuille.')
           : bascule('affichage', 'methode', 'Rappel de la méthode', ['oui', 'Avec'], ['non', 'Sans'], aff.methode,
             'Sans le rappel, la place libérée sert à plus d’exercices.')}
-        ${fiche.selection.some((id) => ficheParId(id).formulations) ? choixFormulation() : ''}
+        ${choixFormulation()}
         <div class="reglage">
           <div class="reglage__libelle">Nombre de feuilles</div>
           <div class="reglage__options">

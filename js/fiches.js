@@ -21,8 +21,8 @@ import { demiDroite, figureFraction, regleFractions, monnaie, polygoneCote, horl
 // - `commune` : le vocabulaire des programmes et les méthodes les plus répandues, sans tournure
 //   propre à un manuel.
 // La formulation est un choix d'AFFICHAGE : elle n'entre jamais dans le code de fiche, et un même
-// code rouvre les mêmes exercices quelle que soit la formulation. Les fiches pas encore converties
-// n'ont pas de `formulations` : elles ignorent l'option.
+// code rouvre les mêmes exercices quelle que soit la formulation. Toutes les fiches en ont deux ; un
+// objet de fiche sans `formulations` (écrit à la main, dans un test) est encore rendu tel quel.
 export const NOMS_FORMULATIONS = ['livret', 'commune'];
 export const FORMULATION_DEFAUT = 'commune';   // le réglage de l'application (le rendu brut reste `livret`)
 
@@ -845,8 +845,9 @@ const lettre = (i) => String.fromCharCode(97 + i);
 
 // Une fiche décrit sa mise en page par un objet `mise` :
 //   signe, combien(contenu, methode) → opérations imprimées,
-//   noteCorrige (phrase d'en-tête du corrigé),
-//   exercices(contenu, methode) / corriges(contenu, methode) → blocs HTML des exercices.
+//   exercices(contenu, methode, formulation) / corriges(contenu, methode, formulation) → blocs HTML des exercices
+//   (la note pour le parent est `noteParent` de la formulation ; `noteCorrige` n'existe plus que pour un objet
+//   de fiche sans `formulations`).
 // Chaque exercice est un <div class="bloc"> de premier niveau : `blocsDe` (en fin de fichier)
 // les découpe pour que les feuilles panachées réutilisent tels quels les fragments des fiches.
 // Le reste (en-tête, objectif, rappel de méthode, pied de page) est commun.
@@ -3116,8 +3117,8 @@ const FORMULATIONS_HEURES = {
     nom: 'commune',
     objectif: 'Je sais lire l’heure, la dire comme 8 heures moins 10, et l’écrire sur 24 heures.',
     rappel: {
-      aiguilles: () => ['<b>La petite aiguille indique les heures.</b><br><b>La grande aiguille indique les minutes.</b>', 'Le matin, il est 8 h 13 ; le soir, il est 20 h 13.'],
-      moins: () => ['<b>Il est 7 h 50, ou 8 heures moins 10.</b>', 'Dans 10 minutes, il sera 8 heures.'],
+      aiguilles: () => ['<b>La petite aiguille indique les heures.</b><br><b>La grande aiguille indique les minutes.</b>', `Le matin, il est ${hm(8, 13)} ; le soir, il est ${hm(20, 13)}.`],
+      moins: () => [`<b>Il est ${hm(7, 50)}, ou 8 heures moins 10.</b>`, 'Dans 10 minutes, il sera 8 heures.'],
       minutes: 'Les minutes se comptent de 5 en 5 : le 3 donne « et quart », le 6 donne « et demie ».',
     },
     consignes: {
@@ -3431,9 +3432,6 @@ function genererMassesContenances(options) {
 
   return {
     grandeur,
-    objectif: grandeur === 'masses' ? 'Je connais les relations entre gramme (g), kilogramme (kg) et tonne (t).'
-      : grandeur === 'contenances' ? 'Je connais les unités de contenance (cL, dL, L).'
-        : 'Je connais les relations entre g, kg et t, et les unités de contenance (cL, dL, L).',
     methode: {},
     objets, conversions, comparaisons, rangement, problemes,
   };
@@ -3443,8 +3441,54 @@ const MASSES_REPERES = [
   `<b>1${NBSP}kg = ${lg(1000, 'g')}</b><br>Un chat pèse ${lg(5300, 'g')} ou 5${NBSP}kg ${lg(300, 'g')}.`,
   `<b>1${NBSP}t = ${lg(1000, 'kg')}</b><br>Un éléphant pèse ${lg(6250, 'kg')} ou 6${NBSP}t ${lg(250, 'kg')}.`,
 ];
+const MASSES_REPERES_COMMUNE = [
+  `<b>1${NBSP}kg = ${lg(1000, 'g')}</b><br>Un chat pèse 5${NBSP}kg ${lg(300, 'g')}, soit ${lg(5300, 'g')}.`,
+  `<b>1${NBSP}t = ${lg(1000, 'kg')}</b><br>Un éléphant pèse 6${NBSP}t ${lg(250, 'kg')}, soit ${lg(6250, 'kg')}.`,
+];
 const REPERES_L = [['Une bouteille d’eau', 1], ['Une brique de lait', 1], ['Un bidon de produit ménager', 2], ['Une casserole', 5], ['Un arrosoir', 12],
   ['Un aquarium', 40], ['Un réservoir de voiture', 50], ['Une baignoire', 150], ['Une piscine gonflable', 930]].map(([nom, n]) => `${nom} de ${lg(n, 'L')}`);
+
+// Les relations (1 kg = 1 000 g, 1 t = 1 000 kg, 1 L = 100 cL = 10 dL) et les repères en litres sont des
+// définitions : elles sont reprises telles quelles dans les deux formulations. Ne changent que l'objectif,
+// les phrases d'exemple, les consignes et la note pour le parent.
+const FORMULATIONS_MASSES = {
+  livret: {
+    nom: 'livret',
+    objectif: (c) => (c.grandeur === 'masses' ? 'Je connais les relations entre gramme (g), kilogramme (kg) et tonne (t).'
+      : c.grandeur === 'contenances' ? 'Je connais les unités de contenance (cL, dL, L).'
+        : 'Je connais les relations entre g, kg et t, et les unités de contenance (cL, dL, L).'),
+    rappel: {
+      masses: () => MASSES_REPERES,
+      litre: () => `On utilise le litre pour mesurer des contenances. Un litre s’écrit <b>1${NBSP}L</b>.`,
+      exemples: () => `Une petite cuillère a une contenance de 1${NBSP}cL. Une tasse à café a une contenance de 1${NBSP}dL. Une brique de lait a une contenance de 1${NBSP}L.`,
+    },
+    consignes: {
+      ex1: (choix) => `Choisis l’unité qui convient (${choix}).`,
+      ex2: 'Convertis.',
+      ex3: 'Compare avec &lt;, &gt; ou =, puis range les mesures de la plus petite à la plus grande.',
+      ex4: 'Résous chaque problème.',
+    },
+    noteParent: 'les réponses attendues sont en rouge ; chaque problème montre son calcul, avec la conversion quand il y en a une, puis sa phrase réponse.',
+  },
+  commune: {
+    nom: 'commune',
+    objectif: (c) => (c.grandeur === 'masses' ? 'Je connais les relations entre g, kg et t, et je sais convertir des masses.'
+      : c.grandeur === 'contenances' ? 'Je connais les relations entre cL, dL et L, et je sais convertir des contenances.'
+        : 'Je connais les relations entre unités de masse et de contenance, et je sais les convertir.'),
+    rappel: {
+      masses: () => MASSES_REPERES_COMMUNE,
+      litre: () => `Pour mesurer une contenance, on utilise le litre. Un litre s’écrit <b>1${NBSP}L</b>.`,
+      exemples: () => `Une petite cuillère contient 1${NBSP}cL, une tasse à café 1${NBSP}dL et une brique de lait 1${NBSP}L.`,
+    },
+    consignes: {
+      ex1: (choix) => `Écris l’unité qui convient (${choix}).`,
+      ex2: 'Convertis.',
+      ex3: 'Compare avec &lt;, &gt; ou =, puis range les mesures dans l’ordre croissant.',
+      ex4: 'Résous chaque problème.',
+    },
+    noteParent: 'les réponses attendues sont en rouge ; chaque problème montre sa conversion éventuelle, son calcul, puis sa phrase réponse.',
+  },
+};
 
 const miseMassesContenances = {
   signe: '',
@@ -3454,20 +3498,19 @@ const miseMassesContenances = {
     comparaisons: contenu.comparaisons.slice(0, methode ? 4 : 6),
     problemes: contenu.problemes.slice(0, methode ? 2 : 3),
   }),
-  noteCorrige: 'les réponses attendues sont en rouge ; chaque problème montre son calcul, avec la conversion quand il y en a une, puis sa phrase réponse.',
   // Rappel : les phrases, relations et repères de la leçon (page 39 pour les masses, pages 41 et 42 pour les contenances).
-  rappel(contenu) {
+  rappel(contenu, fm = FORMULATIONS_MASSES.livret) {
     const g = contenu.grandeur;
     const masses = `
         <div class="rappel-mc__partie">
           <p class="rappel-mc__titre">Les masses</p>
-          ${MASSES_REPERES.map((t) => `<p>${t}</p>`).join('')}
+          ${fm.rappel.masses().map((t) => `<p>${t}</p>`).join('')}
         </div>`;
     const contenances = `
         <div class="rappel-mc__partie">
           <p class="rappel-mc__titre">Les contenances</p>
-          <p>On utilise le litre pour mesurer des contenances. Un litre s’écrit <b>1${NBSP}L</b>.</p>
-          <p>Une petite cuillère a une contenance de 1${NBSP}cL. Une tasse à café a une contenance de 1${NBSP}dL. Une brique de lait a une contenance de 1${NBSP}L.</p>
+          <p>${fm.rappel.litre()}</p>
+          <p>${fm.rappel.exemples()}</p>
           <p><b>1${NBSP}L = 100${NBSP}cL</b> et <b>1${NBSP}L = 10${NBSP}dL</b></p>
         </div>`;
     const reperes = `
@@ -3476,8 +3519,9 @@ const miseMassesContenances = {
       <div class="rappel-mc rappel-mc--${g}">${g !== 'contenances' ? masses : ''}${g !== 'masses' ? contenances : ''}${g !== 'masses' ? reperes : ''}
       </div>`;
   },
-  exercices(contenu, methode) {
+  exercices(contenu, methode, fm = FORMULATIONS_MASSES.livret) {
     const { objets, conversions, comparaisons } = this.combien(contenu, methode);
+    const kc = fm.consignes;
     const pts = '<span class="pointilles pointilles--mini"></span>';
     const k = comparaisons.length;
     const g = contenu.grandeur;
@@ -3485,21 +3529,21 @@ const miseMassesContenances = {
     const problemes = this.combien(contenu, methode).problemes;
     return `
     <div class="bloc">
-      <h2>Exercice 1 — Choisis l’unité qui convient (${choix}).</h2>
+      <h2>Exercice 1 — ${kc.ex1(choix)}</h2>
       <div class="conversions conversions--objets">
         ${objets.map((o, i) => `<div class="conversion"><b>${lettre(i)}.</b><span>${o.nom} : ${fmt(o.n)}</span>${pts}</div>`).join('')}
       </div>
     </div>
 
     <div class="bloc">
-      <h2>Exercice 2 — Convertis.</h2>
+      <h2>Exercice 2 — ${kc.ex2}</h2>
       <div class="conversions conversions--3">
         ${conversions.map((c, i) => `<div class="conversion"><b>${lettre(i)}.</b><span>${lg(c.n, c.de)} =</span>${pts}<span>${c.vers}</span></div>`).join('')}
       </div>
     </div>
 
     <div class="bloc">
-      <h2>Exercice 3 — Compare avec &lt;, &gt; ou =, puis range les mesures de la plus petite à la plus grande.</h2>
+      <h2>Exercice 3 — ${kc.ex3}</h2>
       <div class="paires paires--lg${k === 4 ? ' paires--lg4' : ''}">
         ${comparaisons.map((p, i) => `<div class="paire"><b>${lettre(i)}.</b> <span class="paire__a">${lgn(p.a.n, p.a.u)}</span><span class="case-symbole"></span><span class="paire__b">${lgn(p.b.n, p.b.u)}</span></div>`).join('')}
       </div>
@@ -3512,7 +3556,7 @@ const miseMassesContenances = {
     </div>
 
     <div class="bloc">
-      <h2>Exercice 4 — Résous chaque problème.</h2>
+      <h2>Exercice 4 — ${kc.ex4}</h2>
       <div class="problemes-fr">
         ${problemes.map((pb, i) => `<div class="probleme-fr">
           <p class="probleme-fr__enonce"><b>${lettre(i)}.</b> ${pb.enonce}</p>
@@ -3692,9 +3736,6 @@ function genererDurees(options) {
   const problemes = [problemeDurees('trajet', p, interdits), problemeDurees('film', q, interdits), problemeDurees('recre', r, interdits)];
   return {
     secondes,
-    objectif: secondes
-      ? 'Je connais les relations entre secondes, minutes, heures, demi-heure, quart d’heure, siècle et millénaire, et je calcule des durées.'
-      : 'Je connais les relations entre minutes, heures, demi-heure, quart d’heure, siècle et millénaire, et je calcule des durées.',
     methode: {},
     egalites, conversions, durees, arrivees, problemes,
   };
@@ -3705,6 +3746,50 @@ const RELATIONS_DUREES = [
   ['1 heure = 60 minutes'], ['1 demi-heure = 30 minutes'], ['1 quart d’heure = 15 minutes'],
   ['1 siècle = 100 ans'], [`1 millénaire = ${fmt(1000)} ans`], ['1 millénaire = 10 siècles'],
 ].map(([t, secondes]) => [t.replace(/(\d) /g, `$1${NBSP}`), !!secondes]);
+
+// Les relations entre unités sont des définitions : identiques dans les deux formulations. La leçon ne montre
+// aucun calcul de durée : le rappel de `livret` le transpose (« j'ajoute les heures, puis les minutes »), et
+// `commune` en donne la méthode usuelle, les trois sauts sur la ligne du temps.
+const FORMULATIONS_DUREES = {
+  livret: {
+    nom: 'livret',
+    objectif: (c) => (c.secondes
+      ? 'Je connais les relations entre secondes, minutes, heures, demi-heure, quart d’heure, siècle et millénaire, et je calcule des durées.'
+      : 'Je connais les relations entre minutes, heures, demi-heure, quart d’heure, siècle et millénaire, et je calcule des durées.'),
+    rappel: {
+      titre: 'Pour calculer une durée',
+      calcul: (de, a) => `De ${de} à ${a} : je vais jusqu’à l’heure pile, puis j’ajoute les heures, puis les minutes.`,
+    },
+    consignes: {
+      ex1: 'Complète.',
+      ex2: 'Convertis.',
+      ex3: 'Calcule avec la ligne du temps : trace les sauts, puis réponds.',
+      ex4: 'Résous chaque problème.',
+      duree: 'Je cherche la durée.',
+      arrivee: 'Je cherche l’heure d’arrivée.',
+    },
+    noteParent: 'les réponses attendues sont en rouge ; chaque durée est calculée avec la ligne du temps : on va jusqu’à l’heure pile, puis on ajoute les heures, puis les minutes.',
+  },
+  commune: {
+    nom: 'commune',
+    objectif: (c) => (c.secondes
+      ? 'Je sais convertir des durées (s, min, h, siècles, millénaires) et calculer une durée ou une heure d’arrivée.'
+      : 'Je sais convertir des durées (min, h, siècles, millénaires) et calculer une durée ou une heure d’arrivée.'),
+    rappel: {
+      titre: 'Calculer une durée',
+      calcul: (de, a) => `De ${de} à ${a}, je fais trois sauts sur la ligne du temps : jusqu’à l’heure pile, puis les heures entières, puis les minutes qui restent.`,
+    },
+    consignes: {
+      ex1: 'Complète les égalités.',
+      ex2: 'Convertis.',
+      ex3: 'Utilise la ligne du temps : trace les sauts, puis réponds.',
+      ex4: 'Résous chaque problème.',
+      duree: 'Je cherche la durée.',
+      arrivee: 'Je cherche l’heure d’arrivée.',
+    },
+    noteParent: 'les réponses attendues sont en rouge ; chaque durée se calcule en trois sauts sur la ligne du temps : jusqu’à l’heure pile, puis les heures, puis les minutes.',
+  },
+};
 
 const ecritureDuree = (e, pts, rep) => {
   const parties = e.reponses.map(([v, u]) => (rep ? rouge(lg(v, u)) : `${pts}<span>${u}</span>`));
@@ -3720,10 +3805,9 @@ const miseDurees = {
     arrivees: contenu.arrivees.slice(0, methode ? 2 : 3),
     problemes: contenu.problemes.slice(0, methode ? 2 : 3),
   }),
-  noteCorrige: 'les réponses attendues sont en rouge ; chaque durée est calculée avec la ligne du temps : on va jusqu’à l’heure pile, puis on ajoute les heures, puis les minutes.',
   // Rappel : les relations de la leçon (pages 43 et 44), puis un calcul de durée sur une ligne du temps.
   // La leçon ne montre aucun calcul de durée : cette partie est une transposition, pas une citation.
-  rappel(contenu) {
+  rappel(contenu, fm = FORMULATIONS_DUREES.livret) {
     const depart = 9 * 60 + 40, s = sautsDuree(depart, 95);
     return `
       <div class="rappel-du">
@@ -3732,15 +3816,16 @@ const miseDurees = {
           <ul>${RELATIONS_DUREES.filter(([, sec]) => !sec || contenu.secondes).map(([t]) => `<li>${t}</li>`).join('')}</ul>
         </div>
         <div class="rappel-du__calcul">
-          <p class="rappel-du__titre">Pour calculer une durée</p>
-          <p>De ${horaireTxt(depart)} à ${horaireTxt(depart + 95)} : je vais jusqu’à l’heure pile, puis j’ajoute les heures, puis les minutes.</p>
+          <p class="rappel-du__titre">${fm.rappel.titre}</p>
+          <p>${fm.rappel.calcul(horaireTxt(depart), horaireTxt(depart + 95))}</p>
           ${ligneDuTemps({ debut: horaireTxt(depart), fin: horaireTxt(depart + 95), etapes: etapesDe(s) })}
           <p class="rappel-du__detail">${s.map((x) => `de ${x.de} à ${x.vers} : ${dureeTxt(x.minutes)}`).join(' ; ')}.<br><b>En tout : ${dureeTxt(95)}.</b></p>
         </div>
       </div>`;
   },
-  exercices(contenu, methode) {
+  exercices(contenu, methode, fm = FORMULATIONS_DUREES.livret) {
     const { egalites, conversions, durees, arrivees, problemes } = this.combien(contenu, methode);
+    const kc = fm.consignes;
     const pts = '<span class="pointilles pointilles--mini"></span>';
     const ligne = (e, i) => `<div class="conversion"><b>${lettre(i)}.</b>${ecritureDuree(e, pts, false)}</div>`;
     const bloc = (liste, type, depart) => liste.map((x, i) => {
@@ -3757,29 +3842,29 @@ const miseDurees = {
     }).join('');
     return `
     <div class="bloc">
-      <h2>Exercice 1 — Complète.</h2>
+      <h2>Exercice 1 — ${kc.ex1}</h2>
       <div class="conversions conversions--3 conversions--durees">
         ${egalites.map(ligne).join('')}
       </div>
     </div>
 
     <div class="bloc">
-      <h2>Exercice 2 — Convertis.</h2>
+      <h2>Exercice 2 — ${kc.ex2}</h2>
       <div class="conversions conversions--3 conversions--durees">
         ${conversions.map(ligne).join('')}
       </div>
     </div>
 
     <div class="bloc">
-      <h2>Exercice 3 — Calcule avec la ligne du temps : trace les sauts, puis réponds.</h2>
+      <h2>Exercice 3 — ${kc.ex3}</h2>
       <div class="durees">
-        <div class="durees__colonne"><p class="durees__titre">Je cherche la durée.</p>${bloc(durees, 'duree', 0)}</div>
-        <div class="durees__colonne"><p class="durees__titre">Je cherche l’heure d’arrivée.</p>${bloc(arrivees, 'arrivee', durees.length)}</div>
+        <div class="durees__colonne"><p class="durees__titre">${kc.duree}</p>${bloc(durees, 'duree', 0)}</div>
+        <div class="durees__colonne"><p class="durees__titre">${kc.arrivee}</p>${bloc(arrivees, 'arrivee', durees.length)}</div>
       </div>
     </div>
 
     <div class="bloc">
-      <h2>Exercice 4 — Résous chaque problème.</h2>
+      <h2>Exercice 4 — ${kc.ex4}</h2>
       <div class="problemes-fr">
         ${problemes.map((pb, i) => `<div class="probleme-fr">
           <p class="probleme-fr__enonce"><b>${lettre(i)}.</b> ${pb.enonce}</p>
@@ -3881,16 +3966,6 @@ const phraseSolide = ({ solide: s, prop, n }) => {
   return n === 0 ? `${DET_SOLIDE[s]} n’a pas ${mot[2]}.` : `${DET_SOLIDE[s]} a ${n} ${n > 1 ? mot[1] : mot[0]}.`;
 };
 
-// La phrase qui explique la bonne case dans le corrigé : celle de la leçon pour le cube, le pavé et la pyramide.
-const JUSTIFICATION_SOLIDE = {
-  cube: 'Le cube a 6 faces carrées, 12 arêtes et 8 sommets.',
-  pave: 'Le pavé droit a 6 faces, 12 arêtes et 8 sommets.',
-  pyramide: 'La pyramide a 5 faces, 8 arêtes et 5 sommets ; sa pointe est un sommet.',
-  boule: 'La boule est ronde : ni face plane, ni arête, ni sommet.',
-  cylindre: 'Le cylindre a 2 faces planes, les disques, et pas de pointe.',
-  cone: 'Le cône a une pointe et une face plane, le disque.',
-};
-
 function affirmationSolide(solide, vrai) {
   const props = PROPRIETES_SOLIDES[solide];
   // « a une pointe » ne peut être vrai que pour un solide qui en a une, et inversement.
@@ -3919,12 +3994,80 @@ function genererSolides() {
   const vrais = [...shuffle([true, true, false, false]), ...shuffle([true, false])];
   const affirmations = shuffle(Object.keys(PROPRIETES_SOLIDES)).map((s, i) => affirmationSolide(s, vrais[i]));
 
-  return { objectif: 'Je sais reconnaître les solides : un cube, un pavé, une pyramide, une boule, un cylindre, un cône.', solides, patrons, affirmations };
+  return { solides, patrons, affirmations };
 }
 
 const patronDe = (p, taille) => patronCube(p.numero, { taille, quart: p.quart, miroir: p.miroir });
 const ligneSolide = '<span class="pointilles pointilles--ligne"></span>';
 const nbReponse = (n) => `<span class="reponse rouge">${n}</span>`;
+
+// Les six solides, leurs noms et leurs nombres de faces, d'arêtes et de sommets sont des définitions : identiques
+// dans les deux formulations. Ne changent que l'objectif, quelques tournures du rappel, les consignes, les phrases
+// qui justifient les réponses et la note pour le parent.
+const FORMULATIONS_SOLIDES = {
+  livret: {
+    nom: 'livret',
+    objectif: 'Je sais reconnaître les solides : un cube, un pavé, une pyramide, une boule, un cylindre, un cône.',
+    rappel: {
+      vocabulaire: 'Pour décrire un solide, on compte ses <b>faces</b>, ses <b>arêtes</b> et ses <b>sommets</b>.',
+      descriptions: [
+        '<b>Le cube</b> a 6 faces carrées, 12 arêtes et 8 sommets.',
+        '<b>Le pavé droit</b> a 6 faces rectangles, 12 arêtes et 8 sommets.',
+        '<b>Le pavé droit à base carrée</b> a 6 faces : 2 carrés et 4 rectangles, 12 arêtes et 8 sommets.',
+        '<b>La pyramide</b> a 5 faces : 1 carré et 4 triangles, 8 arêtes et 5 sommets.',
+      ],
+      patrons: 'Il y a onze patrons du cube : six carrés qui se plient pour former un cube.',
+    },
+    consignes: {
+      ex1: 'Écris le nom de chaque solide.',
+      ex2: 'Complète le tableau.',
+      ex3: 'Entoure les patrons qui permettent de construire un cube.',
+      ex4: 'Coche la bonne case : V ou F.',
+    },
+    corrige: {
+      justification: {
+        cube: 'Le cube a 6 faces carrées, 12 arêtes et 8 sommets.',
+        pave: 'Le pavé droit a 6 faces, 12 arêtes et 8 sommets.',
+        pyramide: 'La pyramide a 5 faces, 8 arêtes et 5 sommets ; sa pointe est un sommet.',
+        boule: 'La boule est ronde : ni face plane, ni arête, ni sommet.',
+        cylindre: 'Le cylindre a 2 faces planes, les disques, et pas de pointe.',
+        cone: 'Le cône a une pointe et une face plane, le disque.',
+      },
+    },
+    noteParent: 'réponses en rouge, patrons du cube entourés ; dans l’exercice 4, la case cochée est la bonne et la phrase dessous dit pourquoi. Les nombres sont ceux de la leçon.',
+  },
+  commune: {
+    nom: 'commune',
+    objectif: 'Je sais reconnaître et décrire les solides : cube, pavé, pyramide, boule, cylindre, cône.',
+    rappel: {
+      vocabulaire: 'Un solide a des <b>faces</b>, des <b>arêtes</b> et des <b>sommets</b> : on les compte pour le décrire.',
+      descriptions: [
+        '<b>Le cube</b> a 6 faces carrées, 12 arêtes et 8 sommets.',
+        '<b>Le pavé droit</b> a 6 faces rectangulaires, 12 arêtes et 8 sommets.',
+        '<b>Le pavé droit à base carrée</b> a 6 faces : 2 carrées et 4 rectangulaires, 12 arêtes et 8 sommets.',
+        '<b>La pyramide</b> a 5 faces : 1 carrée et 4 triangulaires, 8 arêtes et 5 sommets.',
+      ],
+      patrons: 'Un patron du cube est formé de six carrés qui se plient pour faire un cube : il y en a onze.',
+    },
+    consignes: {
+      ex1: 'Écris le nom de chaque solide.',
+      ex2: 'Complète le tableau.',
+      ex3: 'Entoure chaque patron qui se plie pour faire un cube.',
+      ex4: 'Pour chaque phrase, coche V ou F.',
+    },
+    corrige: {
+      justification: {
+        cube: 'Le cube a 6 faces carrées, 12 arêtes et 8 sommets.',
+        pave: 'Le pavé droit a 6 faces rectangulaires, 12 arêtes et 8 sommets.',
+        pyramide: 'La pyramide a 5 faces, 8 arêtes et 5 sommets ; sa pointe est un sommet.',
+        boule: 'La boule est ronde : ni face plane, ni arête, ni sommet.',
+        cylindre: 'Le cylindre a 2 faces planes, les disques, et pas de pointe.',
+        cone: 'Le cône a une pointe et une face plane, le disque.',
+      },
+    },
+    noteParent: 'réponses en rouge, patrons du cube entourés ; dans l’exercice 4, la case cochée est la bonne et la phrase dessous explique pourquoi. Les nombres de faces, d’arêtes et de sommets sont ceux du rappel.',
+  },
+};
 
 const miseSolides = {
   signe: '',
@@ -3934,28 +4077,25 @@ const miseSolides = {
     tableau: ['cube', 'pave', ...(methode ? [] : ['pave-carre']), 'pyramide'],
     affirmations: contenu.affirmations.slice(0, methode ? 4 : 6),
   }),
-  noteCorrige: 'réponses en rouge, patrons du cube entourés ; dans l’exercice 4, la case cochée est la bonne et la phrase dessous dit pourquoi. Les nombres sont ceux de la leçon.',
   // Rappel : les solides de la page 45, le vocabulaire et les descriptions de la page 47, les patrons de la page 46.
-  rappel() {
+  rappel(contenu, fm = FORMULATIONS_SOLIDES.livret) {
     const six = Object.keys(NOM_SOLIDE).map((nom) => `<figure class="rappel-so__solide">${solide(nom, { taille: 84 })}<figcaption>${NOM_SOLIDE[nom]}</figcaption></figure>`).join('');
     return `
       <div class="rappel-so">
         <div class="rappel-so__six">${six}</div>
         <div class="rappel-so__vocabulaire">
           ${solide('cube', { taille: 84, reperes: true })}
-          <p>Pour décrire un solide, on compte ses <b>faces</b>, ses <b>arêtes</b> et ses <b>sommets</b>.</p>
+          <p>${fm.rappel.vocabulaire}</p>
         </div>
         <ul class="rappel-so__descriptions">
-          <li><b>Le cube</b> a 6 faces carrées, 12 arêtes et 8 sommets.</li>
-          <li><b>Le pavé droit</b> a 6 faces rectangles, 12 arêtes et 8 sommets.</li>
-          <li><b>Le pavé droit à base carrée</b> a 6 faces : 2 carrés et 4 rectangles, 12 arêtes et 8 sommets.</li>
-          <li><b>La pyramide</b> a 5 faces : 1 carré et 4 triangles, 8 arêtes et 5 sommets.</li>
-          <li>Il y a onze patrons du cube : six carrés qui se plient pour former un cube.</li>
+          ${fm.rappel.descriptions.map((t) => `<li>${t}</li>`).join('\n          ')}
+          <li>${fm.rappel.patrons}</li>
         </ul>
       </div>`;
   },
-  exercices(contenu, methode, corrige = false) {
+  exercices(contenu, methode, fm = FORMULATIONS_SOLIDES.livret, corrige = false) {
     const { solides, patrons, tableau, affirmations } = this.combien(contenu, methode);
+    const kc = fm.consignes;
     const etiquette = (nom) => (corrige ? undefined : 'Solide à nommer');
     const gabarit = (nom) => ({ taille: methode ? 84 : corrige ? 56 : 74, etiquette: etiquette(nom) });
     const ligneNom = (nom) => (corrige ? `<span class="solide-nom"><span class="reponse rouge">${NOM_SOLIDE[nom]}</span></span>` : `<span class="solide-nom">${ligneSolide}</span>`);
@@ -3972,14 +4112,14 @@ const miseSolides = {
     };
     return `
     <div class="bloc">
-      <h2>Exercice 1 — Écris le nom de chaque solide.</h2>
+      <h2>Exercice 1 — ${kc.ex1}</h2>
       <div class="solides-nommer solides-nommer--${solides.length}">
         ${solides.map((s, i) => `<div class="solide-cellule"><b class="solide-cellule__lettre">${lettre(i)}.</b>${solide(s.nom, { ...gabarit(s.nom), variante: s.variante })}${ligneNom(s.nom)}</div>`).join('')}
       </div>
     </div>
 
     <div class="bloc">
-      <h2>Exercice 2 — Complète le tableau.</h2>
+      <h2>Exercice 2 — ${kc.ex2}</h2>
       <table class="tab-so">
         <tr><th scope="col">Solide</th><th scope="col">Nombre de faces</th><th scope="col">Nombre de sommets</th><th scope="col">Nombre d’arêtes</th></tr>
         ${tableau.map(ligneTableau).join('')}
@@ -3987,21 +4127,21 @@ const miseSolides = {
     </div>
 
     <div class="bloc">
-      <h2>Exercice 3 — Entoure les patrons qui permettent de construire un cube.</h2>
+      <h2>Exercice 3 — ${kc.ex3}</h2>
       <div class="patrons patrons--${patrons.length}">
         ${patrons.map(cellulePatron).join('')}
       </div>
     </div>
 
     <div class="bloc">
-      <h2>Exercice 4 — Coche la bonne case : V ou F.</h2>
+      <h2>Exercice 4 — ${kc.ex4}</h2>
       <ul class="affirmations affirmations--so">
-        ${affirmations.map((a, i) => `<li class="affirmation"><span class="affirmation__texte"><b>${lettre(i)}.</b> ${phraseSolide(a)}</span><span class="cases-vf">${case_('V', corrige && a.vrai)}${case_('F', corrige && !a.vrai)}</span>${corrige ? `<span class="affirmation__justif">${JUSTIFICATION_SOLIDE[a.solide]}</span>` : ''}</li>`).join('')}
+        ${affirmations.map((a, i) => `<li class="affirmation"><span class="affirmation__texte"><b>${lettre(i)}.</b> ${phraseSolide(a)}</span><span class="cases-vf">${case_('V', corrige && a.vrai)}${case_('F', corrige && !a.vrai)}</span>${corrige ? `<span class="affirmation__justif">${fm.corrige.justification[a.solide]}</span>` : ''}</li>`).join('')}
       </ul>
     </div>
 `;
   },
-  corriges(contenu, methode) { return this.exercices(contenu, methode, true); },
+  corriges(contenu, methode, fm = FORMULATIONS_SOLIDES.livret) { return this.exercices(contenu, methode, fm, true); },
 };
 
 /* ------------------------------------------------------------------ */
@@ -4047,7 +4187,7 @@ function genererPolygones() {
   let phrases;
   do { phrases = shuffle(PHRASES_POLYGONES).slice(0, 6); }
   while (phrases.slice(0, 4).every((p) => NOMBRE_COTES[p.id]) || phrases.slice(0, 4).every((p) => !NOMBRE_COTES[p.id]));
-  return { objectif: 'Je sais reconnaître un polygone et construire un cercle avec un compas.', reconnaitre, nommer, cas, tracer, phrases };
+  return { reconnaitre, nommer, cas, tracer, phrases };
 }
 
 const cocheOuiNon = (mot, cochee) => case_(mot, cochee);
@@ -4055,6 +4195,40 @@ const CM_PX = PX_PAR_CM;
 const hautEspace = (rayon) => Math.round(2 * rayon * CM_PX + 16);
 const LARGEUR_ESPACE = 326;
 const enonceTrace = (t) => `Trace un cercle de ${t.type === 'rayon' ? 'rayon' : 'diamètre'} ${t.type === 'rayon' ? t.rayon : 2 * t.rayon}${NBSP}cm de centre ${t.nom}.`;
+
+// La définition du polygone, les noms et les nombres de côtés, le rayon et le diamètre sont des définitions :
+// identiques dans les deux formulations. Ne changent que l'objectif, la façon de dire comment tracer un cercle,
+// les consignes et la note pour le parent.
+const FORMULATIONS_POLYGONES = {
+  livret: {
+    nom: 'livret',
+    objectif: 'Je sais reconnaître un polygone et construire un cercle avec un compas.',
+    rappel: {
+      compas: 'Je sais construire un cercle <b>avec un compas</b>, à partir du centre et du diamètre ou du rayon.',
+    },
+    consignes: {
+      ex1: 'Ces figures sont-elles des polygones ? Coche oui ou non.',
+      ex2: 'Écris le nom de chaque polygone, puis compte ses côtés et ses sommets.',
+      ex3: 'Complète, puis trace avec ton compas.',
+      ex4: 'Complète chaque phrase avec un mot de la banque.',
+    },
+    noteParent: 'réponses en rouge, case cochée = bonne réponse, cercles tracés à leur vraie taille.',
+  },
+  commune: {
+    nom: 'commune',
+    objectif: 'Je sais reconnaître et nommer un polygone, et tracer un cercle au compas.',
+    rappel: {
+      compas: 'Pour tracer un cercle <b>au compas</b>, je pose la pointe sur le centre et j’écarte le compas de la longueur du rayon.',
+    },
+    consignes: {
+      ex1: 'Pour chaque figure, coche oui si c’est un polygone, non sinon.',
+      ex2: 'Nomme chaque polygone, puis compte ses côtés et ses sommets.',
+      ex3: 'Complète, puis trace chaque cercle au compas.',
+      ex4: 'Complète chaque phrase avec un mot de la banque.',
+    },
+    noteParent: 'réponses en rouge, case cochée = bonne réponse, cercles tracés à leur taille réelle.',
+  },
+};
 
 const misePolygones = {
   signe: '',
@@ -4065,9 +4239,8 @@ const misePolygones = {
     tracer: contenu.tracer.slice(0, methode ? 1 : 2),
     phrases: contenu.phrases.slice(0, methode ? 4 : 6),
   }),
-  noteCorrige: 'réponses en rouge, case cochée = bonne réponse, cercles tracés à leur vraie taille.',
   // Rappel : la définition et les exemples de la page 48, les phrases de la page 49, le cercle de la page 50.
-  rappel() {
+  rappel(contenu, fm = FORMULATIONS_POLYGONES.livret) {
     const petite = (nom, variante) => `<span class="rappel-po__petite">${figurePlane(nom, { taille: 50, variante }).svg}</span>`;
     return `
       <div class="rappel-po">
@@ -4089,12 +4262,13 @@ const misePolygones = {
           <li>Un <b>triangle</b> est un polygone qui a trois côtés et trois sommets.</li>
           <li>Un <b>quadrilatère</b> est un polygone qui a quatre côtés et quatre sommets.</li>
           <li>Un <b>pentagone</b> a 5 côtés et 5 sommets. Un <b>hexagone</b> a 6 côtés et 6 sommets.</li>
-          <li>Je sais construire un cercle <b>avec un compas</b>, à partir du centre et du diamètre ou du rayon.</li>
+          <li>${fm.rappel.compas}</li>
         </ul>
       </div>`;
   },
-  exercices(contenu, methode, corrige = false) {
+  exercices(contenu, methode, fm = FORMULATIONS_POLYGONES.livret, corrige = false) {
     const { reconnaitre, nommer, cas, tracer, phrases } = this.combien(contenu, methode);
+    const kc = fm.consignes;
     const fig = (f, titre, t) => figurePlane(f.nom, { taille: t || (methode ? 62 : 54), variante: f.variante, etiquette: corrige ? undefined : titre });
     const polygone = (f) => NOMBRE_COTES[f.nom] !== undefined;
     const trou = '<span class="pointilles pointilles--mini"></span>';
@@ -4126,21 +4300,21 @@ const misePolygones = {
 
     return `
     <div class="bloc">
-      <h2>Exercice 1 — Ces figures sont-elles des polygones ? Coche oui ou non.</h2>
+      <h2>Exercice 1 — ${kc.ex1}</h2>
       <div class="figs-pc figs-pc--${reconnaitre.length}">
         ${reconnaitre.map(cellule1).join('')}
       </div>
     </div>
 
     <div class="bloc">
-      <h2>Exercice 2 — Écris le nom de chaque polygone, puis compte ses côtés et ses sommets.</h2>
+      <h2>Exercice 2 — ${kc.ex2}</h2>
       <div class="figs-nom figs-nom--${nommer.length}">
         ${nommer.map(cellule2).join('')}
       </div>
     </div>
 
     <div class="bloc">
-      <h2>Exercice 3 — Complète, puis trace avec ton compas.</h2>
+      <h2>Exercice 3 — ${kc.ex3}</h2>
       <div class="cercles cercles--${methode ? 'avec' : 'sans'}">
         <div class="cas-cercles">${cas.map(casCercle).join('')}${methode ? consigneTrace(tracer[0], 0) : ''}</div>
         <div class="traces-cercles">${tracer.map(espace).join('')}</div>
@@ -4148,7 +4322,7 @@ const misePolygones = {
     </div>
 
     <div class="bloc">
-      <h2>Exercice 4 — Complète chaque phrase avec un mot de la banque.</h2>
+      <h2>Exercice 4 — ${kc.ex4}</h2>
       <div class="banque-mots" data-banque="${mots.join(',')}"><span class="banque-mots__titre">Banque de mots</span>${mots.map((m) => `<span class="banque-mots__mot">${m}</span>`).join('')}</div>
       <ul class="phrases-po">
         ${phrases.map(phrase).join('')}
@@ -4156,7 +4330,7 @@ const misePolygones = {
     </div>
 `;
   },
-  corriges(contenu, methode) { return this.exercices(contenu, methode, true); },
+  corriges(contenu, methode, fm = FORMULATIONS_POLYGONES.livret) { return this.exercices(contenu, methode, fm, true); },
 };
 const ROUGE_CERCLE = '#C0392B';
 
@@ -4271,8 +4445,42 @@ function genererSymetrie(options = {}) {
     pris.add(sujet);
     return affirmationSym(sujet, vrai);
   });
-  return { objectif: 'Je reconnais si une figure présente un axe de symétrie.', reconnaitre, compter, quadrillages, affirmations };
+  return { reconnaitre, compter, quadrillages, affirmations };
 }
+
+// L'axe de symétrie (« le pli est un axe de symétrie », « la figure est symétrique par rapport à cet axe ») est une
+// définition : identique dans les deux formulations. Ne changent que l'objectif, la phrase qui introduit le pliage,
+// les consignes et la note pour le parent.
+const FORMULATIONS_SYMETRIE = {
+  livret: {
+    nom: 'livret',
+    objectif: 'Je reconnais si une figure présente un axe de symétrie.',
+    rappel: {
+      pliage: 'Pour trouver les axes de symétrie d’une figure, j’essaie de la plier en deux, de façon à obtenir deux parties qui se superposent exactement.',
+    },
+    consignes: {
+      ex1: 'A-t-elle un axe de symétrie ? Coche oui ou non ; si oui, trace-le.',
+      ex2: 'Combien d’axes de symétrie a chaque figure ?',
+      ex3: 'Complète la figure : le trait épais est l’axe de symétrie.',
+      ex4: 'Coche la bonne case : V ou F.',
+    },
+    noteParent: 'réponses en rouge, case cochée = bonne réponse, axes tracés en pointillés, cases ajoutées hachurées dans l’exercice 3 ; dans l’exercice 4, la phrase sous chaque affirmation dit pourquoi.',
+  },
+  commune: {
+    nom: 'commune',
+    objectif: 'Je sais reconnaître un axe de symétrie et compléter une figure par symétrie.',
+    rappel: {
+      pliage: 'Pour trouver un axe de symétrie, je plie la figure en deux : si les deux parties se superposent exactement, le pli convient.',
+    },
+    consignes: {
+      ex1: 'Cette figure a-t-elle un axe ? Coche oui ou non ; si oui, trace-le.',
+      ex2: 'Combien d’axes de symétrie chaque figure a-t-elle ?',
+      ex3: 'Complète la figure par symétrie : le trait épais est l’axe.',
+      ex4: 'Pour chaque phrase, coche V ou F.',
+    },
+    noteParent: 'réponses en rouge, case cochée = bonne réponse, axes tracés en pointillés, cases ajoutées hachurées dans l’exercice 3 ; dans l’exercice 4, la phrase sous chaque affirmation explique pourquoi.',
+  },
+};
 
 const miseSymetrie = {
   signe: '',
@@ -4283,13 +4491,12 @@ const miseSymetrie = {
     affirmations: contenu.affirmations.slice(0, methode ? 4 : 6),
     cases: methode ? 8 : 6,
   }),
-  noteCorrige: 'réponses en rouge, case cochée = bonne réponse, axes tracés en pointillés, cases ajoutées hachurées dans l’exercice 3 ; dans l’exercice 4, la phrase sous chaque affirmation dit pourquoi.',
   // Rappel : la méthode du pliage et l'exemple du carré de la page 55.
-  rappel() {
+  rappel(contenu, fm = FORMULATIONS_SYMETRIE.livret) {
     return `
       <div class="rappel-sy">
         <div class="rappel-sy__texte">
-          <p>Pour trouver les axes de symétrie d’une figure, j’essaie de la plier en deux, de façon à obtenir deux parties qui se superposent exactement.</p>
+          <p>${fm.rappel.pliage}</p>
           <p><b>Le pli est un axe de symétrie.</b> On dit que la figure est symétrique par rapport à cet axe.</p>
         </div>
         <div class="rappel-sy__schema">
@@ -4303,8 +4510,9 @@ const miseSymetrie = {
         </div>
       </div>`;
   },
-  exercices(contenu, methode, corrige = false) {
+  exercices(contenu, methode, fm = FORMULATIONS_SYMETRIE.livret, corrige = false) {
     const { reconnaitre, compter, quadrillages, affirmations, cases } = this.combien(contenu, methode);
+    const kc = fm.consignes;
     const dessin = (nom, taille) => figureSymetrie(nom, { taille, axes: corrige }).svg;
     const aUnAxe = (nom) => nbAxesFigure(nom) > 0;
     const trou = '<span class="pointilles pointilles--mini"></span>';
@@ -4319,35 +4527,35 @@ const miseSymetrie = {
 
     return `
     <div class="bloc">
-      <h2>Exercice 1 — A-t-elle un axe de symétrie ? Coche oui ou non ; si oui, trace-le.</h2>
+      <h2>Exercice 1 — ${kc.ex1}</h2>
       <div class="figs-sy figs-sy--${reconnaitre.length}">
         ${reconnaitre.map(cellule1).join('')}
       </div>
     </div>
 
     <div class="bloc">
-      <h2>Exercice 2 — Combien d’axes de symétrie a chaque figure ?</h2>
+      <h2>Exercice 2 — ${kc.ex2}</h2>
       <div class="figs-ax figs-ax--${compter.length}">
         ${compter.map(cellule2).join('')}
       </div>
     </div>
 
     <div class="bloc">
-      <h2>Exercice 3 — Complète la figure : le trait épais est l’axe de symétrie.</h2>
+      <h2>Exercice 3 — ${kc.ex3}</h2>
       <div class="grilles-sy grilles-sy--${quadrillages.length}">
         ${quadrillages.map(grille).join('')}
       </div>
     </div>
 
     <div class="bloc">
-      <h2>Exercice 4 — Coche la bonne case : V ou F.</h2>
+      <h2>Exercice 4 — ${kc.ex4}</h2>
       <ul class="affirmations affirmations--so affirmations--sy">
         ${affirmations.map(affirmation).join('')}
       </ul>
     </div>
 `;
   },
-  corriges(contenu, methode) { return this.exercices(contenu, methode, true); },
+  corriges(contenu, methode, fm = FORMULATIONS_SYMETRIE.livret) { return this.exercices(contenu, methode, fm, true); },
 };
 
 /* ------------------------------------------------------------------ */
@@ -4488,7 +4696,6 @@ function genererDonnees(options = {}) {
   const construction = { id: tc.id, intro: tc.intro, coin: tc.coin, titreY: tc.titreY, categories: shuffle(tc.categories).slice(0, 4), valeurs: dc.valeurs, pas: dc.pas };
 
   return {
-    objectif: 'Je sais lire et interpréter des données d’un tableau à double entrée ou d’un diagramme en barres.',
     grands,
     tableau: { id: theme.id, intro: theme.intro, coin: theme.coin, colonnes, lignes, valeurs: v, totaux },
     questionsTableau,
@@ -4499,6 +4706,45 @@ function genererDonnees(options = {}) {
   };
 }
 
+// Le diagramme du musée, le tableau à double entrée et leur lecture sont des définitions : la formulation `commune`
+// les redit avec les mots des programmes. Les consignes et la note pour le parent diffèrent.
+const FORMULATIONS_DONNEES = {
+  livret: {
+    nom: 'livret',
+    objectif: 'Je sais lire et interpréter des données d’un tableau à double entrée ou d’un diagramme en barres.',
+    rappel: {
+      global: 'Ce diagramme donne une vision globale des données et permet des comparaisons rapides.',
+      tableau: 'On peut représenter les mêmes données dans un <b>tableau à double entrée</b> :',
+      lire: 'Dans le tableau, je cherche la <b>ligne</b>, puis la <b>colonne</b>. Pour une barre, je lis le nombre sur l’axe.',
+    },
+    consignes: {
+      ex1: 'Complète la colonne Total du tableau, puis réponds aux questions.',
+      ex2: 'Lis le diagramme en barres, puis réponds aux questions.',
+      ex3: 'Construis le diagramme en barres avec les données du tableau.',
+      ex4: 'Avec le tableau de l’exercice 1, lis, puis calcule.',
+      barres: 'Trace une barre grise pour chaque colonne.',
+    },
+    noteParent: 'réponses en rouge, colonne Total du tableau complétée, calculs détaillés, barres du diagramme de l’exercice 3 tracées.',
+  },
+  commune: {
+    nom: 'commune',
+    objectif: 'Je sais lire des données dans un tableau à double entrée et dans un diagramme en barres.',
+    rappel: {
+      global: 'Un diagramme en barres permet de comparer rapidement des données.',
+      tableau: 'Un <b>tableau à double entrée</b> range les mêmes données en lignes et en colonnes :',
+      lire: 'Dans un tableau, je lis à la croisée de la <b>ligne</b> et de la <b>colonne</b> ; dans un diagramme, je lis la barre sur l’axe.',
+    },
+    consignes: {
+      ex1: 'Complète la colonne Total, puis réponds aux questions.',
+      ex2: 'Lis le diagramme en barres, puis réponds aux questions.',
+      ex3: 'Construis le diagramme en barres à partir du tableau.',
+      ex4: 'Avec le tableau de l’exercice 1, lis les données, puis calcule.',
+      barres: 'Trace une barre grise par colonne du tableau.',
+    },
+    noteParent: 'réponses en rouge, colonne Total du tableau complétée, calculs détaillés, barres du diagramme de l’exercice 3 tracées à la hauteur indiquée par le tableau.',
+  },
+};
+
 const miseDonnees = {
   signe: '',
   combien: (contenu, methode) => ({
@@ -4506,9 +4752,8 @@ const miseDonnees = {
     questionsDiagramme: contenu.questionsDiagramme.slice(0, methode ? 4 : 6),
     calculs: contenu.calculs.slice(0, methode ? 2 : 3),
   }),
-  noteCorrige: 'réponses en rouge, colonne Total du tableau complétée, calculs détaillés, barres du diagramme de l’exercice 3 tracées.',
   // Rappel : le diagramme du musée et le tableau à double entrée de la page 56, avec les phrases de la leçon.
-  rappel() {
+  rappel(contenu, fm = FORMULATIONS_DONNEES.livret) {
     const sep = (n) => fmt(n).replace(/ /g, NBSP);
     const dessin = diagrammeBarres({ ...MUSEE, taille: 280, hauteur: 128 }).svg;
     return `
@@ -4516,19 +4761,20 @@ const miseDonnees = {
         <div class="rappel-do__diagramme">${dessin}</div>
         <div class="rappel-do__texte">
           <p>Le diagramme représente le nombre de personnes ayant visité un musée pendant une semaine. Le musée est fermé le dimanche.</p>
-          <p><b>Ce diagramme donne une vision globale des données et permet des comparaisons rapides.</b></p>
-          <p>On peut représenter les mêmes données dans un <b>tableau à double entrée</b> :</p>
+          <p><b>${fm.rappel.global}</b></p>
+          <p>${fm.rappel.tableau}</p>
         </div>
         <table class="tab-do tab-do--exemple">
           <colgroup><col class="c-etiquette">${MUSEE.categories.map(() => '<col>').join('')}</colgroup>
           <tr><td class="tab-do__coin"></td>${MUSEE.categories.map((c) => `<th>${c}</th>`).join('')}</tr>
           <tr><th>Nombre de visiteurs</th>${MUSEE.valeurs.map((x) => `<td>${sep(x)}</td>`).join('')}</tr>
         </table>
-        <p class="rappel-do__lire">Dans le tableau, je cherche la <b>ligne</b>, puis la <b>colonne</b>. Pour une barre, je lis le nombre sur l’axe.</p>
+        <p class="rappel-do__lire">${fm.rappel.lire}</p>
       </div>`;
   },
-  exercices(contenu, methode, corrige = false) {
+  exercices(contenu, methode, fm = FORMULATIONS_DONNEES.livret, corrige = false) {
     const { questionsTableau, questionsDiagramme, calculs } = this.combien(contenu, methode);
+    const kc = fm.consignes;
     const { tableau, diagramme, construction } = contenu;
     const trou = '<span class="pointilles pointilles--mini"></span>';
     const ligneRep = '<span class="pointilles pointilles--rep"></span>';
@@ -4556,7 +4802,7 @@ const miseDonnees = {
 
     return `
     <div class="bloc">
-      <h2>Exercice 1 — Complète la colonne Total du tableau, puis réponds aux questions.</h2>
+      <h2>Exercice 1 — ${kc.ex1}</h2>
       <div class="ex-do ex-do--tableau">
         <div class="ex-do__figure"><p class="ex-do__intro">${tableau.intro}</p>${tabEx1}</div>
         ${liste(questionsTableau)}
@@ -4564,7 +4810,7 @@ const miseDonnees = {
     </div>
 
     <div class="bloc">
-      <h2>Exercice 2 — Lis le diagramme en barres, puis réponds aux questions.</h2>
+      <h2>Exercice 2 — ${kc.ex2}</h2>
       <div class="ex-do ex-do--diagramme">
         <div class="ex-do__figure"><p class="ex-do__intro">${diagramme.intro}</p>${dessin2}</div>
         ${liste(questionsDiagramme, ecartAvecCalcul)}
@@ -4572,20 +4818,20 @@ const miseDonnees = {
     </div>
 
     <div class="bloc">
-      <h2>Exercice 3 — Construis le diagramme en barres avec les données du tableau.</h2>
+      <h2>Exercice 3 — ${kc.ex3}</h2>
       <div class="ex-do ex-do--construction">
-        <div class="ex-do__figure"><p class="ex-do__intro">${construction.intro}</p>${tabEx3}<p class="ex-do__consigne">Trace une barre grise pour chaque colonne.</p></div>
+        <div class="ex-do__figure"><p class="ex-do__intro">${construction.intro}</p>${tabEx3}<p class="ex-do__consigne">${kc.barres}</p></div>
         <div class="ex-do__dessin">${dessin3}</div>
       </div>
     </div>
 
     <div class="bloc">
-      <h2>Exercice 4 — Avec le tableau de l’exercice 1, lis, puis calcule.</h2>
+      <h2>Exercice 4 — ${kc.ex4}</h2>
       ${liste(calculs, () => true)}
     </div>
 `;
   },
-  corriges(contenu, methode) { return this.exercices(contenu, methode, true); },
+  corriges(contenu, methode, fm = FORMULATIONS_DONNEES.livret) { return this.exercices(contenu, methode, fm, true); },
 };
 
 /* ------------------------------------------------------------------ */
@@ -4867,6 +5113,7 @@ export const FICHES = [
       },
     ],
     generer: genererMassesContenances,
+    formulations: FORMULATIONS_MASSES,
     mise: miseMassesContenances,
   },
   {
@@ -4890,6 +5137,7 @@ export const FICHES = [
       },
     ],
     generer: genererDurees,
+    formulations: FORMULATIONS_DUREES,
     mise: miseDurees,
   },
   {
@@ -4904,6 +5152,7 @@ export const FICHES = [
     emoji: '🧊',
     options: [],
     generer: genererSolides,
+    formulations: FORMULATIONS_SOLIDES,
     mise: miseSolides,
   },
   {
@@ -4918,6 +5167,7 @@ export const FICHES = [
     emoji: '🔷',
     options: [],
     generer: genererPolygones,
+    formulations: FORMULATIONS_POLYGONES,
     mise: misePolygones,
   },
   {
@@ -4941,6 +5191,7 @@ export const FICHES = [
       },
     ],
     generer: genererSymetrie,
+    formulations: FORMULATIONS_SYMETRIE,
     mise: miseSymetrie,
   },
   {
@@ -4964,6 +5215,7 @@ export const FICHES = [
       },
     ],
     generer: genererDonnees,
+    formulations: FORMULATIONS_DONNEES,
     mise: miseDonnees,
   },
 ];
