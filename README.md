@@ -397,7 +397,8 @@ js/utils.js               aléatoire, mélange, nombres en toutes lettres
 icons/                    icônes de l'application
 tests/                    tests de parcours (jsdom)
 programme/ce2/            le livret de leçons transcrit, une leçon par fichier (+ index)
-programme/outils/         assembler.py : regénère les leçons depuis les transcriptions brutes
+programme/outils/         assembler.py (leçons depuis les transcriptions), mesurer-blocs.mjs et
+                          mesure-tout.mjs (hauteurs des fiches en mode impression, Playwright)
 ```
 
 ⚠️ Après modification d'un fichier, incrémenter `VERSION` dans `sw.js` pour que les

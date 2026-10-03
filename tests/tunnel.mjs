@@ -62,7 +62,7 @@ verifier(imp.style.zoom !== '' && Number(imp.style.zoom) <= 1, `au pas 3, #impre
 Object.defineProperty(imp.parentElement, 'clientWidth', { value: 400, configurable: true });
 w.dispatchEvent(new w.Event('resize'));
 await new Promise((r) => setTimeout(r, 250));
-verifier(Math.abs(Number(imp.style.zoom) - 400 / 703) < 0.01, `avec 400 px disponibles, le zoom vaut ≈ 400/703 (${imp.style.zoom})`);
+verifier(Math.abs(Number(imp.style.zoom) - 400 / 673) < 0.01, `avec 400 px disponibles, le zoom vaut ≈ 400/673 (${imp.style.zoom})`);
 Object.defineProperty(imp.parentElement, 'clientWidth', { value: 900, configurable: true });
 w.dispatchEvent(new w.Event('resize'));
 await new Promise((r) => setTimeout(r, 250));

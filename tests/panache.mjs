@@ -3,7 +3,7 @@ import { JSDOM } from 'jsdom';
 import fs from 'fs';
 import path from 'path';
 import { FICHES, tirer, decoder, codeDe, codePanache, optionsParDefaut, blocsDe } from '../js/fiches.js';
-import { composer, rendrePanache, graineDerivee, HAUTEUR_PAGE, NOTIONS_MAX } from '../js/panache.js';
+import { composer, rendrePanache, graineDerivee, BUDGET_HAUTEUR, NOTIONS_MAX } from '../js/panache.js';
 import { HAUTEURS_BLOCS, HAUTEURS_PAGE, HAUTEURS_RAPPEL } from '../js/hauteurs-blocs.js';
 
 const RACINE = new URL('..', import.meta.url).pathname;
@@ -175,20 +175,20 @@ const selection = (n) => {
         pages++;
         const eleve = HAUTEURS_PAGE.enteteEleve + (f.miniRappel ? 6 : 0) + f.blocs.reduce((s, b) => s + b.hauteur + (f.miniRappel ? HAUTEURS_RAPPEL[b.ficheId] : 0), 0);
         const corrige = HAUTEURS_PAGE.enteteCorrige + f.blocs.reduce((s, b) => s + b.hauteurCorrige, 0);
-        if (eleve <= HAUTEUR_PAGE && corrige <= HAUTEUR_PAGE) pires++;
+        if (eleve <= BUDGET_HAUTEUR && corrige <= BUDGET_HAUTEUR) pires++;
         if (f.notions.length <= NOTIONS_MAX) max5++;
         if (f.notions.length === f.blocs.length) maxCorrige++;
       }
     }
   }
-  verifier(pires === pages, `budget : la somme des hauteurs tient dans ${HAUTEUR_PAGE} px, page élève et corrigé (${pires}/${pages} feuilles, 2 à 5 notions × 20 tirages)`);
+  verifier(pires === pages, `budget : la somme des hauteurs tient dans ${BUDGET_HAUTEUR} px, page élève et corrigé (${pires}/${pages} feuilles, 2 à 5 notions × 20 tirages)`);
   verifier(max5 === pages && maxCorrige === pages, 'budget : jamais plus de 5 notions par feuille, un bloc par notion');
 
   // Les cinq blocs les plus hauts : une feuille ne déborde jamais, quitte à être coupée
   const hautes = [...ids].sort((a, b) => Math.max(...HAUTEURS_BLOCS[b].eleve.slice(0, 1)) - Math.max(...HAUTEURS_BLOCS[a].eleve.slice(0, 1))).slice(0, 5).map((id) => ({ id }));
   const lourde = composer({ notions: hautes, graine: 1, miniRappel: true });
   const somme = (f) => HAUTEURS_PAGE.enteteEleve + f.blocs.reduce((s, b) => s + b.hauteur, 0);
-  verifier(lourde.feuilles.every((f) => f.blocs.length === 1 || somme(f) <= HAUTEUR_PAGE), 'budget : même avec les cinq blocs les plus hauts, rien ne déborde');
+  verifier(lourde.feuilles.every((f) => f.blocs.length === 1 || somme(f) <= BUDGET_HAUTEUR), 'budget : même avec les cinq blocs les plus hauts, rien ne déborde');
 
   // Mini-rappel retiré avant de reporter : on construit une sélection où il fait déborder
   let retire = null;
@@ -296,6 +296,20 @@ async function ouvrir(recherche, profil) {
   verifier(d.querySelectorAll('.feuille--corrige').length === 1 && d.querySelector('.feuille__code').textContent.trim() === ancien, 'appli : un lien à une fiche de l’ancien format s’ouvre toujours');
   d = await ouvrir(`?fiche=Z999-ZZZZ-ZZZZ`, null);
   verifier(!d.querySelector('.feuille'), 'appli : un code Z invalide n’ouvre rien');
+}
+
+/* Zigo en monochrome devant chaque exercice (#31) ---------------------- */
+{
+  const { rendre } = await import('../js/fiches.js');
+  const f = FICHES[0], c = tirer(f, optionsParDefaut(f), 7);
+  const humeurs = (html) => [...doc(html).querySelectorAll('h2.avec-zigo')].map((h) => h.querySelector('svg.zigo-mono') ? h.textContent.trim().slice(0, 10) : '?');
+  const pages = doc(rendre(f, c, { corrige: true })).querySelectorAll('.feuille');
+  verifier([...pages].every((p) => p.querySelectorAll('h2.avec-zigo svg.zigo-mono').length === 4), 'zigo : un Zigo devant chacun des 4 exercices, page élève et corrigé');
+  const svg = [...pages[0].querySelectorAll('svg.zigo-mono')].map((e) => e.outerHTML);
+  verifier(new Set(svg).size === 4, 'zigo : quatre humeurs différentes (curieux, joie, doux, normal)');
+  verifier(pages[0].querySelector('svg.zigo-mono') && !/gradient|rgba?\(|#(?!111|fff|F8F8F8|E6E6E6|D6D6D6)[0-9A-Fa-f]{3,6}/i.test(svg.join('')), 'zigo : monochrome, ni dégradé ni couleur');
+  const feuille = composer({ notions: selection(3), graine: 5 }).feuilles[0];
+  verifier(doc(rendrePanache([feuille], { corrige: true })).querySelectorAll('h2.avec-zigo svg.zigo-mono').length === 2 * feuille.blocs.length, 'zigo : aussi sur la feuille panachée (élève et corrigé)');
 }
 
 process.exit(echecs ? 1 : 0);

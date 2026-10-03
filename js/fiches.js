@@ -4,6 +4,7 @@
 
 import { rnd, pick, shuffle, fmt, enLettres, setAlea, generateurAleatoire } from './utils.js';
 import { qrSVG } from './qr.js';
+import { zigoMono, humeurExercice } from './univers.js';
 import { HAUTEURS_BLOCS } from './hauteurs-blocs.js';
 import { demiDroite, figureFraction, regleFractions, monnaie, polygoneCote, horloge, ligneDuTemps, solide, patronCube, figurePlane, cercle, PX_PAR_CM, figureSymetrie, quadrillageSymetrie, diagrammeBarres, nbAxesFigure, FIGURES_SYMETRIQUES, FIGURES_ASYMETRIQUES, FIGURES_POLYGONES, FIGURES_NON_POLYGONES, NB_VARIANTES_FIGURE, NB_PATRONS, NB_ASSEMBLAGES, PIECES_EURO, BILLETS_EURO } from './visuels.js';
 
@@ -841,6 +842,12 @@ export function enTeteHTML({ surtitre, titre, code, base, identite = true, vue =
     </div>`;
 }
 
+// La fabrique commune des titres : « Exercice N — … » reçoit Zigo en monochrome devant lui, avec une
+// humeur par exercice (curieux, joie, doux, normal, puis on recommence). Appliquée par les pages (élève
+// et corrigé) et par la feuille panachée : aucune fiche n'a à y penser.
+export const zigoDevant = (n) => `<span class="zigo-titre">${zigoMono(humeurExercice(n))}</span>`;
+export const avecZigo = (html) => html.replace(/<h2>(\s*Exercice (\d+)\b[\s\S]*?)<\/h2>/g, (_, titre, n) => `<h2 class="avec-zigo">${zigoDevant(Number(n))}<span>${titre}</span></h2>`);
+
 const lettre = (i) => String.fromCharCode(97 + i);
 
 // Une fiche décrit sa mise en page par un objet `mise` :
@@ -857,7 +864,7 @@ const miseAddition = {
   // Combien d'exercices tiennent sur la page, selon qu'on imprime ou non la méthode.
   combien: (contenu, methode) => ({
     posees: contenu.posees.slice(0, methode ? 4 : 8),
-    aposer: contenu.aposer.slice(0, methode ? 3 : 4),
+    aposer: contenu.aposer.slice(0, 3),   // trois grilles à poser par rangée : une quatrième ouvrirait une rangée de plus (budget de hauteur)
   }),
   exercices(contenu, methode, fm = FORMULATIONS_ADDITION.livret) {
     const { posees, aposer } = this.combien(contenu, methode);
@@ -4356,7 +4363,7 @@ function pageExercices(fiche, contenu, { base = '', methode = true, identite = t
         <ol class="methode__etapes">${texte(etapes, contenu).map((e) => `<li>${echappe(e)}</li>`).join('')}</ol>
       </div>
     </div>` : ''}
-${fiche.mise.exercices(contenu, methode, fm || undefined)}
+${avecZigo(fiche.mise.exercices(contenu, methode, fm || undefined))}
     <div class="pied-feuille">Mathoo · fiche de révision à imprimer</div>
   </section>`;
 }
@@ -4373,7 +4380,7 @@ function pageExercicesLibre(fiche, contenu, { base, methode, identite, fm }) {
       <h2>Je me souviens de la méthode</h2>
       ${fiche.mise.rappel(contenu, fm || undefined)}
     </div>` : ''}
-${fiche.mise.exercices(contenu, methode, fm || undefined)}
+${avecZigo(fiche.mise.exercices(contenu, methode, fm || undefined))}
     <div class="pied-feuille">Mathoo · fiche de révision à imprimer</div>
   </section>`;
 }
@@ -4385,7 +4392,7 @@ function pageCorrige(fiche, contenu, { base = '', methode = true, formulation: n
     ${enTete(fiche, 'corrigé', contenu, base, false, 'corrige')}
     <div class="objectif objectif--corrige">Pour le parent ou l’enseignant : ${fm ? fm.noteParent : fiche.mise.noteCorrige}
       Pour retrouver exactement cette fiche plus tard : scanner le QR code, ou saisir <strong>${contenu.code}</strong> dans l’application.</div>
-${fiche.mise.corriges(contenu, methode, fm || undefined)}
+${avecZigo(fiche.mise.corriges(contenu, methode, fm || undefined))}
     <div class="pied-feuille">Mathoo · corrigé</div>
   </section>`;
 }
@@ -4755,7 +4762,7 @@ const miseDonnees = {
   // Rappel : le diagramme du musée et le tableau à double entrée de la page 56, avec les phrases de la leçon.
   rappel(contenu, fm = FORMULATIONS_DONNEES.livret) {
     const sep = (n) => fmt(n).replace(/ /g, NBSP);
-    const dessin = diagrammeBarres({ ...MUSEE, taille: 280, hauteur: 128 }).svg;
+    const dessin = diagrammeBarres({ ...MUSEE, taille: 262, hauteur: 112 }).svg;
     return `
       <div class="rappel-do">
         <div class="rappel-do__diagramme">${dessin}</div>
@@ -4793,12 +4800,12 @@ const miseDonnees = {
         <tr><th class="tab-do__coin">${tableau.coin}</th>${tableau.colonnes.map((c) => `<th>${c}</th>`).join('')}<th class="tab-do__total">Total</th></tr>
         ${tableau.lignes.map((l, r) => `<tr><th>${l.cap}</th>${tableau.valeurs[r].map((x) => `<td>${x}</td>`).join('')}<td class="tab-do__total ${corrige ? 'rouge' : 'vide'}">${corrige ? tableau.totaux[r] : ''}</td></tr>`).join('')}
       </table>`;
-    const dessin2 = diagrammeBarres({ categories: diagramme.categories, valeurs: diagramme.valeurs, pas: diagramme.pas, titreY: diagramme.titreY, taille: 290, hauteur: methode ? 144 : 168 }).svg;
+    const dessin2 = diagrammeBarres({ categories: diagramme.categories, valeurs: diagramme.valeurs, pas: diagramme.pas, titreY: diagramme.titreY, taille: 290, hauteur: methode ? 118 : 146 }).svg;
     const tabEx3 = `<table class="tab-do tab-do--construction">
         <tr><th class="tab-do__coin">${construction.coin}</th>${construction.categories.map((c) => `<th>${c}</th>`).join('')}</tr>
         <tr><th>Nombre</th>${construction.valeurs.map((x) => `<td>${x}</td>`).join('')}</tr>
       </table>`;
-    const dessin3 = diagrammeBarres({ categories: construction.categories, valeurs: construction.valeurs, pas: construction.pas, titreY: construction.titreY, vide: !corrige, taille: 300, hauteur: methode ? 146 : 185 }).svg;
+    const dessin3 = diagrammeBarres({ categories: construction.categories, valeurs: construction.valeurs, pas: construction.pas, titreY: construction.titreY, vide: !corrige, taille: 300, hauteur: methode ? 122 : 162 }).svg;
 
     return `
     <div class="bloc">
@@ -5375,7 +5382,7 @@ function titreDuBloc(html) {
 }
 
 // La liste ordonnée des exercices d'une fiche : { titre, consigne, eleve, corrige, hauteur, hauteurCorrige }.
-// `hauteur` et `hauteurCorrige` (px, impression, 703 px de large) viennent de hauteurs-blocs.js ;
+// `hauteur` et `hauteurCorrige` (px, impression, 673 px de large) viennent de hauteurs-blocs.js ;
 // on les mesure avec le rappel de méthode (`methode: true`), qui est la version courte des exercices.
 export function blocsDe(fiche, contenu, { methode = true, formulation: nom = 'livret' } = {}) {
   const fm = formulation(fiche, nom) || undefined;

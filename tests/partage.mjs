@@ -80,7 +80,7 @@ verifier(lienDeux.includes('methode=0'), 'l’absence de rappel de méthode voya
 
 d = await ouvrir(lienDeux.replace('http://localhost/index.html', ''), null);
 verifier(d.querySelectorAll('.feuille').length === 2, 'le lien rouvre bien deux corrigés');
-verifier(d.querySelectorAll('.feuille:first-child .operations .op').length === 12,
+verifier(d.querySelectorAll('.feuille:first-child .operations .op').length === 11,
   'et avec le même nombre d’exercices que la feuille imprimée');
 
 /* 4. Un lien abîmé ne casse rien ---------------------------------- */

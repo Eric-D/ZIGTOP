@@ -47,6 +47,37 @@ export function zigo(humeur = 'normal', taille = 92) {
   </svg>`;
 }
 
+// Zigo pour l'impression : traits noirs, aplats gris clair, ni dégradé ni couleur (une imprimante
+// noir et blanc ou une photocopie le rend tel quel). Décoratif : caché des lecteurs d'écran.
+// `taille` : hauteur en px ; à l'impression le CSS le ramène à 7 mm (.zigo-mono).
+export function zigoMono(humeur = 'normal', taille = 26) {
+  const trait = 'stroke="#111" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"';
+  const yeux = {
+    normal: '<circle cx="-11" cy="-4" r="5.5"/><circle cx="11" cy="-4" r="5.5"/>',
+    joie: `<path d="M-17 -6 q6 -8 12 0 M5 -6 q6 -8 12 0" fill="none" ${trait}/>`,
+    curieux: '<circle cx="-11" cy="-4" r="5.5"/><circle cx="12" cy="-5" r="7"/>',
+    doux: '<circle cx="-11" cy="-3" r="4.5"/><circle cx="11" cy="-3" r="4.5"/>',
+  }[humeur] || '<circle cx="-11" cy="-4" r="5.5"/><circle cx="11" cy="-4" r="5.5"/>';
+  const bouche = {
+    joie: '<path d="M-13 8 q13 14 26 0 q-13 6 -26 0" fill="#111" stroke="#111" stroke-width="3" stroke-linejoin="round"/>',
+    curieux: `<circle cx="0" cy="11" r="5" fill="#fff" ${trait}/>`,
+    doux: `<path d="M-9 10 q9 7 18 0" fill="none" ${trait}/>`,
+  }[humeur] || `<path d="M-10 9 q10 10 20 0" fill="none" ${trait}/>`;
+  return `<svg class="zigo-mono" viewBox="0 0 140 150" width="${Math.round(taille * 140 / 150)}" height="${taille}" aria-hidden="true" focusable="false">
+    <path d="M70 28 v-18" fill="none" ${trait}/>
+    <path d="M70 2 l3.4 6.8 7.6 1.1 -5.5 5.3 1.3 7.5 -6.8 -3.6 -6.8 3.6 1.3 -7.5 -5.5 -5.3 7.6 -1.1z" fill="#D6D6D6" stroke="#111" stroke-width="4" stroke-linejoin="round"/>
+    <ellipse cx="26" cy="86" rx="11" ry="16" fill="#D6D6D6" ${trait} transform="rotate(-18 26 86)"/>
+    <ellipse cx="114" cy="86" rx="11" ry="16" fill="#D6D6D6" ${trait} transform="rotate(18 114 86)"/>
+    <ellipse cx="70" cy="80" rx="52" ry="50" fill="#E6E6E6" ${trait}/>
+    <ellipse cx="70" cy="92" rx="34" ry="28" fill="#F8F8F8"/>
+    <g transform="translate(70 74)" fill="#111">${yeux}${bouche}</g>
+  </svg>`;
+}
+
+// L'humeur de Zigo devant l'exercice n (1, 2, 3…) : on recommence après la quatrième.
+export const HUMEURS_EXERCICES = ['curieux', 'joie', 'doux', 'normal'];
+export const humeurExercice = (n) => HUMEURS_EXERCICES[(Math.max(1, n) - 1) % HUMEURS_EXERCICES.length];
+
 export const PHRASES = {
   accueil: [
     'Bienvenue sur l’île des Nombres ! Où veux-tu aller ?',

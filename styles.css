@@ -549,7 +549,7 @@ svg.visuel {
 }
 /* Aperçu à l'écran : largeur de référence fixe, réduite par js (zoom sur #impression). */
 @media screen {
-  #impression .feuille { width: 703px; }
+  #impression .feuille { width: 673px; }
 }
 
 .feuille__entete {
@@ -618,6 +618,11 @@ svg.visuel {
   border-radius: 6px;
   color: #111;
 }
+/* Zigo en monochrome devant « Exercice N — … » (voir avecZigo dans fiches.js) : 7 mm de haut, aligné au titre,
+   il déborde un peu du bandeau gris plutôt que de l'épaissir. */
+.feuille .bloc h2.avec-zigo { display: flex; align-items: center; gap: 2.5mm; }
+.zigo-titre { flex: none; display: inline-flex; align-items: center; }
+.zigo-mono { display: block; height: 7mm; width: auto; margin: -1.4mm 0; }
 .bloc--methode { background: #FBFAF6; border: 2px dashed #CFC9BC; border-radius: 10px; padding: 10px 12px; }
 .bloc--methode h2 { background: none; padding: 0 0 4px; }
 
@@ -808,7 +813,7 @@ svg.visuel {
 
 /* ---------- impression ---------- */
 
-@page { size: A4 portrait; margin: 11mm 12mm; }
+@page { size: A4 portrait; margin: 12mm 16mm; }
 
 @media print {
   #impression { zoom: 1 !important; transform: none !important; height: auto !important; }
@@ -837,16 +842,16 @@ svg.visuel {
   .pose__retenues td { height: 4.5mm; font-size: 8pt; }
   .pose__resultat td { height: 7.5mm; }
   .methode .pose td { width: 7mm; height: 7mm; font-size: 11pt; }
-  .feuille .bloc h2 { font-size: 10.5pt; padding: 3px 8px; margin-bottom: 4px; }
+  .feuille .bloc h2 { font-size: 11pt; padding: 3px 8px; margin-bottom: 5px; line-height: 1.25; }
   .operations { gap: 8px 18px; }
-  .objectif { padding: 4px 9px; margin-bottom: 7px; font-size: 10pt; }
+  .objectif { padding: 4px 9px; margin-bottom: 10px; font-size: 10pt; }
   .rappels li { font-size: 9pt; }
   .methode__etapes { font-size: 8.3pt; }
-  .feuille__titre { font-size: 15pt; margin: 1px 0 5px; }
-  .feuille__entete { padding-bottom: 5px; margin-bottom: 8px; }
+  .feuille__titre { font-size: 15pt; margin: 2px 0 8px; }
+  .feuille__entete { padding-bottom: 7px; margin-bottom: 12px; }
   .probleme__enonce { font-size: 8.6pt; }
   .pied-feuille { display: none; }
-  .feuille .bloc { margin-bottom: 5px; }
+  .feuille .bloc { margin-bottom: 7px; }
   .bloc--methode { padding: 6px 9px; }
   .methode .pose td { width: 6mm; height: 6mm; font-size: 10pt; }
   .op__titre { font-size: 9pt; min-height: 1em; margin-bottom: 1px; }
@@ -855,6 +860,8 @@ svg.visuel {
   .probleme__phrase .pointilles { margin-bottom: 5px; }
   .feuille__identite { font-size: 9.5pt; }
   .feuille__qr .qr { width: 19mm; height: 19mm; }
+  .feuille__code { font-size: 8pt; line-height: 1.1; margin-top: 2px; }
+  .feuille { line-height: 1.3; }
 }
 
 /* ---------- fiche multiplication : rappel en ligne, lignes partielles ---------- */
@@ -1656,3 +1663,249 @@ svg.visuel {
 .question__figure { margin: 12px auto 4px; max-width: 320px; }
 .question__figure svg { display: block; width: 100%; height: auto; max-height: 220px; }
 .question__figure table { margin: 0 auto; }
+
+/* ---------- #31 : fiches imprimées plus aérées, compactage par fiche (largeur utile 673 px, budget 1 000 px) ---------- */
+/* calculs */
+/* Fiches de calculs posés (addition, soustraction, multiplication) : compactage #31 */
+@media print {
+  .feuille:has(.pose) .pose__entetes td { height: 3.2mm; font-size: 8pt; line-height: 1; }
+  .feuille:has(.pose) .pose__retenues td { height: 4mm; line-height: 1; }
+  .feuille:has(.pose) .methode__etapes { font-size: 8pt; line-height: 1.15; }
+  .feuille:has(.pose) .methode__etapes li { margin-bottom: 0; }
+  .feuille:has(.pose) .bloc--methode { padding: 4px 9px; }
+  .feuille:has(.pose) .bloc--methode h2 { margin-bottom: 3px; }
+  .feuille:has(.pose) .estimations li { padding: 0; }
+  .feuille:has(.pose) .pastille-choix { padding: 1px 12px; }
+  .feuille:has(.pose) .probleme__enonce { line-height: 1.2; margin-bottom: 2px; }
+}
+@media print {
+  /* le corps de chaque problème : grille à gauche, phrase réponse à droite (au lieu de dessous) */
+  .feuille:has(.pose) .probleme__espace { gap: 8px; flex-wrap: nowrap; }
+  .feuille:has(.pose) .probleme__phrase { min-width: 0; }
+}
+@media print {
+  .feuille:has(.pose) .pose .ret-petite { font-size: 8pt; }
+  /* multiplication : textes remontés à 8 pt, rangées de retenues/en-têtes à leur hauteur d'avant */
+  .feuille:has(.pose--multiplication) .pose--multiplication .pose__entetes td,
+  .feuille:has(.pose--multiplication) .methode .pose--multiplication .pose__entetes td { height: 2.8mm; font-size: 8pt; line-height: 1; }
+  .feuille:has(.pose--multiplication) .pose--multiplication .pose__retenues td { height: 3.4mm; font-size: 8pt; line-height: 1; }
+  .feuille:has(.pose--multiplication) .methode .pose--multiplication .pose__retenues td { height: 3.1mm; font-size: 8pt; line-height: 1; }
+  .feuille:has(.pose--multiplication) .rectangle { font-size: 8pt; }
+  .feuille:has(.pose--multiplication) .methode__droite .enligne__texte { font-size: 8pt; }
+  .feuille:has(.pose--multiplication) .pose .retenue { font-size: 8pt; }
+}
+@media print {
+  .feuille:has(.pose--multiplication) .bloc--methode { padding: 3px 9px; }
+}
+/* nombres-fractions */
+/* #31 — compactage des fiches nombres, fractions, monnaie (impression) */
+@media print {
+  /* ===== nombres : lire, écrire, décomposer ===== */
+  .feuille:has(.tab-num) .methode__legende { font-size: 8pt; line-height: 1.15; }
+  .feuille:not(.feuille--corrige):has(.tab-num) .lignes:not(.lignes--deux) { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 6mm; }
+
+  /* ===== nombres : comparer, ranger, encadrer ===== */
+  .feuille:has(.encadrements) .rappel-comp { line-height: 1.15; }
+  .feuille:has(.encadrements) .rappel-comp p { margin-bottom: 1px; }
+  .feuille:has(.encadrements) .bloc--methode { padding: 3px 9px 4px; }
+  .feuille:has(.encadrements) .bloc--methode h2 { margin-bottom: 2px; }
+  .feuille:has(.encadrements) .rappel-comp { gap: 3mm; }
+  .feuille:has(.encadrements) .demi-droite { max-height: 24mm; }
+  .feuille:has(.encadrements) .rangs { gap: 1.5mm; }
+  .feuille:has(.encadrements) .bloc { margin-bottom: 5px; }
+  .feuille:has(.encadrements) .bloc h2 { margin-bottom: 3px; }
+  .feuille:has(.encadrements) .objectif { margin-bottom: 8px; }
+  .feuille:has(.encadrements) .paires { gap: 1mm 3mm; }
+  .feuille:has(.encadrements) .consigne-droite { margin-bottom: 0; line-height: 1.25; }
+  .feuille:has(.encadrements) .bloc--methode { margin-bottom: 5px; }
+  .feuille:not(.feuille--corrige):has(.tab-num) .lignes li { min-height: 9.5mm; }
+}
+@media print {
+  /* ===== fractions : lire, écrire, représenter ===== */
+  .feuille:has(.figures-lire) .rappel-frac { line-height: 1.15; }
+  .feuille:has(.figures-lire) .rappel-frac .fraction:not(.fraction--grande) { font-size: 8pt; }
+  .feuille:has(.figures-lire) .rappel-frac__noms { flex-wrap: nowrap; justify-content: space-between; gap: 0 3px; font-size: 8pt; }
+  .feuille:has(.figures-lire) .rappel-frac__noms li { gap: 1px; }
+  .feuille:has(.figures-lire) .rappel-frac__noms .fraction { font-size: 8pt; margin: 0; }
+  .feuille:has(.figures-lire) .rappel-frac__noms .fraction__num { padding: 0 2px 0; }
+  .feuille:has(.figures-lire) .rappel-frac__noms .fraction__den { padding: 0 2px 0; }
+  .feuille:has(.figures-lire) .figures-lire .figure-cellule__dessin { height: 20.5mm; }
+  .feuille:has(.figures-lire) .figures-colorier .figure-cellule__dessin { height: 20.5mm; }
+  .feuille:has(.figures-lire) .affirmation { min-height: 9mm; }
+  .feuille:has(.figures-lire) .bloc--methode { padding: 4px 9px; }
+  .feuille:has(.figures-lire) .rappel-frac { font-size: 8.2pt; gap: 1mm 4mm; }
+  .feuille:has(.figures-lire) .rappel-frac p { margin-top: 1px; }
+  .feuille:has(.figures-lire) .ecriture--lettres .fraction { font-size: 10pt; }
+  .feuille:has(.figures-lire) .figure-cellule { gap: .5mm; }
+  .feuille:has(.figures-lire) .figures-colorier { gap: 1.5mm 2mm; }
+}
+@media print {
+  /* ===== fractions : égales et comparaison ===== */
+  .feuille:has(.rappel-fc, .paires-fr, .rangs--fr) .rappel-fc { line-height: 1.12; row-gap: 1mm; }
+  .feuille:has(.rappel-fc, .paires-fr, .rangs--fr) .fraction:not(.fraction--grande) { --x: 0; }
+  .feuille:has(.rappel-fc) .rappel-fc .fraction { font-size: 8pt; }
+  .feuille:has(.rappel-fc, .paires-fr, .rangs--fr) .regle { font-size: 8pt; line-height: 1.1; }
+  .feuille:has(.rappel-fc, .paires-fr, .rangs--fr) .bloc--methode { padding: 4px 9px; }
+  .feuille:has(.rappel-fc, .paires-fr, .rangs--fr) .bloc h2 .fraction { font-size: .9em; line-height: 1; }
+  .feuille--corrige:has(.rappel-fc, .paires-fr, .rangs--fr) .objectif--corrige,
+  .feuille--corrige:has(.paires-fr, .rangs--fr) .objectif--corrige { font-size: 9pt; line-height: 1.2; padding: 3px 9px; margin-bottom: 8px; }
+}
+@media print {
+  .feuille:has(.rappel-fc, .paires-fr, .rangs--fr) .rappel-fc__titre { min-height: 6mm; }
+  .feuille:has(.rappel-fc, .paires-fr, .rangs--fr) .bloc { margin-bottom: 5px; }
+  .feuille:has(.rappel-fc, .paires-fr, .rangs--fr) .bloc h2 { margin-bottom: 3px; }
+}
+@media print {
+  .feuille--corrige:has(.paires-fr, .rangs--fr) .regle { line-height: 1.05; }
+  .feuille--corrige:has(.paires-fr, .rangs--fr) .appui { gap: 0; }
+  .feuille--corrige:has(.paires-fr, .rangs--fr) .paires-fr { gap: 1mm 3mm; }
+  .feuille--corrige:has(.paires-fr, .rangs--fr) .rangs--fr .rang__nombres { min-height: 8mm; }
+}
+@media print {
+  /* ===== fractions : mesurer, additionner, soustraire ===== */
+  .feuille:has(.mesures) .rappel-fcal p .fraction { font-size: 8pt; }
+  .feuille:has(.mesures) .mesure__mots, .feuille:has(.mesures) .calc__regle { font-size: 8pt; }
+  .feuille:has(.mesures) .bloc { margin-bottom: 7px; }
+  .feuille:has(.mesures) .objectif { margin-bottom: 10px; }
+  .feuille--corrige:has(.mesures) .objectif--corrige { font-size: 9pt; line-height: 1.2; }
+}
+@media print {
+  /* ===== monnaie ===== */
+  .feuille:has(.sommes) .rappel-mon { line-height: 1.15; gap: 2mm 5mm; }
+  .feuille:has(.sommes) .rappel-mon p { margin-bottom: 1px; }
+  .feuille:has(.sommes) .schema-monnaie { max-width: 270px; margin: 0; }
+  .feuille:has(.sommes) .bloc--methode { padding: 4px 9px; }
+  .feuille:has(.sommes) .bloc { margin-bottom: 5px; }
+  .feuille:has(.sommes) .bloc h2 { margin-bottom: 3px; }
+  .feuille:has(.sommes) .objectif { margin-bottom: 8px; }
+  .feuille:has(.sommes) .consigne-mon { margin-bottom: 1px; }
+}
+@media print {
+  .feuille:has(.sommes) .rappel-mon__rendre { font-size: 8.2pt; line-height: 1.12; padding-left: 4mm; }
+  .feuille:has(.sommes) .rappel-mon { grid-template-columns: 1.2fr 1fr; gap: 2mm 4mm; }
+  .feuille:has(.sommes) .schema-monnaie { max-width: 240px; }
+}
+@media print {
+  .feuille:has(.sommes) .rappel-mon { grid-template-columns: 1.1fr 1fr; gap: 2mm 3mm; }
+  .feuille:has(.sommes) .rappel-mon__rendre { padding-left: 3mm; }
+  .feuille:has(.sommes) .schema-monnaie { max-width: 215px; }
+}
+@media print {
+  .feuille:has(.sommes) .rappel-mon__rendre { font-size: 8pt; line-height: 1.1; }
+  .feuille:has(.sommes) .rappel-mon__rendre p { margin: 0; }
+}
+/* mesures */
+/* heures */
+@media print {
+  .feuille:has(.horloges) .horloges .horloge { width: 88px; height: 88px; }
+  .feuille:has(.horloges) .horloges { gap: 1mm 3mm; }
+  .feuille:has(.horloges) .horloge-item { gap: 0; }
+  .feuille:has(.horloges) .horloge-item__rep { min-height: 8.5mm; }
+  .feuille:has(.rappel-h) .rappel-h { gap: 1.5mm 5mm; line-height: 1.2; }
+  .feuille:has(.rappel-h) .rappel-h__partie .horloge { width: 70px; height: 70px; }
+  .feuille:has(.horloges) .bloc { margin-bottom: 6px; }
+}
+/* durées */
+@media print {
+  .feuille:has(.durees) .bloc { margin-bottom: 6px; }
+  .feuille:has(.durees) .rappel-du { line-height: 1.12; gap: 2mm 5mm; }
+  .feuille:has(.durees) .rappel-du p { margin-bottom: 2px; }
+  .feuille:has(.durees) .rappel-du .ligne-du-temps { max-width: 300px; }
+  .feuille:has(.durees) .duree .ligne-du-temps { max-width: 300px; }
+  .feuille:has(.durees) .duree { margin-bottom: 0; }
+  .feuille:has(.durees) .durees { gap: 0 8mm; }
+  .feuille:has(.durees) .conversions--durees { gap: 0 3mm; }
+  .feuille:has(.durees) .conversions--durees .conversion { min-height: 8mm; }
+}
+@media print {
+  .feuille:has(.durees) .rappel-du ul { gap: 0; }
+  .feuille:has(.durees) .rappel-du { gap: 1mm 4mm; }
+  .feuille:has(.durees) .rappel-du .ligne-du-temps { margin-top: -2mm; }
+  .feuille:has(.durees) .duree .ligne-du-temps { margin: -2mm 0 -1mm; }
+  .feuille:has(.durees) .durees__titre { margin: 0; }
+  .feuille:has(.durees) .conversions--durees { row-gap: 0; }
+}
+/* geometrie */
+@media print {
+  /* solides */
+  .feuille:has(.tab-so) .tab-so__dessin svg { height: 9.5mm; width: auto; }
+  .feuille:has(.tab-so) .tab-so th, .feuille:has(.tab-so) .tab-so td { padding-top: 0; padding-bottom: 0; }
+  .feuille:has(.tab-so) .objectif--corrige { line-height: 1.2; padding-top: 3px; padding-bottom: 3px; margin-bottom: 8px; }
+  .feuille:has(.rappel-so) .rappel-so, .feuille:has(.rappel-so) .rappel-so p { line-height: 1.15; }
+}
+@media print {
+  /* polygones */
+  .feuille:has(.figs-pc) .bloc { margin-bottom: 3px; }
+  .feuille:has(.figs-pc) .bloc h2, .feuille:has(.rappel-po) .bloc h2 { margin-bottom: 3px; }
+  .feuille:has(.figs-pc) .fig-nom__lignes { line-height: 1.15; }
+  .feuille:has(.figs-pc) .rappel-po { grid-template-columns: 165px 185px 1fr; line-height: 1.12; gap: 1mm 4mm; }
+  .feuille:has(.figs-pc) .rappel-po p { margin-bottom: 1px; }
+  .feuille:has(.figs-pc) .cas-cercles { padding-top: 0; }
+}
+@media print {
+  .feuille:has(.figs-pc) .rappel-po__cercle { display: flex; flex-direction: row; gap: 2mm; align-items: center; }
+  .feuille:has(.figs-pc) .rappel-po__cercle svg { flex: none; width: 24mm; height: auto; }
+  .feuille:has(.figs-pc) .rappel-po__cercle p { margin: 0; }
+}
+@media print {
+  .feuille:has(.figs-pc) .cercles--sans .cas-cercles { gap: 0 4mm; margin-bottom: 1mm; }
+  .feuille:has(.figs-pc) .objectif--corrige { line-height: 1.2; padding-top: 3px; padding-bottom: 3px; margin-bottom: 8px; }
+}
+@media print {
+  .bloc--methode:has(.rappel-po) { padding: 3px 9px; }
+  .rappel-po__petite svg { height: 36px; width: auto; }
+  .rappel-po__rang { margin-bottom: 0; }
+  .rappel-po__exemples p { margin-bottom: 0; }
+  .rappel-po__noms { gap: 0; padding-top: 0; }
+  .feuille:has(.figs-pc) .rappel-po { column-gap: 3mm; }
+}
+@media print {
+  .feuille:has(.figs-pc) .bloc h2 { padding-top: 2px; padding-bottom: 2px; }
+  .feuille:has(.figs-pc) .bloc { margin-bottom: 2px; }
+}
+@media print {
+  /* symétrie */
+  .feuille:has(.figs-sy) .bloc h2, .feuille:has(.rappel-sy) .bloc h2 { padding-top: 2px; padding-bottom: 2px; }
+  .feuille:has(.rappel-sy) .rappel-sy { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1.15fr) minmax(0, .85fr); gap: 2mm 3mm; line-height: 1.15; }
+  .bloc--methode:has(.rappel-sy) { padding: 3px 9px; }
+  .rappel-sy p { margin-bottom: 1px; }
+  .rappel-sy__schema, .rappel-sy__exemple { padding-left: 2mm; gap: 3px; }
+  .feuille:has(.figs-sy) .grilles-sy { gap: 2mm; }
+  .feuille:has(.figs-sy) .grilles-sy .grille-sy { flex: 1 1 0; min-width: 0; }
+  .feuille:has(.figs-sy) .grille-sy svg { max-width: 100%; height: auto; }
+  .feuille--corrige .affirmations--sy .affirmation__justif { font-size: 8pt; }
+}
+@media print {
+  .feuille:has(.figs-sy) .fig-sy svg { width: 66px; height: 66px; }
+  .feuille:has(.figs-sy) .fig-ax svg { width: 68px; height: 68px; }
+  .feuille:has(.figs-sy) .objectif--corrige { line-height: 1.2; padding-top: 3px; padding-bottom: 3px; margin-bottom: 8px; }
+  .feuille:has(.rappel-sy) .rappel-sy { grid-template-columns: minmax(0, 1.8fr) minmax(0, 1.1fr) minmax(0, .8fr); }
+}
+@media print {
+  .affirmations--sy .affirmation { gap: 3mm; padding: 0; }
+  .affirmations--sy .affirmation__texte { line-height: 1.15; }
+  .feuille--corrige .affirmations--sy .affirmation__justif { line-height: 1.1; padding-bottom: 1px; }
+}
+@media print {
+  .feuille--corrige:has(.figs-sy) .bloc { margin-bottom: 1px; }
+  .feuille--corrige:has(.figs-sy) .grille-sy svg { max-height: 162px; width: auto; }
+  .feuille--corrige:has(.figs-sy) .figs-ax { gap: 0 3mm; }
+}
+@media print {
+  /* données */
+  .feuille:has(.ex-do) .bloc h2, .feuille:has(.rappel-do) .bloc h2 { padding-top: 2px; padding-bottom: 2px; }
+  .feuille:has(.ex-do) .bloc { margin-bottom: 3px; }
+}
+@media print {
+  .feuille:has(.rappel-do) .rappel-do { line-height: 1.1; gap: 1mm 4mm; }
+  .rappel-do p { margin-bottom: 2px; }
+  .feuille:has(.ex-do) .objectif--corrige { line-height: 1.2; padding-top: 3px; padding-bottom: 3px; margin-bottom: 8px; }
+}
+@media print {
+  .feuille:has(.rappel-do) .rappel-do { font-size: 8.2pt; }
+  .feuille:has(.rappel-do) .rappel-do__lire { font-size: 8pt; }
+  .bloc--methode:has(.rappel-do) { padding: 3px 9px; }
+}
+@media print {
+  .feuille--corrige:has(.figs-sy) .bloc h2 { margin-bottom: 2px; }
+}

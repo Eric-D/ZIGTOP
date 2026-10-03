@@ -7,7 +7,7 @@
 //   node programme/outils/mesurer-blocs.mjs --ecrire        # et réécrit js/hauteurs-blocs.js
 //   node programme/outils/mesurer-blocs.mjs --url=http://localhost:8766
 //
-// Chaque bloc est rendu seul dans une .feuille, en mode impression, à 703 px de large (186 mm :
+// Chaque bloc est rendu seul dans une .feuille, en mode impression, à 673 px de large (178 mm :
 // une A4 moins ses marges). Pour chaque fiche on tire 5 graines et on parcourt toutes les
 // combinaisons de ses options ; on garde le maximum observé + 4 %.
 // À relancer dès qu'on ajoute une fiche, qu'on change le rendu d'un bloc ou le CSS d'impression.
@@ -22,7 +22,7 @@ const MARGE = 1.04;
 const FICHIER = new URL('../../js/hauteurs-blocs.js', import.meta.url);
 
 const navigateur = await chromium.launch();
-const page = await navigateur.newPage({ viewport: { width: 703, height: 1100 } });
+const page = await navigateur.newPage({ viewport: { width: 673, height: 1100 } });
 await page.emulateMedia({ media: 'print' });
 await page.goto(`${URL_APP}/index.html`);
 
@@ -93,7 +93,7 @@ console.log(JSON.stringify(resultat, null, 1));
 
 if (ECRIRE) {
   const ligne = (o) => JSON.stringify(o);
-  const sortie = `// Hauteurs mesurées (px, impression, 703 px de large) : max sur 5 graines et toutes les options, + 4 %.
+  const sortie = `// Hauteurs mesurées (px, impression, 673 px de large) : max sur 5 graines et toutes les options, + 4 %.
 // FICHIER GÉNÉRÉ : ne pas modifier à la main. Pour le régénérer, dans un autre terminal :
 //   python3 -m http.server 8766        (depuis la racine du dépôt)
 // puis :

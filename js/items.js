@@ -805,7 +805,7 @@ function itemsDonnees(c, fm) {
   const g = c.grands ? 1 : 0;
   const lire = texteBrut(fm.rappel.lire);
   const tab = { type: 'tableau', coin: T.coin, colonnes: T.colonnes, lignes: T.lignes.map((l, r) => ({ cap: l.cap, valeurs: T.valeurs[r] })) };
-  const dia = { type: 'diagramme', categories: D.categories, valeurs: D.valeurs, pas: D.pas, titreY: D.titreY, hauteur: 168 };
+  const dia = { type: 'diagramme', categories: D.categories, valeurs: D.valeurs, pas: D.pas, titreY: D.titreY, hauteur: 146 };
   const colonne = (j) => T.valeurs.map((r) => r[j]);
   const caps = T.lignes.map((l) => l.cap);
   for (const q of c.questionsTableau) {

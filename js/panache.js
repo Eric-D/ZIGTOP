@@ -3,10 +3,12 @@
 // fiche, sur une page A4 élève et son corrigé. Le code « Z… » (voir fiches.js) redonne
 // exactement la même composition.
 
-import { FICHES, NOMS_FORMULATIONS, ficheParId, optionsParDefaut, tirer, blocsDe, objectifDe, codePanache, enTeteHTML, echappe } from './fiches.js';
+import { FICHES, NOMS_FORMULATIONS, ficheParId, optionsParDefaut, tirer, blocsDe, objectifDe, codePanache, enTeteHTML, echappe, avecZigo } from './fiches.js';
 import { HAUTEURS_PAGE, HAUTEURS_RAPPEL } from './hauteurs-blocs.js';
 
-export const HAUTEUR_PAGE = 1046;     // px, impression, 703 px de large (voir PLAN-FICHES.md)
+// Budget de hauteur d'une page élève ou corrigé (px, impression, 673 px de large). La page A4 avec ses marges
+// de 12 mm offre 273 mm ≈ 1 032 px : les 32 px de reste absorbent l'écart entre la mesure et l'imprimante.
+export const BUDGET_HAUTEUR = 1000;
 export const NOTIONS_MAX = 5;         // par feuille
 const RAPPEL_PAR_DEFAUT = 26;         // px par ligne de mini-rappel (la table mesurée donne la valeur de chaque fiche)
 const MARGE_RAPPELS = 6;              // px sous la liste des mini-rappels
@@ -70,11 +72,11 @@ export function composer({ notions, graine, miniRappel = false }) {
     return { id: fiche.id, options, bloc: { ...bloc, ficheId: fiche.id, court: fiche.court, objectif: objectifDe(fiche, contenu), ...(variantes ? { variantes } : {}) } };
   });
 
-  // Le budget des deux pages (élève et corrigé) : en-tête + mini-rappels + blocs ≤ 1 046 px.
+  // Le budget des deux pages (élève et corrigé) : en-tête + mini-rappels + blocs ≤ 1 000 px.
   const tient = (liste, rappel) => {
     const eleve = HAUTEURS_PAGE.enteteEleve + (rappel ? MARGE_RAPPELS : 0) + liste.reduce((s, c) => s + c.bloc.hauteur + (rappel ? hauteurRappel(c.id) : 0), 0);
     const corrige = HAUTEURS_PAGE.enteteCorrige + liste.reduce((s, c) => s + c.bloc.hauteurCorrige, 0);
-    return eleve <= HAUTEUR_PAGE && corrige <= HAUTEUR_PAGE;
+    return eleve <= BUDGET_HAUTEUR && corrige <= BUDGET_HAUTEUR;
   };
 
   const feuilles = [];
@@ -113,7 +115,7 @@ export const varianteDe = (bloc, formulation = 'livret') => (bloc.variantes && (
 export function htmlBloc(bloc, numero, vue = 'eleve', formulation = 'livret') {
   const v = varianteDe(bloc, formulation);
   const h2 = `<h2>Exercice ${numero}${v.consigne ? ` — ${v.consigne}` : ''}</h2>`;
-  return (vue === 'corrige' ? v.corrige : v.eleve).replace(/<h2[^>]*>[\s\S]*?<\/h2>/, h2);
+  return avecZigo((vue === 'corrige' ? v.corrige : v.eleve).replace(/<h2[^>]*>[\s\S]*?<\/h2>/, h2));
 }
 
 const titrePanache = (feuille) => `Révision : ${feuille.blocs.map((b) => b.court).join(' · ')}`;

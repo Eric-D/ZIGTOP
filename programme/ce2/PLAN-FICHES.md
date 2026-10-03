@@ -75,7 +75,7 @@ réviser*, *composer* et *imprimer*, et permet des feuilles qui panachent les no
 
 | # | Sujet | Issue | État |
 | --- | --- | --- | --- |
-| 31 | Vraies marges d'impression (16 mm), air entre les blocs, Zigo monochrome devant chaque exercice, re-mesure complète avec un budget de 1 000 px | [#31](https://github.com/Eric-D/ZIGTOP/issues/31) | 🔧 en cours |
+| 31 | Vraies marges d'impression (16 mm), air entre les blocs, Zigo monochrome devant chaque exercice, re-mesure complète avec un budget de 1 000 px | [#31](https://github.com/Eric-D/ZIGTOP/issues/31) | ✅ en ligne |
 
 ## Règles communes à toutes les fiches
 
@@ -89,7 +89,7 @@ aux codes. **Les numéros de page ne sont qu'une référence de transcription** 
 dans `programme/` et dans ce plan, jamais dans l'interface ni sur les feuilles (#25).
 
 **Format.** Une page A4 élève, le corrigé sur la page suivante. En mode impression, la page
-élève mesure **au plus 1 046 px** de haut dans toutes les combinaisons d'options (mesuré
+élève mesure **au plus 1 000 px** de haut (largeur utile 673 px, marges @page de 12 mm × 16 mm) dans toutes les combinaisons d'options (mesuré
 avec Playwright, `emulateMedia({ media: 'print' })`). Pas d'emoji sur la feuille imprimée.
 
 **Structure.** Rappel de la méthode (masquable : la place libérée sert à plus d'exercices),

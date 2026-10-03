@@ -235,7 +235,7 @@ const fiche = FICHES.find((f) => f.id === 'ce2-addition-posee');
     ['ce2-nombres-comparer', { taille: '1000' }], ['ce2-nombres-comparer', { taille: '10000' }], ['ce2-fractions-lire', {}], ['ce2-fractions-comparer', {}], ['ce2-fractions-calculer', { denominateur: '4' }], ['ce2-fractions-calculer', { denominateur: '10' }],
     ['ce2-monnaie', { centimes: 'non' }], ['ce2-monnaie', { centimes: 'oui' }]]
     .map(([id, o]) => somme(empreinte(FICHES.find((x) => x.id === id), o)));
-  verifier(h.join() === '2857615915,907915864,1783462728,4268362955,1347484675,3671073380,178792032,2718432813,1534335352,750168435,1150851747,649082766,1335819493', `longueurs : les neuf fiches précédentes sont inchangées (${h.join()})`);
+  verifier(h.join() === '2789614763,218167992,1492587144,1270504235,369606179,1228745252,281949600,3236866125,1567635576,592853075,3083421059,944532526,3355862789', `longueurs : les neuf fiches précédentes sont inchangées (${h.join()})`);
   verifier(FICHES.slice(0, 9).map((f) => f.id).join() === 'ce2-addition-posee,ce2-soustraction-posee,ce2-multiplication,ce2-nombres-lire-ecrire,ce2-nombres-comparer,ce2-fractions-lire,ce2-fractions-comparer,ce2-fractions-calculer,ce2-monnaie', 'longueurs : ordre des neuf premières fiches inchangé');
 }
 
@@ -425,7 +425,7 @@ const fiche = FICHES.find((f) => f.id === 'ce2-addition-posee');
     ['ce2-nombres-comparer', { taille: '1000' }], ['ce2-nombres-comparer', { taille: '10000' }], ['ce2-fractions-lire', {}], ['ce2-fractions-comparer', {}], ['ce2-fractions-calculer', { denominateur: '4' }], ['ce2-fractions-calculer', { denominateur: '10' }],
     ['ce2-monnaie', { centimes: 'non' }], ['ce2-monnaie', { centimes: 'oui' }], ['ce2-longueurs', { km: 'non' }], ['ce2-longueurs', { km: 'oui' }]]
     .map(([id, o]) => somme(empreinte(FICHES.find((x) => x.id === id), o)));
-  verifier(h.join() === '2857615915,907915864,1783462728,4268362955,1347484675,3671073380,178792032,2718432813,1534335352,750168435,1150851747,649082766,1335819493,11888257,1584605419', `heures : les dix fiches précédentes sont inchangées (${h.join()})`);
+  verifier(h.join() === '2789614763,218167992,1492587144,1270504235,369606179,1228745252,281949600,3236866125,1567635576,592853075,3083421059,944532526,3355862789,2046701377,3476163019', `heures : les dix fiches précédentes sont inchangées (${h.join()})`);
   verifier(FICHES.slice(0, 10).map((f) => f.id).join() === 'ce2-addition-posee,ce2-soustraction-posee,ce2-multiplication,ce2-nombres-lire-ecrire,ce2-nombres-comparer,ce2-fractions-lire,ce2-fractions-comparer,ce2-fractions-calculer,ce2-monnaie,ce2-longueurs', 'heures : ordre des dix premières fiches inchangé');
 }
 
@@ -617,7 +617,7 @@ const fiche = FICHES.find((f) => f.id === 'ce2-addition-posee');
     ['ce2-nombres-comparer', { taille: '1000' }], ['ce2-nombres-comparer', { taille: '10000' }], ['ce2-fractions-lire', {}], ['ce2-fractions-comparer', {}], ['ce2-fractions-calculer', { denominateur: '4' }], ['ce2-fractions-calculer', { denominateur: '10' }],
     ['ce2-monnaie', { centimes: 'non' }], ['ce2-monnaie', { centimes: 'oui' }], ['ce2-longueurs', { km: 'non' }], ['ce2-longueurs', { km: 'oui' }], ['ce2-heures', { minutes: 'quarts' }], ['ce2-heures', { minutes: 'cinq' }]]
     .map(([id, o]) => somme(empreinte(FICHES.find((x) => x.id === id), o)));
-  verifier(h.join() === '2857615915,907915864,1783462728,4268362955,1347484675,3671073380,178792032,2718432813,1534335352,750168435,1150851747,649082766,1335819493,11888257,1584605419,857785706,538954699', `masses et contenances : les onze fiches précédentes sont inchangées (${h.join()})`);
+  verifier(h.join() === '2789614763,218167992,1492587144,1270504235,369606179,1228745252,281949600,3236866125,1567635576,592853075,3083421059,944532526,3355862789,2046701377,3476163019,790039978,33423947', `masses et contenances : les onze fiches précédentes sont inchangées (${h.join()})`);
   verifier(FICHES.slice(0, 11).map((f) => f.id).join() === 'ce2-addition-posee,ce2-soustraction-posee,ce2-multiplication,ce2-nombres-lire-ecrire,ce2-nombres-comparer,ce2-fractions-lire,ce2-fractions-comparer,ce2-fractions-calculer,ce2-monnaie,ce2-longueurs,ce2-heures', 'masses et contenances : ordre des onze premières fiches inchangé');
 }
 
@@ -820,7 +820,7 @@ const fiche = FICHES.find((f) => f.id === 'ce2-addition-posee');
     ['ce2-monnaie', { centimes: 'non' }], ['ce2-monnaie', { centimes: 'oui' }], ['ce2-longueurs', { km: 'non' }], ['ce2-longueurs', { km: 'oui' }], ['ce2-heures', { minutes: 'quarts' }], ['ce2-heures', { minutes: 'cinq' }],
     ['ce2-masses-contenances', { grandeur: 'masses' }], ['ce2-masses-contenances', { grandeur: 'contenances' }], ['ce2-masses-contenances', { grandeur: 'deux' }]]
     .map(([id, o]) => somme(empreinte(FICHES.find((x) => x.id === id), o)));
-  verifier(h.join() === '2857615915,907915864,1783462728,4268362955,1347484675,3671073380,178792032,2718432813,1534335352,750168435,1150851747,649082766,1335819493,11888257,1584605419,857785706,538954699,1652536371,2192490432,1573601925', `durées : les douze fiches précédentes sont inchangées (${h.join()})`);
+  verifier(h.join() === '2789614763,218167992,1492587144,1270504235,369606179,1228745252,281949600,3236866125,1567635576,592853075,3083421059,944532526,3355862789,2046701377,3476163019,790039978,33423947,3222174131,4066120544,111621477', `durées : les douze fiches précédentes sont inchangées (${h.join()})`);
   verifier(FICHES.slice(0, 12).map((f) => f.id).join() === 'ce2-addition-posee,ce2-soustraction-posee,ce2-multiplication,ce2-nombres-lire-ecrire,ce2-nombres-comparer,ce2-fractions-lire,ce2-fractions-comparer,ce2-fractions-calculer,ce2-monnaie,ce2-longueurs,ce2-heures,ce2-masses-contenances', 'durées : ordre des douze premières fiches inchangé');
 }
 
@@ -950,7 +950,7 @@ const fiche = FICHES.find((f) => f.id === 'ce2-addition-posee');
     ['ce2-monnaie', { centimes: 'non' }], ['ce2-monnaie', { centimes: 'oui' }], ['ce2-longueurs', { km: 'non' }], ['ce2-longueurs', { km: 'oui' }], ['ce2-heures', { minutes: 'quarts' }], ['ce2-heures', { minutes: 'cinq' }],
     ['ce2-masses-contenances', { grandeur: 'masses' }], ['ce2-masses-contenances', { grandeur: 'contenances' }], ['ce2-masses-contenances', { grandeur: 'deux' }], ['ce2-durees', { secondes: 'non' }], ['ce2-durees', { secondes: 'oui' }]]
     .map(([id, o]) => somme(empreinte(FICHES.find((x) => x.id === id), o)));
-  verifier(h.join() === '2857615915,907915864,1783462728,4268362955,1347484675,3671073380,178792032,2718432813,1534335352,750168435,1150851747,649082766,1335819493,11888257,1584605419,857785706,538954699,1652536371,2192490432,1573601925,237366352,3253221856', `solides : les treize fiches précédentes sont inchangées (${h.join()})`);
+  verifier(h.join() === '2789614763,218167992,1492587144,1270504235,369606179,1228745252,281949600,3236866125,1567635576,592853075,3083421059,944532526,3355862789,2046701377,3476163019,790039978,33423947,3222174131,4066120544,111621477,764921232,2490904800', `solides : les treize fiches précédentes sont inchangées (${h.join()})`);
   verifier(FICHES.slice(0, 13).map((f) => f.id).join() === 'ce2-addition-posee,ce2-soustraction-posee,ce2-multiplication,ce2-nombres-lire-ecrire,ce2-nombres-comparer,ce2-fractions-lire,ce2-fractions-comparer,ce2-fractions-calculer,ce2-monnaie,ce2-longueurs,ce2-heures,ce2-masses-contenances,ce2-durees', 'solides : ordre des treize premières fiches inchangé');
 }
 
@@ -1097,7 +1097,7 @@ const fiche = FICHES.find((f) => f.id === 'ce2-addition-posee');
     ['ce2-monnaie', { centimes: 'non' }], ['ce2-monnaie', { centimes: 'oui' }], ['ce2-longueurs', { km: 'non' }], ['ce2-longueurs', { km: 'oui' }], ['ce2-heures', { minutes: 'quarts' }], ['ce2-heures', { minutes: 'cinq' }],
     ['ce2-masses-contenances', { grandeur: 'masses' }], ['ce2-masses-contenances', { grandeur: 'contenances' }], ['ce2-masses-contenances', { grandeur: 'deux' }], ['ce2-durees', { secondes: 'non' }], ['ce2-durees', { secondes: 'oui' }], ['ce2-solides', {}]]
     .map(([id, o]) => somme(empreinte(FICHES.find((x) => x.id === id), o)));
-  verifier(h.join() === '2857615915,907915864,1783462728,4268362955,1347484675,3671073380,178792032,2718432813,1534335352,750168435,1150851747,649082766,1335819493,11888257,1584605419,857785706,538954699,1652536371,2192490432,1573601925,237366352,3253221856,906907030', `polygones : les quatorze fiches précédentes sont inchangées (${h.join()})`);
+  verifier(h.join() === '2789614763,218167992,1492587144,1270504235,369606179,1228745252,281949600,3236866125,1567635576,592853075,3083421059,944532526,3355862789,2046701377,3476163019,790039978,33423947,3222174131,4066120544,111621477,764921232,2490904800,2227176886', `polygones : les quatorze fiches précédentes sont inchangées (${h.join()})`);
   verifier(FICHES.slice(0, 14).map((f) => f.id).join() === 'ce2-addition-posee,ce2-soustraction-posee,ce2-multiplication,ce2-nombres-lire-ecrire,ce2-nombres-comparer,ce2-fractions-lire,ce2-fractions-comparer,ce2-fractions-calculer,ce2-monnaie,ce2-longueurs,ce2-heures,ce2-masses-contenances,ce2-durees,ce2-solides', 'polygones : ordre des quatorze premières fiches inchangé');
 }
 
@@ -1302,7 +1302,7 @@ const fiche = FICHES.find((f) => f.id === 'ce2-addition-posee');
     ['ce2-monnaie', { centimes: 'non' }], ['ce2-monnaie', { centimes: 'oui' }], ['ce2-longueurs', { km: 'non' }], ['ce2-longueurs', { km: 'oui' }], ['ce2-heures', { minutes: 'quarts' }], ['ce2-heures', { minutes: 'cinq' }],
     ['ce2-masses-contenances', { grandeur: 'masses' }], ['ce2-masses-contenances', { grandeur: 'contenances' }], ['ce2-masses-contenances', { grandeur: 'deux' }], ['ce2-durees', { secondes: 'non' }], ['ce2-durees', { secondes: 'oui' }], ['ce2-solides', {}], ['ce2-polygones', {}]]
     .map(([id, o]) => somme(empreinte(FICHES.find((x) => x.id === id), o)));
-  verifier(h.join() === '2857615915,907915864,1783462728,4268362955,1347484675,3671073380,178792032,2718432813,1534335352,750168435,1150851747,649082766,1335819493,11888257,1584605419,857785706,538954699,1652536371,2192490432,1573601925,237366352,3253221856,906907030,3321772385', `symétrie : les quinze fiches précédentes sont inchangées (${h.join()})`);
+  verifier(h.join() === '2789614763,218167992,1492587144,1270504235,369606179,1228745252,281949600,3236866125,1567635576,592853075,3083421059,944532526,3355862789,2046701377,3476163019,790039978,33423947,3222174131,4066120544,111621477,764921232,2490904800,2227176886,2273396289', `symétrie : les quinze fiches précédentes sont inchangées (${h.join()})`);
   verifier(FICHES.slice(0, 15).map((f) => f.id).join() === 'ce2-addition-posee,ce2-soustraction-posee,ce2-multiplication,ce2-nombres-lire-ecrire,ce2-nombres-comparer,ce2-fractions-lire,ce2-fractions-comparer,ce2-fractions-calculer,ce2-monnaie,ce2-longueurs,ce2-heures,ce2-masses-contenances,ce2-durees,ce2-solides,ce2-polygones', 'symétrie : ordre des quinze premières fiches inchangé');
 }
 
@@ -1517,7 +1517,7 @@ const fiche = FICHES.find((f) => f.id === 'ce2-addition-posee');
     ['ce2-masses-contenances', { grandeur: 'masses' }], ['ce2-masses-contenances', { grandeur: 'contenances' }], ['ce2-masses-contenances', { grandeur: 'deux' }], ['ce2-durees', { secondes: 'non' }], ['ce2-durees', { secondes: 'oui' }], ['ce2-solides', {}], ['ce2-polygones', {}],
     ['ce2-symetrie', { axes: 'vertical' }], ['ce2-symetrie', { axes: 'deux' }], ['ce2-donnees', { effectifs: 'petits' }], ['ce2-donnees', { effectifs: 'grands' }]]
     .map(([id, o]) => somme(empreinte(FICHES.find((x) => x.id === id), o)));
-  verifier(h.join() === '2857615915,907915864,1783462728,4268362955,1347484675,3671073380,178792032,2718432813,1534335352,750168435,1150851747,649082766,1335819493,11888257,1584605419,857785706,538954699,1652536371,2192490432,1573601925,237366352,3253221856,906907030,3321772385,3670825682,1245069007,2392590821,2808236880', `données : les dix-sept fiches (feuille panachée comprise) sont inchangées (${h.join()})`);
+  verifier(h.join() === '2789614763,218167992,1492587144,1270504235,369606179,1228745252,281949600,3236866125,1567635576,592853075,3083421059,944532526,3355862789,2046701377,3476163019,790039978,33423947,3222174131,4066120544,111621477,764921232,2490904800,2227176886,2273396289,4066720242,1562094351,4041506462,1094164931', `données : les dix-sept fiches (feuille panachée comprise) sont inchangées (${h.join()})`);
   verifier(FICHES.slice(0, 17).map((f) => f.id).join() === 'ce2-addition-posee,ce2-soustraction-posee,ce2-multiplication,ce2-nombres-lire-ecrire,ce2-nombres-comparer,ce2-fractions-lire,ce2-fractions-comparer,ce2-fractions-calculer,ce2-monnaie,ce2-longueurs,ce2-heures,ce2-masses-contenances,ce2-durees,ce2-solides,ce2-polygones,ce2-symetrie,ce2-donnees', 'données : ordre des dix-sept premières fiches inchangé');
 }
 
@@ -1606,7 +1606,7 @@ const fiche = FICHES.find((f) => f.id === 'ce2-addition-posee');
     empreintesCommune.push(eC(''));
   }
   // Empreintes à graine fixe de la formulation commune (mesurées à l'écriture de la formulation).
-  verifier(empreintesCommune.join() === '1315942214,2128063412,1053273845,47222720,2641884119,1530593338,3947914584,2909159360,1934417952,2903052303,664244201,2415765654,1361692491,2549846,718505285,1094738188,3672985215', `rendu commune stable (${empreintesCommune.join()})`);
+  verifier(empreintesCommune.join() === '2650922662,160742996,3598143989,340686592,2895412791,3854321978,2643291320,2938812864,3350887168,320403439,3039857929,2758405622,181086667,2390349046,3929382661,4284060172,2078331428', `rendu commune stable (${empreintesCommune.join()})`);
 
   // Un objet de fiche sans `formulations` ignore l'option : son objectif vient du tirage, sa note de sa mise en page
   const cn = tirer(factice, optionsParDefaut(FICHES.find((x) => x.id === 'ce2-donnees')), 77);
