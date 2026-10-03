@@ -41,7 +41,10 @@ feuille panachée — avec pour chacune les pages, l'objectif « Je sais… », 
 leçon transcrite et ses options), **composer** (rappel, nombre de feuilles, feuilles
 identiques ou qui tournent sur les notions, le code de la composition), puis **imprimer et
 partager**. Le pas courant est dans l'adresse (`?pas=2`), le bouton retour du navigateur
-marche, et un lien ou un QR arrive directement au dernier pas. Dix-sept fiches sont
+marche, et un lien ou un QR arrive directement au dernier pas. Trois raccourcis cochent
+pour vous : « tout ce qu'on a vu jusqu'à la page N » (la page est mémorisée), un domaine
+entier, ou « la révision de la semaine » — quatre notions tirées au sort parmi celles de la
+dernière fois, en favorisant les moins tirées. Dix-sept fiches sont
 disponibles (le plan complet est dans [`programme/ce2/PLAN-FICHES.md`](programme/ce2/PLAN-FICHES.md)) :
 
 - **CE2 — Les tableaux et les diagrammes en barres** (p. 56 du livret) : lire un tableau à
@@ -373,6 +376,7 @@ node tests/partage.mjs            # liens partagés : corrigé ouvert sans profi
 node tests/ecran-fiches.mjs       # écran des fiches : domaines, liens vers les leçons, ordre figé de FICHES
 node tests/panache.mjs            # feuilles panachées : code Z, budget de hauteur, report sur plusieurs feuilles
 node tests/tunnel.mjs             # tunnel : cocher → composer → imprimer, retour, ouverture par lien au pas 3
+node tests/raccourcis.mjs         # raccourcis : jusqu'à la page N, domaine, révision de la semaine, mémorisation
 
 # vérification approfondie du QR code (dépendances en plus) :
 npm i --no-save playwright jsqr pngjs && npx playwright install chromium

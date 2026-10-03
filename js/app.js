@@ -436,11 +436,102 @@ const boutonRetour = (pas) => (pas > 1
 
 const nomsNotions = () => (panache ? panache.notions : [{ id: fiche.id }]).map((n) => ficheParId(n.id).court).join(' · ');
 
+/* --- Raccourcis de révision (pas 1) -------------------------------------- */
+
+const PAGE_MIN = 3;
+const NB_SEMAINE = 4;
+const DOMAINES_COURTS = { 'Gestion de données': 'Données' };
+const nomDomaine = (d) => DOMAINES_COURTS[d] || d;
+
+// Première page d'une notion : « 14–15 » -> 14 ; « 48–50 (+ 51–54 manquantes) » -> 48.
+const premierePage = (pages) => {
+  const m = /\d+/.exec(String(pages));
+  return m ? Number(m[0]) : 0;
+};
+const fichesVisibles = () => {
+  const d = fichesDe(classeCourante().id);
+  return d.length ? d : FICHES;
+};
+const bornePage = (n) => Math.min(P.PAGE_MAX, Math.max(PAGE_MIN, Math.round(n)));
+
+// Lit le champ « page », le borne et le mémorise.
+function lirePage() {
+  const champ = app.querySelector('#page-vue');
+  const n = champ ? Number(champ.value) : NaN;
+  const page = Number.isFinite(n) && champ.value !== '' ? bornePage(n) : P.pageVue();
+  if (champ) champ.value = page;
+  P.setRaccourcis({ pageVue: page });
+  return page;
+}
+
+// Met la sélection comme si l'élève avait coché à la main.
+function selectionner(ids) {
+  const voulus = new Set(ids);
+  fiche.selection = FICHES.map((f) => f.id).filter((id) => voulus.has(id));
+  fiche.valide = false;
+  rafraichir();
+}
+
+// Les moins tirées d'abord ; au hasard à égalité ; jamais deux fois la même.
+function tirerSemaine() {
+  const visibles = fichesVisibles().map((f) => f.id);
+  const dernieres = P.derniereSelection().filter((id) => visibles.includes(id));
+  let permis = dernieres;
+  if (!permis.length) permis = fichesVisibles().filter((f) => premierePage(f.pages) <= P.pageVue()).map((f) => f.id);
+  if (!permis.length) permis = visibles;
+  const compteurs = P.tirages();
+  const rang = (id) => compteurs[id] || 0;
+  const choisies = [];
+  const niveaux = [...new Set(permis.map(rang))].sort((x, y) => x - y);
+  for (const niveau of niveaux) {
+    const groupe = shuffle(permis.filter((id) => rang(id) === niveau));
+    choisies.push(...groupe.slice(0, NB_SEMAINE - choisies.length));
+    if (choisies.length >= NB_SEMAINE) break;
+  }
+  const suite = { ...compteurs };
+  choisies.forEach((id) => { suite[id] = rang(id) + 1; });
+  P.setRaccourcis({ tirages: suite });
+  return choisies;
+}
+
+function blocRaccourcis(liste) {
+  const page = P.pageVue();
+  const ids = [...fiche.selection].sort().join();
+  return `
+      <div class="raccourcis">
+        <div class="section-titre raccourcis__titre">Raccourcis</div>
+        <div class="raccourci">
+          <label class="reglage__libelle" for="page-vue">Tout ce qu’on a vu jusqu’à la page…</label>
+          <div class="raccourci__page">
+            <button class="btn btn--fantome raccourci__pas" data-page-pas="-1" aria-label="Page précédente">−</button>
+            <input class="champ raccourci__champ" id="page-vue" type="number" inputmode="numeric"
+                   min="${PAGE_MIN}" max="${P.PAGE_MAX}" step="1" value="${page}" />
+            <button class="btn btn--fantome raccourci__pas" data-page-pas="1" aria-label="Page suivante">+</button>
+            <button class="btn btn--jaune" data-cocher-page>Cocher</button>
+          </div>
+        </div>
+        <div class="raccourci">
+          <div class="reglage__libelle">Un domaine entier</div>
+          <div class="reglage__options">${DOMAINES.map((dom) => {
+            const siens = liste.filter((f) => f.domaine === dom).map((f) => f.id);
+            if (!siens.length) return '';
+            return `<button class="option" data-domaine="${dom}" aria-pressed="${siens.slice().sort().join() === ids}">${nomDomaine(dom)}</button>`;
+          }).join('')}</div>
+        </div>
+        <div class="raccourci">
+          <div class="reglage__libelle">La révision de la semaine</div>
+          <button class="btn btn--vert" data-semaine>Tirer ${NB_SEMAINE} notions au sort</button>
+          <div class="reglage__aide">Parmi celles de la dernière fois, ou celles jusqu’à la page ${page} ; on commence par celles qu’on a le moins revues.</div>
+        </div>
+      </div>`;
+}
+
 function pasReviser(c, liste, disponibles) {
   const n = fiche.selection.length;
   return `
       ${bulle('Coche ce que tu veux réviser : une leçon, et je fabrique sa fiche ; plusieurs, et je les mélange sur une même feuille. Avec son corrigé !', 'curieux', 78)}
       ${disponibles.length ? '' : `<p class="note">Pas encore de fiche pour le ${c.nom} — voici celles qui existent aujourd’hui.</p>`}
+      ${blocRaccourcis(liste)}
       ${DOMAINES.map((dom) => {
         const lignes = liste.filter((f) => f.domaine === dom);
         if (!lignes.length) return '';
@@ -971,11 +1062,37 @@ function majArdoise() {
   ardoise.classList.toggle('vide', !session.saisie);
 }
 
+app.addEventListener('change', (ev) => {
+  if (ev.target.id === 'page-vue') lirePage();
+});
+
 app.addEventListener('click', (ev) => {
-  const cible = ev.target.closest('[data-aller],[data-jouer],[data-touche],[data-choix],[data-decor],[data-reglage],[data-pas],[data-fiche],[data-fiche-option],[data-affichage],[data-nb-feuilles],[data-compo],#regenerer,#suivant,#ecouter');
+  const cible = ev.target.closest('[data-aller],[data-jouer],[data-touche],[data-choix],[data-decor],[data-reglage],[data-pas],[data-fiche],[data-fiche-option],[data-page-pas],[data-cocher-page],[data-domaine],[data-semaine],[data-affichage],[data-nb-feuilles],[data-compo],#regenerer,#suivant,#ecouter');
   if (!cible) return;
 
-  if (cible.dataset.pas) return allerPas(Number(cible.dataset.pas));
+  if (cible.dataset.pas) {
+    if (vue.pas === 1 && Number(cible.dataset.pas) > 1 && fiche.selection.length) P.setRaccourcis({ derniereSelection: idsCoches() });
+    return allerPas(Number(cible.dataset.pas));
+  }
+  if (cible.dataset.pagePas !== undefined) {
+    const champ = app.querySelector('#page-vue');
+    const n = Number(champ.value);
+    champ.value = bornePage((Number.isFinite(n) && champ.value !== '' ? n : P.pageVue()) + Number(cible.dataset.pagePas));
+    return P.setRaccourcis({ pageVue: Number(champ.value) });
+  }
+  if (cible.dataset.cocherPage !== undefined) {
+    const page = lirePage();
+    return selectionner(fichesVisibles().filter((f) => premierePage(f.pages) <= page).map((f) => f.id));
+  }
+  if (cible.dataset.domaine) {
+    const siens = fichesVisibles().filter((f) => f.domaine === cible.dataset.domaine).map((f) => f.id);
+    const dejaTout = siens.length === fiche.selection.length && siens.every((id) => fiche.selection.includes(id));
+    return selectionner(dejaTout ? [] : siens);
+  }
+  if (cible.dataset.semaine !== undefined) {
+    lirePage();
+    return selectionner(tirerSemaine());
+  }
   if (cible.dataset.fiche) {
     const id = cible.dataset.fiche;
     fiche.selection = fiche.selection.includes(id) ? fiche.selection.filter((x) => x !== id) : [...fiche.selection, id];

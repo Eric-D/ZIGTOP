@@ -46,7 +46,14 @@ réviser*, *composer* et *imprimer*, et permet des feuilles qui panachent les no
 | --- | --- | --- | --- |
 | 19 | Feuille panachée : un exercice par notion choisie, code `Z…`, tenue sur une A4 par hauteurs mesurées | [#19](https://github.com/Eric-D/ZIGTOP/issues/19) | ✅ en ligne (moteur ; l'interface vient avec #20) |
 | 20 | Tunnel en trois pas : que réviser → composer → imprimer et partager | [#20](https://github.com/Eric-D/ZIGTOP/issues/20) | ✅ en ligne |
-| 21 | Raccourcis : jusqu'à la page N, un domaine, la révision de la semaine | [#21](https://github.com/Eric-D/ZIGTOP/issues/21) | ⬜ à faire |
+| 21 | Raccourcis : jusqu'à la page N, un domaine, la révision de la semaine | [#21](https://github.com/Eric-D/ZIGTOP/issues/21) | ✅ en ligne |
+
+## Phase 7 — se souvenir de ce qui a été révisé
+
+| # | Sujet | Issue | État |
+| --- | --- | --- | --- |
+| 22 | Carnet local : journal des séries, fiches imprimées et appréciations, export/import, sans compte | [#22](https://github.com/Eric-D/ZIGTOP/issues/22) | ⬜ à faire |
+| 23 | Espace personnel Firebase : enfants à part entière, responsables, invitations, appareils d'enfant, synchronisation du carnet (épique) | [#23](https://github.com/Eric-D/ZIGTOP/issues/23) | ⬜ décisions à prendre (projet Firebase, région européenne) |
 
 ## Règles communes à toutes les fiches
 

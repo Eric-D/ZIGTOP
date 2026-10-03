@@ -15,6 +15,9 @@ const vide = () => ({
   etoilesDepensees: 0,
   son: true,
   reglages: {},         // accessibilité : voir js/accessibilite.js
+  pageVue: null,        // fiches : dernière « page jusqu'où on a vu » saisie (null = 56)
+  derniereSelection: [],// fiches : notions cochées en quittant le pas 1
+  tirages: {},          // fiches : identifiant de notion -> fois tirée par « la révision de la semaine »
 });
 
 let etat = charger();
@@ -60,6 +63,19 @@ export function setReglage(id, valeur) {
   etat.reglages = { ...etat.reglages, [id]: valeur };
   sauver();
   return etat.reglages;
+}
+
+// Raccourcis de révision (écran des fiches) : on ne change que les champs fournis.
+export const PAGE_MAX = 56;
+export const pageVue = () => (Number.isInteger(etat.pageVue) ? etat.pageVue : PAGE_MAX);
+export const derniereSelection = () => (Array.isArray(etat.derniereSelection) ? etat.derniereSelection : []);
+export const tirages = () => (etat.tirages && typeof etat.tirages === 'object' ? etat.tirages : {});
+
+export function setRaccourcis({ pageVue: page, derniereSelection: sel, tirages: t }) {
+  if (page !== undefined) etat.pageVue = page;
+  if (sel !== undefined) etat.derniereSelection = [...sel];
+  if (t !== undefined) etat.tirages = { ...t };
+  sauver();
 }
 
 export function basculerSon() {

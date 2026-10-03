@@ -1581,3 +1581,11 @@ svg.visuel {
 .q-do__rep, .q-do__calcul { flex: 1 1 100%; }
 .q-do__rep > :first-child, .q-do__calcul > :first-child { white-space: nowrap; }
 .q-do__lib { white-space: nowrap; flex: none; }
+
+/* Raccourcis de révision (pas 1) */
+.raccourcis { display: grid; gap: 16px; background: var(--carte); border-radius: var(--rayon); box-shadow: var(--ombre); padding: 14px; }
+.raccourci__page { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.raccourci__champ { width: 5.5rem; min-height: 48px; padding: 6px 8px; text-align: center; font-weight: 800; }
+.raccourci__pas { background: #F2F0EA; color: var(--encre); border: 3px solid transparent; min-width: 48px; min-height: 48px; padding: 0; font-size: 1.5rem; line-height: 1; }
+.raccourci .btn { min-height: 48px; }
+.raccourcis__titre { margin: 0; }
