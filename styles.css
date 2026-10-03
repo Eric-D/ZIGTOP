@@ -1117,3 +1117,51 @@ svg.visuel {
   .calculs--5 .calc { font-size: 9.5pt; }
   .calculs--5 .case-fr { width: 5mm; height: 4.6mm; }
 }
+
+/* ---------- fiche monnaie : composer une somme, rendre la monnaie ---------- */
+.monnaie, .schema-monnaie { display: block; max-width: 100%; height: auto; }
+.rappel-mon { display: grid; grid-template-columns: 1.3fr 1fr; gap: 3mm 5mm; font-size: .82rem; line-height: 1.25; }
+.rappel-mon p { margin: 0 0 2px; }
+.rappel-mon__titre { font-weight: 700; }
+.rappel-mon__rang { display: flex; flex-direction: column; gap: 1px; margin-bottom: 2px; }
+.rappel-mon__pieces { display: flex; gap: 10px; align-items: flex-end; }
+.rappel-mon__rang > span { font-weight: 600; font-size: .78rem; }
+.rappel-mon__egalite { font-size: .9rem; margin-top: 3px; }
+.rappel-mon__rendre { border-left: 1px dashed #CFC9BC; padding-left: 5mm; }
+.schema-monnaie { width: 100%; max-width: 330px; margin: 2px 0; }
+.consigne-mon { margin: 0 0 3px; font-size: .88rem; font-weight: 600; }
+.sommes { list-style: none; margin: 0; padding: 0; display: grid; gap: 1mm; }
+.somme { display: flex; align-items: center; gap: 8px; min-height: 9mm; font-size: 1.02rem; }
+.somme__montant { font-weight: 700; min-width: 22mm; text-align: right; white-space: nowrap; }
+.somme__compo { font-weight: 700; }
+.somme__total { font-size: .76rem; color: #555; margin-left: auto; white-space: nowrap; }
+.sommes--corrigees .somme { min-height: 7mm; font-size: .95rem; }
+.conversions { display: grid; grid-template-columns: 1fr 1fr; gap: 1mm 8mm; }
+.conversion { display: flex; align-items: center; gap: 6px; min-height: 11mm; font-size: 1.02rem; white-space: nowrap; }
+.conversion .pointilles--mini { min-width: 14mm; height: 1.4em; }
+.conversions--corrigees .conversion { min-height: 8mm; }
+.achats { display: grid; grid-template-columns: 1fr 1fr; gap: 2mm 8mm; }
+.achat__enonce, .probleme-mon__enonce { margin: 0 0 1mm; font-size: .9rem; line-height: 1.25; }
+.achat__ligne { display: flex; align-items: center; gap: 6px; min-height: 8mm; font-size: .88rem; }
+.achat__ligne > span:first-child { flex: none; font-weight: 700; white-space: nowrap; }
+.achat__ligne .pointilles--mini { min-width: 8mm; height: 1.4em; }
+.achat__ligne .pointilles--ligne { height: 1.4em; min-width: 14mm; }
+.achats--corriges { gap: 1.5mm 8mm; }
+.achat--corrige { font-size: .84rem; line-height: 1.25; }
+.achat__detail { display: block; font-weight: 600; }
+.problemes-mon { display: grid; gap: 2mm; }
+.probleme-mon__lignes { display: grid; grid-template-columns: 1fr 1fr; gap: 0 8mm; }
+.problemes-mon--corriges .probleme-mon__enonce { font-size: .86rem; }
+@media print {
+  .rappel-mon { font-size: 8.5pt; }
+  .rappel-mon__rang > span { font-size: 8pt; }
+  .somme { min-height: 6mm; font-size: 11pt; }
+  .sommes--corrigees .somme { min-height: 6.5mm; font-size: 10pt; }
+  .conversion { min-height: 7mm; font-size: 11pt; }
+  .achat__enonce, .probleme-mon__enonce { font-size: 9.5pt; }
+  .achat__ligne { min-height: 6mm; font-size: 9.5pt; }
+  .achats, .problemes-mon { gap: 1mm 8mm; }
+  .schema-monnaie { max-width: 300px; }
+  .achat--corrige { font-size: 9pt; }
+  .consigne-mon { font-size: 9.5pt; }
+}

@@ -4,7 +4,7 @@ import { JSDOM } from 'jsdom';
 import { FICHES, tirer, rendre, decoder, codeDe, optionsParDefaut } from '../js/fiches.js';
 import { matrice } from '../js/qr.js';
 import { fmt } from '../js/utils.js';
-import { figureFraction } from '../js/visuels.js';
+import { figureFraction, monnaie } from '../js/visuels.js';
 
 let echecs = 0;
 const verifier = (ok, message) => { if (!ok) echecs++; console.log(`${ok ? '✔' : '✘'} ${message}`); };
@@ -1176,7 +1176,7 @@ for (const opt of optionsMult) {
 {
   const fk = FICHES.find((f) => f.id === 'ce2-fractions-calculer');
   console.log('— Fractions : mesurer, additionner, soustraire');
-  verifier(FICHES.indexOf(fk) === FICHES.length - 1 && FICHES.indexOf(fk) === 7, 'fractions calculer : fiche ajoutée en fin de FICHES (index 7)');
+  verifier(FICHES.indexOf(fk) === 7, 'fractions calculer : fiche à l’index 7 (jamais déplacée)');
   verifier(fk.titre === 'Les fractions : mesurer, additionner, soustraire' && fk.emoji === '➕'
     && fk.options.length === 1 && fk.options[0].id === 'denominateur' && fk.options[0].defaut === '4'
     && JSON.stringify(fk.options[0].valeurs) === JSON.stringify([{ v: '4', nom: 'Demis, tiers, quarts' }, { v: '10', nom: 'Jusqu’aux dixièmes' }]),
@@ -1356,6 +1356,185 @@ for (const opt of optionsMult) {
     ['ce2-nombres-comparer', { taille: '1000' }], ['ce2-nombres-comparer', { taille: '10000' }], ['ce2-fractions-lire', {}], ['ce2-fractions-comparer', {}]].map(([id, o]) => somme(empreinte(FICHES.find((x) => x.id === id), o)));
   verifier(h.join() === '2857615915,841554819,1341628403,3247079376,2467628440,3671073380,178792032,2718432813,1534335352', `fractions calculer : les sept fiches précédentes sont inchangées (${h.join()})`);
   verifier(FICHES.slice(0, 7).map((f) => f.id).join() === 'ce2-addition-posee,ce2-soustraction-posee,ce2-multiplication,ce2-nombres-lire-ecrire,ce2-nombres-comparer,ce2-fractions-lire,ce2-fractions-comparer', 'fractions calculer : ordre des sept premières fiches inchangé');
+}
+
+/* Monnaie : composer une somme, rendre la monnaie --------------------- */
+{
+  const fm = FICHES.find((f) => f.id === 'ce2-monnaie');
+  console.log('— Monnaie : composer une somme, rendre la monnaie');
+  verifier(FICHES.indexOf(fm) === FICHES.length - 1 && FICHES.indexOf(fm) === 8, 'monnaie : fiche ajoutée en fin de FICHES (index 8)');
+  verifier(fm.titre === 'La monnaie : composer une somme, rendre la monnaie' && fm.emoji === '🪙'
+    && fm.options.length === 1 && fm.options[0].id === 'centimes' && fm.options[0].defaut === 'oui'
+    && JSON.stringify(fm.options[0].valeurs) === JSON.stringify([{ v: 'non', nom: 'Euros entiers' }, { v: 'oui', nom: 'Avec les centimes' }]),
+    'monnaie : titre, emoji, option centimes (non puis oui, défaut oui)');
+
+  const doc = (c, o) => new JSDOM(`<div>${rendre(fm, c, o)}</div>`).window.document;
+  const blocs = (page) => [...page.querySelectorAll('.bloc:not(.bloc--methode)')];
+  // Tous les montants d'un texte, en centimes : « 12,60 € », « 7 € », « 40 c ».
+  const montants = (txt) => [...String(txt).matchAll(/(\d+)(?:,(\d\d))? (€|c)(?![\p{L}])/gu)].map((m) => (m[3] === 'c' ? +m[1] : +m[1] * 100 + (m[2] ? +m[2] : 0)));
+  const txt = (el) => el.textContent.replace(/[ \t\n\r]+/g, ' ');   // sans toucher aux espaces insécables
+  const contient = (texte, motif) => new RegExp(`(?<![\\d,])${motif.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`).test(texte);
+  const eur2 = (c) => (c % 100 === 0 ? `${c / 100}\u00a0€` : `${Math.floor(c / 100)},${String(c % 100).padStart(2, '0')}\u00a0€`);
+
+  // Nombre minimal de pièces et billets, recalculé par programmation dynamique (pas par l'algorithme glouton du générateur)
+  const minimum = (somme, valeurs) => {
+    const m = Array(somme + 1).fill(Infinity); m[0] = 0;
+    for (let s = 1; s <= somme; s++) for (const v of valeurs) if (v <= s && m[s - v] + 1 < m[s]) m[s] = m[s - v] + 1;
+    return m[somme];
+  };
+  const ENTIERES = [50000, 20000, 10000, 5000, 2000, 1000, 500, 200, 100];
+  const TOUTES = [...ENTIERES, 50, 20, 10, 5, 2, 1];
+
+  for (const centimes of ['non', 'oui']) for (const methode of [true, false]) {
+    const k = methode ? { s: 4, c: 4, a: 4, p: 2 } : { s: 6, c: 6, a: 6, p: 3 };
+    const nom = `monnaie ${centimes === 'oui' ? 'avec' : 'sans'} centimes, ${methode ? 'avec' : 'sans'} méthode`;
+    let casse = 0, comptes = 0, fuite = 0, bornes = 0, mots = 0;
+    for (let graine = 1; graine <= 60; graine++) {
+      const c = tirer(fm, { centimes }, graine * 7919);
+      const d = doc(c, { corrige: true, methode });
+      const [pe, pc] = d.querySelectorAll('.feuille');
+      const [e1, e2, e3, e4] = blocs(pe), [c1, c2, c3, c4] = blocs(pc);
+      const cmpt = (el, sel) => el.querySelectorAll(sel).length;
+      if (!(cmpt(e1, '.somme') === k.s && cmpt(c1, '.somme') === k.s && cmpt(e2, '.conversion') === k.c && cmpt(c2, '.conversion') === k.c
+        && cmpt(e3, '.achat') === k.a && cmpt(c3, '.achat') === k.a && cmpt(e4, '.probleme-mon') === k.p && cmpt(c4, '.probleme-mon') === k.p)) comptes++;
+
+      // Ex. 1 : somme exacte, et nombre minimal de pièces et billets
+      [...c1.querySelectorAll('.somme')].forEach((li, i) => {
+        const [s] = montants(li.querySelector('.somme__montant').textContent);
+        const [se] = montants([...e1.querySelectorAll('.somme')][i].querySelector('.somme__montant').textContent);
+        const parts = [...li.querySelector('.somme__compo').textContent.matchAll(/(\d+) × (\d+) (€|c)/g)].map((m) => ({ n: +m[1], v: m[3] === 'c' ? +m[2] : +m[2] * 100 }));
+        const somme = parts.reduce((x, p) => x + p.n * p.v, 0), nb = parts.reduce((x, p) => x + p.n, 0);
+        const dispo = centimes === 'oui' ? TOUTES : ENTIERES;
+        const annonce = +li.querySelector('.somme__total').textContent.match(/\d+/)[0];
+        const bon = s === se && somme === s && nb === minimum(s, dispo) && annonce === nb && parts.every((p) => dispo.includes(p.v)) && nb >= 3
+          && (centimes === 'oui' ? s % 5 === 0 && s % 100 !== 0 : s % 100 === 0);
+        if (!bon) casse++;
+      });
+
+      // Ex. 2 : conversions ou additions
+      [...c2.querySelectorAll('.conversion')].forEach((div, i) => {
+        const ligne = txt(div), enonce = txt([...e2.querySelectorAll('.conversion')][i]);
+        if (centimes === 'oui') {
+          const cts = (s) => { const m1 = s.match(/^(\d+)\u00a0€ (\d+)\u00a0c$/); if (m1) return +m1[1] * 100 + +m1[2]; const m2 = s.match(/^(\d+)\u00a0c$/); return m2 ? +m2[1] : NaN; };
+          const [gauche, droite] = ligne.replace(/^[a-f]\.\s*/, '').split(' = ');
+          const g = cts(gauche), dr = cts(droite);
+          if (!(g === dr && g > 100 && g % 5 === 0 && g % 100 !== 0 && (droite.includes('€') !== gauche.includes('€')))) casse++;
+          if (!/^[a-f]\.\s*[^=]* =\s*(c|€\s*c)?$/.test(enonce)) casse++;   // l'énoncé élève n'a rien après le signe égal
+        } else {
+          const termes = [...enonce.matchAll(/(\d+) €/g)].map((x) => +x[1]);
+          const reponse = montants(ligne.split(' = ').pop())[0] / 100;
+          if (!(termes.length >= 3 && termes.every((x) => [1, 2, 5, 10, 20, 50].includes(x)) && reponse === termes.reduce((a, b) => a + b, 0))) casse++;
+        }
+      });
+
+      // Ex. 3 : chaque achat, chaîne de compléments
+      [...c3.querySelectorAll('.achat')].forEach((div, i) => {
+        const enonce = txt([...e3.querySelectorAll('.achat')][i]);
+        const [prixE, billetE] = montants(enonce);
+        const [prix, billet] = montants(txt(div).split(' De ')[0]);
+        const detail = txt(div.querySelector('.achat__detail'));
+        const etapes = [...detail.matchAll(/De (\d+(?:,\d\d)?) € à (\d+(?:,\d\d)?) €, il faut (\d+(?:,\d\d)?) (€|c)\./g)]
+          .map((m) => { const c = (s) => Math.round(parseFloat(s.replace(',', '.')) * 100); return { de: c(m[1]), vers: c(m[2]), diff: m[4] === 'c' ? +m[3] : c(m[3]) }; });
+        const rendu = montants(detail.match(/rend ([^.]*\.\d*|[^ ]* [^ ]*)/)?.[0] ?? '')[0];
+        const renduTxt = montants(detail.slice(detail.indexOf('Le vendeur rend')))[0];
+        const attenduInter = (p) => (centimes === 'oui' ? Math.ceil(p / 100) * 100 : Math.ceil(p / 1000) * 1000);
+        let ok = prixE === prix && billetE === billet && [1000, 2000, 5000].includes(billet) && prix < billet && billet - prix > 0
+          && etapes.length >= 1 && etapes.length <= 2 && etapes[0].de === prix && etapes[etapes.length - 1].vers === billet
+          && etapes.every((e, j) => e.vers - e.de === e.diff && e.diff > 0 && (j === 0 || e.de === etapes[j - 1].vers))
+          && renduTxt === billet - prix && etapes.reduce((a, e) => a + e.diff, 0) === billet - prix;
+        if (etapes.length === 2) ok = ok && etapes[0].vers === attenduInter(prix);
+        else ok = ok && (billet === 1000 || centimes === 'non');
+        if (centimes === 'oui') ok = ok && etapes.length === 2 && prix % 5 === 0 && prix % 100 !== 0 && prix >= 100;
+        else ok = ok && prix % 100 === 0 && prix % 1000 !== 0;
+        if (!ok) casse++;
+        void rendu;
+      });
+
+      // Ex. 4 : total et monnaie rendue
+      [...c4.querySelectorAll('.probleme-mon')].forEach((div, i) => {
+        const enonce = txt([...e4.querySelectorAll('.probleme-mon')][i]);
+        const m = montants(enonce);
+        const billet = m[m.length - 1], articles = m.slice(0, -1);
+        const total = articles.reduce((a, b) => a + b, 0);
+        const rep = txt(div);
+        const mr = montants(rep);
+        // Prix total : a + b (+ c) = T. De … Le vendeur rend R.
+        const attenduT = mr.slice(articles.length, articles.length + 1)[0];
+        const dernier = mr[mr.length - 1];
+        const ok = articles.length >= 2 && attenduT === total && dernier === billet - total && billet - total > 0 && total < billet
+          && [1000, 2000, 5000].includes(billet) && mr.slice(0, articles.length).join() === articles.join()
+          && (centimes === 'oui' ? articles.every((x) => x % 5 === 0 && x % 100 !== 0) && total % 100 !== 0 : articles.every((x) => x % 100 === 0) && total % 1000 !== 0);
+        if (!ok) casse++;
+        if (contient(enonce, eur2(total))) fuite++;
+      });
+
+      // Page élève : aucune réponse écrite (rien en rouge, aucun détail de complément)
+      if (pe.querySelectorAll('.rouge, .achat__detail, .somme__compo').length) fuite++;
+      if (/il faut|rend \d/.test(txt(e1) + txt(e2) + txt(e3) + txt(e4))) fuite++;
+      if (/Je complète à \d/.test(txt(e3))) fuite++;
+
+      // Ton : aucun mot négatif ni emoji sur la feuille
+      const tout = pe.textContent + pc.textContent;
+      if (/faux|erreur|raté|✗|✘|❌|[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(tout)) mots++;
+      // Montants : espace insécable avant € ou c, jamais « 12.60 » ni « 12,6 € »
+      if (/\d\.\d\d €|\d,\d €|\d €/.test(tout)) mots++;
+      void bornes;
+    }
+    verifier(comptes === 0, `${nom} : mêmes comptes élève / corrigé (${k.s} sommes, ${k.c} conversions, ${k.a} achats, ${k.p} problèmes), 60 tirages`);
+    verifier(casse === 0, `${nom} : compositions minimales, conversions, compléments, totaux et monnaie rendue exacts (60 tirages)`);
+    verifier(fuite === 0, `${nom} : aucune réponse sur la page élève`);
+    verifier(mots === 0, `${nom} : aucun mot négatif ni emoji, montants bien typographiés`);
+    const d0 = doc(tirer(fm, { centimes }, 99), { corrige: true, methode });
+    const [pe0, pc0] = d0.querySelectorAll('.feuille');
+    verifier(pe0.querySelectorAll('.bloc--methode').length === (methode ? 1 : 0) && !pc0.querySelector('.bloc--methode') && !pc0.textContent.includes('Nom :'), `${nom} : rappel seulement avec la méthode, jamais dans le corrigé ni la ligne Nom / Date`);
+  }
+
+  // Le rappel : billets et pièces dessinés, leçon reprise mot pour mot
+  {
+    const d = doc(tirer(fm, { centimes: 'oui' }, 11), { corrige: false, methode: true });
+    const m = d.querySelector('.bloc--methode');
+    const t = txt(m);
+    const phrases = ['La monnaie que nous utilisons s’appelle l’euro : €.', '1 euro, c’est 100 centimes d’euro.', '1 € = 100 c',
+      'Pour rendre la monnaie sur 20 € pour un achat de 12,60 €, je cherche le complément à 20 € de 12,60 €.', 'Je complète à 13 € puis à 20 €.',
+      'De 12,60 € pour aller à 13 €, il faut 40 c.', 'De 13 € pour aller à 20 €, il faut 7 €.', 'Le vendeur doit rendre 7 € + 40 c soit en tout 7,40 €.'];
+    verifier(phrases.every((p) => t.includes(p)), 'monnaie : le rappel reprend les phrases de la leçon');
+    const svgs = [...m.querySelectorAll('svg.monnaie')].map((s) => ({
+      billets: [...s.querySelectorAll('.billet')].map((x) => +x.dataset.valeur), pieces: [...s.querySelectorAll('.piece')].map((x) => +x.dataset.valeur),
+      textes: [...s.querySelectorAll('.valeur-monnaie')].map((x) => x.textContent), cercles: s.querySelectorAll('circle').length, rects: s.querySelectorAll('rect').length,
+    }));
+    verifier(svgs.length === 3 && svgs[0].billets.join() === '50000,20000,10000,5000,2000,1000,500' && svgs[0].pieces.length === 0 && svgs[0].rects === 7
+      && svgs[1].pieces.join() === '100,200' && svgs[1].cercles === 2 && svgs[2].pieces.join() === '1,2,5,10,20,50' && svgs[2].cercles === 6,
+      'monnaie : le rappel dessine 7 billets, 2 pièces en euro et 6 pièces en centime');
+    verifier(svgs[0].textes.join() === '500 €,200 €,100 €,50 €,20 €,10 €,5 €' && svgs[1].textes.join() === '1 €,2 €' && svgs[2].textes.join() === '1 c,2 c,5 c,10 c,20 c,50 c',
+      'monnaie : la valeur est écrite sur chaque pièce et chaque billet');
+    const schema = m.querySelector('svg.schema-monnaie');
+    const st = [...schema.querySelectorAll('text')].map((x) => x.textContent);
+    verifier(st.join('|') === '12,60 €|13 €|20 €|+ 40 c|+ 7 €|+ 7,40 €', `monnaie : schéma de la droite 12,60 € → 13 € → 20 € (${st.join(' ')})`);
+    // La fonction du dessin : autant de formes que de valeurs, quel que soit le mélange
+    const essai = new JSDOM(`<div>${monnaie([1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000])}</div>`).window.document.querySelector('svg');
+    verifier(essai.querySelectorAll('.piece').length === 8 && essai.querySelectorAll('.billet').length === 7 && essai.querySelectorAll('circle').length === 8 && essai.querySelectorAll('rect').length === 7
+      && essai.querySelector('.billet rect').getAttribute('rx') > 0 && essai.querySelectorAll('.valeur-monnaie').length === 15, 'monnaie : 8 pièces (cercles) et 7 billets (rectangles arrondis) dessinés');
+  }
+
+  // Codes reproductibles et options
+  for (const centimes of ['non', 'oui']) {
+    const c = tirer(fm, { centimes });
+    const r = decoder(c.code);
+    verifier(r && r.fiche === fm && r.options.centimes === centimes && JSON.stringify(tirer(r.fiche, r.options, r.graine)) === JSON.stringify(c), `monnaie ${centimes} : le code ${c.code} redonne la même fiche`);
+    verifier(rendre(fm, tirer(fm, { centimes }, 77), { corrige: true }) === rendre(fm, tirer(fm, { centimes }, 77), { corrige: true }), `monnaie ${centimes} : même graine, même HTML`);
+    const vus = new Set(); for (let i = 0; i < 200; i++) vus.add(tirer(fm, { centimes }).code);
+    verifier(vus.size > 190, `monnaie ${centimes} : codes variés (${vus.size} sur 200)`);
+  }
+  verifier(codeDe(fm, { centimes: 'non' }, 5) !== codeDe(fm, { centimes: 'oui' }, 5), 'monnaie : l’option change le code');
+
+  // Les huit fiches précédentes inchangées : empreinte du HTML à graine fixe, mesurée avant l’ajout
+  const empreinte = (f, o) => { const t = tirer(f, o, 424242); return JSON.stringify(t) + rendre(f, t, { corrige: true, base: 'http://x/' }); };
+  const somme = (s) => { let h = 5381; for (const ch of s) h = ((h * 33) ^ ch.charCodeAt(0)) >>> 0; return h; };
+  const h = [['ce2-addition-posee', { taille: 'mix' }], ['ce2-soustraction-posee', { taille: 'mix' }], ['ce2-multiplication', { facteur: '2' }], ['ce2-nombres-lire-ecrire', { taille: '1000' }], ['ce2-nombres-lire-ecrire', { taille: '10000' }],
+    ['ce2-nombres-comparer', { taille: '1000' }], ['ce2-nombres-comparer', { taille: '10000' }], ['ce2-fractions-lire', {}], ['ce2-fractions-comparer', {}], ['ce2-fractions-calculer', { denominateur: '4' }], ['ce2-fractions-calculer', { denominateur: '10' }]]
+    .map(([id, o]) => somme(empreinte(FICHES.find((x) => x.id === id), o)));
+  verifier(h.join() === '2857615915,841554819,1341628403,3247079376,2467628440,3671073380,178792032,2718432813,1534335352,750168435,1150851747', `monnaie : les huit fiches précédentes sont inchangées (${h.join()})`);
+  verifier(FICHES.slice(0, 8).map((f) => f.id).join() === 'ce2-addition-posee,ce2-soustraction-posee,ce2-multiplication,ce2-nombres-lire-ecrire,ce2-nombres-comparer,ce2-fractions-lire,ce2-fractions-comparer,ce2-fractions-calculer', 'monnaie : ordre des huit premières fiches inchangé');
 }
 
 process.exit(echecs ? 1 : 0);

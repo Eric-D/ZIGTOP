@@ -37,6 +37,10 @@ et le **corrigé sur une deuxième page** pour l'adulte.
 
 Fiches disponibles (le plan complet est dans [`programme/ce2/PLAN-FICHES.md`](programme/ce2/PLAN-FICHES.md)) :
 
+- **CE2 — La monnaie : composer une somme, rendre la monnaie** (p. 32 du livret) : les
+  billets et les pièces, 1 € = 100 c, la méthode du livret pour rendre la monnaie (compléter
+  à l'euro suivant, puis au billet) ; sommes à composer, conversions, monnaie à rendre,
+  problèmes d'achat. Option : euros entiers, ou avec les centimes.
 - **CE2 — Les fractions : mesurer, additionner, soustraire** (p. 30–31 du livret) : mesurer
   des bandes avec une règle graduée en fractions d'unité, additionner et soustraire des
   fractions de même dénominateur avec la règle de la leçon, problèmes. Option : demis, tiers

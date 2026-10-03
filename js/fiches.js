@@ -4,7 +4,7 @@
 
 import { rnd, pick, shuffle, fmt, enLettres, setAlea, generateurAleatoire } from './utils.js';
 import { qrSVG } from './qr.js';
-import { demiDroite, figureFraction, regleFractions } from './visuels.js';
+import { demiDroite, figureFraction, regleFractions, monnaie, PIECES_EURO, BILLETS_EURO } from './visuels.js';
 
 /* ------------------------------------------------------------------ */
 /* Outils de mise en page                                              */
@@ -1908,6 +1908,294 @@ const miseFractionsCalculer = {
   },
 };
 
+/* ------------------------------------------------------------------ */
+/* CE2 — monnaie : composer une somme, rendre la monnaie                */
+/* ------------------------------------------------------------------ */
+
+// Tous les montants sont calculés en centimes d'euro (des entiers), jamais en décimaux.
+const NBSP = ' ';
+const eur = (c) => { const e = Math.floor(c / 100), r = c % 100; return r === 0 ? `${e}${NBSP}€` : `${e},${String(r).padStart(2, '0')}${NBSP}€`; };
+const cts = (c) => `${c}${NBSP}c`;
+// Un complément : « 40 c » sous l'euro, « 7 € » au-delà.
+const montant = (c) => (c < 100 ? cts(c) : eur(c));
+const nomValeur = (v) => (v >= 100 ? eur(v) : cts(v));
+
+const VALEURS_ENTIERES = [...BILLETS_EURO, ...PIECES_EURO.filter((v) => v >= 100)].sort((a, b) => b - a);
+const VALEURS_TOUTES = [...BILLETS_EURO, ...PIECES_EURO].sort((a, b) => b - a);
+
+// Le moins de pièces et de billets possible : on prend toujours le plus grand possible (le système de l'euro s'y prête).
+function composer(somme, valeurs) {
+  const out = [];
+  let reste = somme;
+  for (const v of valeurs) {
+    const n = Math.floor(reste / v);
+    if (n) { out.push({ v, n }); reste -= n * v; }
+  }
+  return out;
+}
+const nbPieces = (compo) => compo.reduce((s, x) => s + x.n, 0);
+const ecritureCompo = (compo) => compo.map(({ v, n }) => `${n} × ${nomValeur(v)}`).join(' + ');
+
+// La méthode de la leçon : on complète à l'euro suivant (avec les centimes), ou à la dizaine d'euros suivante
+// (euros entiers), puis au billet. S'il n'y a pas d'étape intermédiaire avant le billet, une seule étape.
+function complement(prix, billet, centimes) {
+  const B = billet * 100, pas = centimes ? 100 : 1000;
+  const etapes = [];
+  let cur = prix;
+  if (prix % pas !== 0) {
+    const inter = Math.ceil(prix / pas) * pas;
+    if (inter < B) { etapes.push({ de: cur, vers: inter, diff: inter - cur }); cur = inter; }
+  }
+  etapes.push({ de: cur, vers: B, diff: B - cur });
+  return { etapes, rendu: B - prix };
+}
+const phraseComplement = ({ etapes, rendu }) => `${etapes.map((e) => `De ${eur(e.de)} à ${eur(e.vers)}, il faut ${montant(e.diff)}.`).join(' ')} Le vendeur rend ${eur(rendu)}.`;
+
+// Les articles : [nom, prix minimum, prix maximum] en euros entiers.
+const ARTICLES = [
+  ['un cahier', 1, 5], ['un stylo', 1, 4], ['une règle', 1, 3], ['une trousse', 3, 12], ['un livre de contes', 5, 19],
+  ['un puzzle', 6, 24], ['un ballon', 4, 18], ['un jeu de cartes', 3, 9], ['une casquette', 6, 19], ['un tee-shirt', 8, 25],
+  ['une peluche', 7, 29], ['un sac à dos', 15, 45], ['un jeu de société', 10, 39], ['une paire de chaussettes', 3, 9],
+  ['une boîte de feutres', 3, 12], ['un album de coloriage', 2, 8], ['un cerf-volant', 5, 29], ['un dictionnaire', 10, 29],
+];
+const ARTICLES_PETITS = ARTICLES.filter(([, , max]) => max <= 12);
+
+// Un prix en centimes pour l'article, au plus `eMax` euros pleins : euros entiers, ou avec des centimes (multiples de 5).
+const prixDe = (article, centimes, eMax) => {
+  const e = rnd(article[1], Math.min(article[2], eMax));
+  return centimes ? e * 100 + 5 * rnd(1, 19) : e * 100;
+};
+
+function genererMonnaie(options) {
+  const centimes = options.centimes !== 'non';
+
+  // Ex. 1 : 6 sommes dont la composition la plus courte compte 4 à 7 pièces et billets (de plus en plus grandes).
+  const plages = centimes ? [[3, 12], [5, 19], [10, 29], [20, 49], [4, 15], [15, 49]] : [[13, 39], [41, 69], [71, 99], [101, 149], [23, 59], [61, 189]];
+  const valeurs = centimes ? VALEURS_TOUTES : VALEURS_ENTIERES;
+  const vues = new Set();
+  const sommes = plages.map(([min, max]) => {
+    for (let essai = 0; essai < 500; essai++) {
+      const s = rnd(min, max) * 100 + (centimes ? 5 * rnd(1, 19) : 0);
+      const n = nbPieces(composer(s, valeurs));
+      if (n >= (centimes ? 4 : 3) && n <= 6 + (centimes ? 1 : 0) && !vues.has(s)) { vues.add(s); return s; }
+    }
+    return (min + 1) * 100 + (centimes ? 85 : 0);
+  });
+
+  // Ex. 2 : avec les centimes, des conversions « 3 € 25 c = … c » et « 540 c = … € … c » ; sinon des additions d'euros entiers.
+  let conversions = null, additions = null;
+  if (centimes) {
+    const dejaVu = new Set();
+    conversions = Array.from({ length: 6 }, (_, i) => {
+      for (;;) {
+        const vers = i % 2 === 0 ? 'cts' : 'eur';
+        const total = rnd(1, 9) * 100 + 5 * rnd(1, 19);
+        const cle = `${vers}${total}`;
+        if (!dejaVu.has(cle)) { dejaVu.add(cle); return { vers, total }; }
+      }
+    });
+  } else {
+    const dejaVu = new Set();
+    additions = [3, 3, 4, 4, 4, 4].map((k) => {
+      for (;;) {
+        const termes = Array.from({ length: k }, () => pick([1, 2, 5, 10, 20, 50])).sort((a, b) => b - a);
+        const total = termes.reduce((s, t) => s + t, 0);
+        if (new Set(termes).size >= 2 && total >= 10 && !dejaVu.has(total)) { dejaVu.add(total); return { termes }; }
+      }
+    });
+  }
+
+  // Ex. 3 : 6 achats payés avec 10, 20 ou 50 €. Avec les centimes, toujours deux étapes (l'euro suivant, puis le billet).
+  const queue = [...shuffle([10, 20, 50]), ...shuffle([10, 20, 50])];
+  const pris = new Set();
+  const achats = queue.map((billet) => {
+    for (let essai = 0; essai < 1000; essai++) {
+      const a = pick(ARTICLES);
+      if (pris.has(a[0])) continue;
+      const eMax = centimes ? billet - 2 : billet - 1;
+      if (Math.max(a[1], 1) > eMax) continue;
+      const prix = prixDe(a, centimes, eMax);
+      if (!centimes && prix % 1000 === 0) continue;
+      pris.add(a[0]);
+      return { nom: a[0], prix, billet };
+    }
+    throw new Error('monnaie : pas d’article pour ce billet');
+  });
+
+  // Ex. 4 : 3 problèmes (2, 3 puis 3 articles), le total reste sous le billet, avec une étape intermédiaire.
+  const [p, q, r] = shuffle(PRENOMS);
+  const problemes = [[p, 2, [10, 20]], [q, 3, [20, 50]], [r, 3, [20, 50]]].map(([prenom, k, billets]) => {
+    const billet = pick(billets);
+    for (let essai = 0; essai < 2000; essai++) {
+      const noms = shuffle(ARTICLES_PETITS).slice(0, k);
+      const articles = noms.map((a) => ({ nom: a[0], prix: prixDe(a, centimes, 9) }));
+      const total = articles.reduce((s, x) => s + x.prix, 0);
+      const pas = centimes ? 100 : 1000;
+      const inter = Math.ceil(total / pas) * pas;
+      // total non rond, sous le billet ; avec les centimes, l'euro suivant reste sous le billet
+      if (total % pas === 0 || total >= billet * 100 || (centimes && inter >= billet * 100)) continue;
+      return { prenom, articles, billet };
+    }
+    throw new Error('monnaie : pas de problème possible');
+  });
+
+  return {
+    centimes,
+    objectif: 'Je sais composer une somme avec des pièces et des billets, et je sais rendre la monnaie.',
+    sommes, conversions, additions, achats, problemes,
+  };
+}
+
+const totalProbleme = (pb) => pb.articles.reduce((s, x) => s + x.prix, 0);
+const listeArticles = (articles) => {
+  const t = articles.map((a) => `${a.nom} à ${eur(a.prix)}`);
+  return t.length > 1 ? `${t.slice(0, -1).join(', ')} et ${t[t.length - 1]}` : t[0];
+};
+
+// Petit schéma de droite comme dans le livret : un saut du prix à l'euro suivant, un autre jusqu'au billet,
+// et une grande flèche au-dessus pour la monnaie rendue.
+function schemaComplement({ prix, inter, billet }) {
+  const x1 = 40, x2 = 130, x3 = 300, y = 66;
+  const saut = (xa, xb, pic, texte, fort) => {
+    const m = (xa + xb) / 2, trait = fort ? 2.6 : 2;
+    return `<path d="M${xa} ${y - 4} Q${m} ${y - 2 * pic - 4} ${xb} ${y - 8}" fill="none" stroke="#222" stroke-width="${trait}" stroke-linecap="round"/>
+      <path d="M${xb - 6} ${y - 14} L${xb} ${y - 5} L${xb + 6} ${y - 14}" fill="none" stroke="#222" stroke-width="${trait}" stroke-linejoin="round" stroke-linecap="round"/>
+      <text x="${m}" y="${fort ? y - pic - 9 : y + 41}" font-size="13" font-weight="800" fill="#C0392B" text-anchor="middle">${texte}</text>`;
+  };
+  const point = (x, t) => `<line x1="${x}" y1="${y - 6}" x2="${x}" y2="${y + 8}" stroke="#222" stroke-width="2.4"/>
+      <text x="${x}" y="${y + 25}" font-size="13" font-weight="700" fill="#222" text-anchor="middle">${t}</text>`;
+  return `<svg class="schema-monnaie" viewBox="0 0 340 108" xmlns="http://www.w3.org/2000/svg" role="img"
+    aria-label="Droite : de ${eur(prix)} à ${eur(inter)}, plus ${montant(inter - prix)}, puis à ${eur(billet)}, plus ${montant(billet - inter)} ; en tout plus ${eur(billet - prix)}">
+    <line x1="20" y1="${y}" x2="326" y2="${y}" stroke="#222" stroke-width="2.4"/>
+    ${point(x1, eur(prix))}${point(x2, eur(inter))}${point(x3, eur(billet))}
+    <g class="saut saut--petit">${saut(x1, x2, 12, `+${NBSP}${montant(inter - prix)}`, false)}</g>
+    <g class="saut">${saut(x2, x3, 12, `+${NBSP}${montant(billet - inter)}`, false)}</g>
+    <g class="saut saut--grand">${saut(x1, x3, 40, `+${NBSP}${eur(billet - prix)}`, true)}</g>
+  </svg>`;
+}
+
+const miseMonnaie = {
+  signe: '',
+  combien: (contenu, methode) => ({
+    sommes: contenu.sommes.slice(0, methode ? 4 : 6),
+    conversions: contenu.conversions ? contenu.conversions.slice(0, methode ? 4 : 6) : null,
+    additions: contenu.additions ? contenu.additions.slice(0, methode ? 4 : 6) : null,
+    achats: contenu.achats.slice(0, methode ? 4 : 6),
+    problemes: contenu.problemes.slice(0, methode ? 2 : 3),
+  }),
+  noteCorrige: 'les réponses attendues sont en rouge ; chaque somme est composée avec le moins de pièces et de billets possible, et chaque monnaie rendue est détaillée comme dans la leçon : on complète à l’euro suivant, puis au billet.',
+  // Rappel : les billets et les pièces, 1 € = 100 c, et la méthode de la leçon (page 32 du livret).
+  rappel() {
+    return `
+      <div class="rappel-mon">
+        <div class="rappel-mon__monnaie">
+          <p class="rappel-mon__titre">La monnaie que nous utilisons s’appelle l’euro : €.</p>
+          <div class="rappel-mon__rang"><span>Les billets</span>${monnaie([...BILLETS_EURO].reverse(), { taille: 400 })}</div>
+          <div class="rappel-mon__pieces">
+            <div class="rappel-mon__rang"><span>Les pièces en euro</span>${monnaie([100, 200], { taille: 92 })}</div>
+            <div class="rappel-mon__rang"><span>Les pièces en centime d’euro</span>${monnaie([1, 2, 5, 10, 20, 50], { taille: 250 })}</div>
+          </div>
+          <p class="rappel-mon__egalite">1 euro, c’est 100 centimes d’euro.<br><b>1${NBSP}€ = 100${NBSP}c</b></p>
+        </div>
+        <div class="rappel-mon__rendre">
+          <p>Pour <b>rendre la monnaie</b> sur ${eur(2000)} pour un achat de ${eur(1260)}, je cherche le complément à ${eur(2000)} de ${eur(1260)}.<br>
+          <b>Je complète à ${eur(1300)} puis à ${eur(2000)}.</b></p>
+          ${schemaComplement({ prix: 1260, inter: 1300, billet: 2000 })}
+          <p>De ${eur(1260)} pour aller à ${eur(1300)}, il faut ${cts(40)}.<br>
+          De ${eur(1300)} pour aller à ${eur(2000)}, il faut ${eur(700)}.<br>
+          Le vendeur doit rendre ${eur(700)} + ${cts(40)} soit en tout <b>${eur(740)}</b>.</p>
+        </div>
+      </div>`;
+  },
+  exercices(contenu, methode) {
+    const { sommes, conversions, additions, achats, problemes } = this.combien(contenu, methode);
+    const pts = '<span class="pointilles pointilles--ligne"></span>';
+    return `
+    <div class="bloc">
+      <h2>Exercice 1 — Compose chaque somme avec le moins de pièces et de billets possible.</h2>
+      <p class="consigne-mon">Écris par exemple : … × 20${NBSP}€ + … × 5${NBSP}€ + …</p>
+      <ul class="sommes">
+        ${sommes.map((s, i) => `<li class="somme"><b>${lettre(i)}.</b><span class="somme__montant">${eur(s)}</span><span>=</span>${pts}</li>`).join('')}
+      </ul>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 2 — ${contenu.centimes ? 'Convertis.' : 'Additionne les sommes.'}</h2>
+      <div class="conversions">
+        ${contenu.centimes
+    ? conversions.map((c, i) => `<div class="conversion"><b>${lettre(i)}.</b>${c.vers === 'cts'
+      ? `<span>${Math.floor(c.total / 100)}${NBSP}€ ${c.total % 100}${NBSP}c =</span><span class="pointilles pointilles--mini"></span><span>c</span>`
+      : `<span>${c.total}${NBSP}c =</span><span class="pointilles pointilles--mini"></span><span>€</span><span class="pointilles pointilles--mini"></span><span>c</span>`}</div>`).join('')
+    : additions.map((a, i) => `<div class="conversion"><b>${lettre(i)}.</b><span>${a.termes.map((t) => eur(t * 100)).join(' + ')} =</span><span class="pointilles pointilles--mini"></span><span>€</span></div>`).join('')}
+      </div>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 3 — Rends la monnaie.</h2>
+      <div class="achats">
+        ${achats.map((a, i) => `<div class="achat">
+          <p class="achat__enonce"><b>${lettre(i)}.</b> J’achète ${a.nom} à ${eur(a.prix)}. Je paie avec un billet de ${eur(a.billet * 100)}.</p>
+          <div class="achat__ligne"><span>Je complète à <span class="pointilles pointilles--mini"></span> € :</span>${pts}</div>
+          <div class="achat__ligne"><span>Le vendeur rend :</span>${pts}</div>
+        </div>`).join('')}
+      </div>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 4 — Résous chaque problème.</h2>
+      <div class="problemes-mon">
+        ${problemes.map((pb, i) => `<div class="probleme-mon">
+          <p class="probleme-mon__enonce"><b>${lettre(i)}.</b> ${pb.prenom} achète ${listeArticles(pb.articles)}. ${pb.prenom} paie avec un billet de ${eur(pb.billet * 100)}. Quel est le prix total ? Combien le vendeur rend-il ?</p>
+          <div class="probleme-mon__lignes"><div class="achat__ligne"><span>Prix total :</span>${pts}</div><div class="achat__ligne"><span>Monnaie rendue :</span>${pts}</div></div>
+        </div>`).join('')}
+      </div>
+    </div>
+`;
+  },
+  corriges(contenu, methode) {
+    const { sommes, conversions, additions, achats, problemes } = this.combien(contenu, methode);
+    const valeurs = contenu.centimes ? VALEURS_TOUTES : VALEURS_ENTIERES;
+    return `
+    <div class="bloc">
+      <h2>Exercice 1</h2>
+      <ul class="sommes sommes--corrigees">
+        ${sommes.map((s, i) => { const c = composer(s, valeurs); return `<li class="somme"><b>${lettre(i)}.</b><span class="somme__montant">${eur(s)}</span><span>=</span><span class="rouge somme__compo">${ecritureCompo(c)}</span><span class="somme__total">(${nbPieces(c)} pièces ou billets)</span></li>`; }).join('')}
+      </ul>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 2</h2>
+      <div class="conversions conversions--corrigees">
+        ${contenu.centimes
+    ? conversions.map((c, i) => `<div class="conversion"><b>${lettre(i)}.</b>${c.vers === 'cts'
+      ? `<span>${Math.floor(c.total / 100)}${NBSP}€ ${c.total % 100}${NBSP}c = <span class="rouge">${c.total}${NBSP}c</span></span>`
+      : `<span>${c.total}${NBSP}c = <span class="rouge">${Math.floor(c.total / 100)}${NBSP}€ ${c.total % 100}${NBSP}c</span></span>`}</div>`).join('')
+    : additions.map((a, i) => `<div class="conversion"><b>${lettre(i)}.</b><span>${a.termes.map((t) => eur(t * 100)).join(' + ')} = <span class="rouge">${eur(a.termes.reduce((s, t) => s + t, 0) * 100)}</span></span></div>`).join('')}
+      </div>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 3</h2>
+      <div class="achats achats--corriges">
+        ${achats.map((a, i) => `<div class="achat achat--corrige"><b>${lettre(i)}.</b> ${nomPrix(a)}<span class="rouge achat__detail">${phraseComplement(complement(a.prix, a.billet, contenu.centimes))}</span></div>`).join('')}
+      </div>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 4</h2>
+      <div class="problemes-mon problemes-mon--corriges">
+        ${problemes.map((pb, i) => {
+    const total = totalProbleme(pb);
+    return `<div class="probleme-mon"><p class="probleme-mon__enonce"><b>${lettre(i)}.</b> Prix total : ${pb.articles.map((x) => eur(x.prix)).join(' + ')} = <span class="rouge">${eur(total)}</span>.
+            <span class="rouge">${phraseComplement(complement(total, pb.billet, contenu.centimes))}</span></p></div>`;
+  }).join('')}
+      </div>
+    </div>
+`;
+  },
+};
+const nomPrix = (a) => `Achat de ${eur(a.prix)}, payé avec ${eur(a.billet * 100)}. `;
+
 function pageExercices(fiche, contenu, { base = '', methode = true, identite = true } = {}) {
   const { signe } = fiche.mise;
   if (fiche.mise.rappel) return pageExercicesLibre(fiche, contenu, { base, methode, identite });
@@ -2099,6 +2387,25 @@ export const FICHES = [
     ],
     generer: genererFractionsCalculer,
     mise: miseFractionsCalculer,
+  },
+  {
+    id: 'ce2-monnaie',
+    classe: 'ce2',
+    domaine: 'Grandeurs et mesures',
+    titre: 'La monnaie : composer une somme, rendre la monnaie',
+    emoji: '🪙',
+    options: [
+      {
+        id: 'centimes', libelle: 'Prix utilisés',
+        valeurs: [
+          { v: 'non', nom: 'Euros entiers' },
+          { v: 'oui', nom: 'Avec les centimes' },
+        ],
+        defaut: 'oui',
+      },
+    ],
+    generer: genererMonnaie,
+    mise: miseMonnaie,
   },
 ];
 

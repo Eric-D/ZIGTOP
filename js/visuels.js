@@ -241,3 +241,44 @@ export function regleFractions({ unite = 1, parts, longueur, taille = 250 } = {}
     ${traits}${reperes}
   </svg>`;
 }
+
+// Pièces et billets en euro, en une rangée. `valeurs` : des montants en centimes d'euro, dans l'ordre
+// où on les dessine. Pièces : 1, 2, 5, 10, 20, 50 (centimes), 100 et 200 (1 € et 2 €) — des cercles ;
+// billets : 500, 1000, 2000, 5000, 10000, 20000 et 50000 (5 € à 500 €) — des rectangles à coins arrondis.
+// La valeur est écrite en gros au centre : on la lit en noir et blanc, sans la couleur. Chaque pièce est un
+// élément `.piece`, chaque billet un `.billet`, avec `data-valeur` (en centimes) et leur texte `.valeur-monnaie`.
+const NBSP = ' ';
+export const PIECES_EURO = [1, 2, 5, 10, 20, 50, 100, 200];
+export const BILLETS_EURO = [500, 1000, 2000, 5000, 10000, 20000, 50000];
+
+export function etiquetteMonnaie(v) {
+  return v >= 100 ? `${v / 100}${NBSP}€` : `${v}${NBSP}c`;
+}
+
+export function monnaie(valeurs, { taille } = {}) {
+  const dessins = [];
+  let x = 3;
+  const hauteur = 52;
+  for (const v of valeurs) {
+    const billet = v >= 500;
+    const texte = etiquetteMonnaie(v);
+    const police = billet ? (String(v / 100).length > 2 ? 15 : 18) : (v >= 100 ? 17 : 15);
+    if (billet) {
+      const w = 66, h = 38, y = (hauteur - h) / 2;
+      dessins.push(`<g class="billet" data-valeur="${v}">
+      <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="7" fill="#fff" stroke="#222" stroke-width="2.4"/>
+      <text class="valeur-monnaie" x="${x + w / 2}" y="${hauteur / 2 + police * 0.35}" font-size="${police}" font-weight="800" fill="#222" text-anchor="middle">${texte}</text></g>`);
+      x += w + 8;
+    } else {
+      const r = v >= 100 ? 23 : 20;
+      dessins.push(`<g class="piece" data-valeur="${v}">
+      <circle cx="${x + r}" cy="${hauteur / 2}" r="${r}" fill="${v >= 100 ? '#ECECEC' : '#fff'}" stroke="#222" stroke-width="2.4"/>
+      <text class="valeur-monnaie" x="${x + r}" y="${hauteur / 2 + police * 0.35}" font-size="${police}" font-weight="800" fill="#222" text-anchor="middle">${texte}</text></g>`);
+      x += 2 * r + 8;
+    }
+  }
+  const largeur = Math.max(x - 8 + 3, 10);
+  const dim = taille ? ` width="${taille}" height="${Math.round((taille * hauteur) / largeur)}"` : '';
+  return `<svg class="monnaie" data-valeurs="${valeurs.join(',')}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${largeur} ${hauteur}"${dim}
+    role="img" aria-label="${valeurs.map((v) => (v >= 500 ? 'billet' : 'pièce') + ' de ' + etiquetteMonnaie(v).replace(NBSP, ' ')).join(', ')}">${dessins.join('')}</svg>`;
+}
