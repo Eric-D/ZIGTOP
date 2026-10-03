@@ -7,23 +7,23 @@
 
 // Par fiche : la hauteur de chaque exercice sur la page élève, puis sur le corrigé.
 export const HAUTEURS_BLOCS = {
-  'ce2-addition-posee': { eleve: [174,174,154,212], corrige: [173,173,154,155] },
-  'ce2-soustraction-posee': { eleve: [174,174,110,212], corrige: [173,173,110,155] },
-  'ce2-multiplication': { eleve: [96,144,249,183], corrige: [96,144,249,155] },
+  'ce2-addition-posee': { eleve: [177,178,154,216], corrige: [173,173,154,155] },
+  'ce2-soustraction-posee': { eleve: [177,178,142,216], corrige: [173,173,110,155] },
+  'ce2-multiplication': { eleve: [73,146,256,191], corrige: [58,143,248,155] },
   'ce2-nombres-lire-ecrire': { eleve: [309,140,125,130], corrige: [203,121,112,130] },
   'ce2-nombres-comparer': { eleve: [117,174,155,194], corrige: [117,135,136,153] },
-  'ce2-fractions-lire': { eleve: [161,178,232,131], corrige: [156,178,233,131] },
+  'ce2-fractions-lire': { eleve: [186,178,175,131], corrige: [156,178,151,131] },
   'ce2-fractions-comparer': { eleve: [186,77,161,116], corrige: [186,138,205,116] },
-  'ce2-fractions-calculer': { eleve: [168,80,80,248], corrige: [175,151,151,204] },
-  'ce2-monnaie': { eleve: [180,97,210,163], corrige: [188,105,136,119] },
-  'ce2-longueurs': { eleve: [97,97,197,175], corrige: [105,105,178,285] },
+  'ce2-fractions-calculer': { eleve: [204,108,108,137], corrige: [175,151,151,107] },
+  'ce2-monnaie': { eleve: [212,105,138,179], corrige: [188,105,85,119] },
+  'ce2-longueurs': { eleve: [105,70,197,187], corrige: [105,70,178,285] },
   'ce2-heures': { eleve: [162,181,162,180], corrige: [162,181,162,162] },
-  'ce2-masses-contenances': { eleve: [129,97,197,223], corrige: [140,105,178,175] },
-  'ce2-durees': { eleve: [97,97,257,204], corrige: [97,97,245,172] },
-  'ce2-solides': { eleve: [137,203,116,128], corrige: [154,203,116,195] },
-  'ce2-polygones': { eleve: [160,168,214,157], corrige: [160,168,214,157] },
-  'ce2-symetrie': { eleve: [190,139,250,146], corrige: [187,139,250,209] },
-  'ce2-donnees': { eleve: [198,175,176,86], corrige: [198,175,176,86] },
+  'ce2-masses-contenances': { eleve: [140,105,197,145], corrige: [140,105,178,109] },
+  'ce2-durees': { eleve: [105,105,264,125], corrige: [97,97,245,89] },
+  'ce2-solides': { eleve: [150,203,116,132], corrige: [154,203,116,195] },
+  'ce2-polygones': { eleve: [187,152,214,125], corrige: [160,111,214,110] },
+  'ce2-symetrie': { eleve: [190,153,250,146], corrige: [187,139,250,209] },
+  'ce2-donnees': { eleve: [198,170,176,100], corrige: [198,170,176,86] },
 };
 
 // En-tête d'une feuille panachée (titre sur deux lignes, QR, ligne Nom / Date) et du corrigé (avec sa note).

@@ -76,6 +76,7 @@ réviser*, *composer* et *imprimer*, et permet des feuilles qui panachent les no
 | # | Sujet | Issue | État |
 | --- | --- | --- | --- |
 | 31 | Vraies marges d'impression (16 mm), air entre les blocs, Zigo monochrome devant chaque exercice, re-mesure complète avec un budget de 1 000 px | [#31](https://github.com/Eric-D/ZIGTOP/issues/31) | ✅ en ligne |
+| 32 | Toute zone d'écriture ≥ 8 mm ; la hauteur d'écriture prime sur le nombre d'items (`programme/outils/mesure-ecriture.mjs` le vérifie) | [#32](https://github.com/Eric-D/ZIGTOP/issues/32) | ✅ en ligne |
 
 ## Règles communes à toutes les fiches
 

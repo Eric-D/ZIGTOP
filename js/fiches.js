@@ -1036,7 +1036,7 @@ const miseSoustraction = {
 const miseMultiplication = {
   signe: '×',
   combien: (contenu, methode) => ({
-    enligne: contenu.enligne.slice(0, methode ? 3 : 6),
+    enligne: contenu.enligne.slice(0, methode ? 1 : 4),   // #32 : lignes à 8 mm, deux items de moins
     posees1: contenu.posees1.slice(0, methode ? 3 : 6),
     posees2: contenu.posees2.slice(0, methode ? 2 : (contenu.deux ? 3 : 4)),
   }),
@@ -1788,10 +1788,10 @@ const FORMULATIONS_FRACTIONS = {
 const miseFractions = {
   signe: '',
   combien: (contenu, methode) => ({
-    lire: contenu.lire.slice(0, methode ? 6 : 8),
+    lire: contenu.lire.slice(0, 6),   // #32 : cases à 8 mm
     colorier: contenu.colorier.slice(0, 4),
-    lettres: contenu.lettres.slice(0, methode ? 4 : 6),
-    chiffres: contenu.chiffres.slice(0, methode ? 4 : 6),
+    lettres: contenu.lettres.slice(0, methode ? 2 : 6),
+    chiffres: contenu.chiffres.slice(0, methode ? 3 : 6),
     affirmations: contenu.affirmations.slice(0, methode ? 4 : 6),
   }),
   // Rappel : les phrases et les figures de la leçon (pages 22 à 25 du livret).
@@ -2278,10 +2278,10 @@ const FORMULATIONS_FRACTIONS_CALCULER = {
 const miseFractionsCalculer = {
   signe: '',
   combien: (contenu, methode) => ({
-    mesures: contenu.mesures.slice(0, methode ? 4 : 6),
+    mesures: contenu.mesures.slice(0, 4),   // #32 : lignes de réponse à 8 mm
     additions: contenu.additions.slice(0, methode ? 5 : 8),
     soustractions: contenu.soustractions.slice(0, methode ? 5 : 8),
-    problemes: contenu.problemes.slice(0, methode ? 2 : 3),
+    problemes: contenu.problemes.slice(0, methode ? 1 : 2),
   }),
   // Rappel : les phrases, les exemples et les schémas de la leçon (pages 30 et 31 du livret).
   rappel(contenu, fm = FORMULATIONS_FRACTIONS_CALCULER.livret) {
@@ -2627,8 +2627,8 @@ const miseMonnaie = {
     sommes: contenu.sommes.slice(0, methode ? 4 : 6),
     conversions: contenu.conversions ? contenu.conversions.slice(0, methode ? 4 : 6) : null,
     additions: contenu.additions ? contenu.additions.slice(0, methode ? 4 : 6) : null,
-    achats: contenu.achats.slice(0, methode ? 4 : 6),
-    problemes: contenu.problemes.slice(0, methode ? 2 : 3),
+    achats: contenu.achats.slice(0, methode ? 2 : 4),   // #32 : lignes de réponse à 8 mm (deux achats par rangée)
+    problemes: contenu.problemes.slice(0, 2),
   }),
   // Rappel : les billets et les pièces, 1 € = 100 c (communs), et la méthode pour rendre la monnaie (formulation).
   rappel(contenu, fm = FORMULATIONS_MONNAIE.livret) {
@@ -2908,7 +2908,7 @@ const miseLongueurs = {
   signe: '',
   combien: (contenu, methode) => ({
     conversions: contenu.conversions.slice(0, methode ? 6 : 8),
-    ecritures: contenu.ecritures.slice(0, methode ? 4 : 6),
+    ecritures: contenu.ecritures.slice(0, methode ? 2 : 6),   // #32 : lignes à 8 mm (deux écritures par rangée)
     comparaisons: contenu.comparaisons.slice(0, methode ? 4 : 6),
     figures: contenu.figures.slice(0, methode ? 3 : 4),
   }),
@@ -3503,7 +3503,7 @@ const miseMassesContenances = {
     objets: contenu.objets.slice(0, methode ? 6 : 8),
     conversions: contenu.conversions.slice(0, methode ? 6 : 8),
     comparaisons: contenu.comparaisons.slice(0, methode ? 4 : 6),
-    problemes: contenu.problemes.slice(0, methode ? 2 : 3),
+    problemes: contenu.problemes.slice(0, methode ? 1 : 3),   // #32
   }),
   // Rappel : les phrases, relations et repères de la leçon (page 39 pour les masses, pages 41 et 42 pour les contenances).
   rappel(contenu, fm = FORMULATIONS_MASSES.livret) {
@@ -3810,7 +3810,7 @@ const miseDurees = {
     conversions: contenu.conversions.slice(0, methode ? 4 : 6),
     durees: contenu.durees.slice(0, methode ? 2 : 3),
     arrivees: contenu.arrivees.slice(0, methode ? 2 : 3),
-    problemes: contenu.problemes.slice(0, methode ? 2 : 3),
+    problemes: contenu.problemes.slice(0, methode ? 1 : 2),   // #32
   }),
   // Rappel : les relations de la leçon (pages 43 et 44), puis un calcul de durée sur une ligne du temps.
   // La leçon ne montre aucun calcul de durée : cette partie est une transposition, pas une citation.
@@ -4241,10 +4241,10 @@ const misePolygones = {
   signe: '',
   combien: (contenu, methode) => ({
     reconnaitre: contenu.reconnaitre.slice(0, methode ? 8 : 10),
-    nommer: contenu.nommer.slice(0, methode ? 6 : 8),
+    nommer: contenu.nommer.slice(0, methode ? 3 : 8),   // #32 : lignes et cases à 8 mm
     cas: contenu.cas.slice(0, methode ? 4 : 6),
-    tracer: contenu.tracer.slice(0, methode ? 1 : 2),
-    phrases: contenu.phrases.slice(0, methode ? 4 : 6),
+    tracer: contenu.tracer.slice(0, 1),
+    phrases: contenu.phrases.slice(0, 2),
   }),
   // Rappel : la définition et les exemples de la page 48, les phrases de la page 49, le cercle de la page 50.
   rappel(contenu, fm = FORMULATIONS_POLYGONES.livret) {
@@ -4755,9 +4755,9 @@ const FORMULATIONS_DONNEES = {
 const miseDonnees = {
   signe: '',
   combien: (contenu, methode) => ({
-    questionsTableau: contenu.questionsTableau.slice(0, methode ? 4 : 6),
-    questionsDiagramme: contenu.questionsDiagramme.slice(0, methode ? 4 : 6),
-    calculs: contenu.calculs.slice(0, methode ? 2 : 3),
+    questionsTableau: contenu.questionsTableau.slice(0, methode ? 3 : 6),   // #32 : lignes de réponse à 8 mm
+    questionsDiagramme: contenu.questionsDiagramme.slice(0, methode ? 2 : 3),
+    calculs: contenu.calculs.slice(0, methode ? 2 : 2),
   }),
   // Rappel : le diagramme du musée et le tableau à double entrée de la page 56, avec les phrases de la leçon.
   rappel(contenu, fm = FORMULATIONS_DONNEES.livret) {

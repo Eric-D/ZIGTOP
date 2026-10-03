@@ -1909,3 +1909,17 @@ svg.visuel {
 @media print {
   .feuille--corrige:has(.figs-sy) .bloc h2 { margin-bottom: 2px; }
 }
+
+/* ---------- #32 : plancher d'écriture à l'impression ----------
+   Toute zone où l'enfant écrit (ligne de réponse, case, cellule de pose) fait au moins 8 mm de haut.
+   Mesuré par programme/outils/mesure-ecriture.mjs. Ne touche pas au corrigé. */
+@media print {
+  .feuille:not(.feuille--corrige) :is(.somme, .conversion, .achat__ligne, .probleme-fr__ligne, .calcul-lg, .calcul-lg__fin,
+    .duree__reponse, .solide-nom, .fig-nom__ligne, .phrase-po, .cas-cercle, .fig-ax__rep, .q-do__rep, .q-do__calcul) { min-height: 8mm; }
+  .feuille:not(.feuille--corrige) :is(.verification, .ligne__texte) { line-height: 8mm; }
+  .feuille:not(.feuille--corrige) .decompositions li { line-height: 8mm; }
+  .feuille:not(.feuille--corrige) .case-vf { height: 8.2mm; line-height: calc(8.2mm - 3px); }
+  .feuille:not(.feuille--corrige) .case-fr { height: 8.2mm; }
+  .feuille:not(.feuille--corrige) .pose__resultat td, .feuille:not(.feuille--corrige) .pose td.case { height: 8.2mm; }
+  .feuille:has(.pose--multiplication) .bloc { margin-bottom: 3px; }
+}
