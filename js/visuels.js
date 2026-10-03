@@ -211,3 +211,33 @@ export function figureFraction({ forme, parts, coloriees = 0, taille = 84, titre
   return `<svg class="figure-fraction" data-forme="${forme}" data-parts="${parts}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${largeur} ${hauteur}"
     width="${taille}" height="${Math.round((taille * hauteur) / largeur)}" role="img" aria-label="${etiquette}">${dessin}</svg>`;
 }
+
+// Règle graduée en fractions d'unité, avec une bande à mesurer posée dessus, alignée sur le 0.
+//   unite    : nombre d'unités que la règle porte (1 : de 0 à 1 ; 2 : de 0 à 2) ;
+//   parts    : nombre de parts de chaque unité (4 : des quarts) ;
+//   longueur : longueur de la bande, en nombre de sous-graduations (3 avec parts = 4 : trois quarts).
+// Les graduations principales (chaque unité) sont plus longues et numérotées 0, 1, 2… ; les
+// sous-graduations (chaque 1/parts) sont de simples traits dans la règle. Traits foncés, gris moyen :
+// lisible en noir et blanc. Aucun style externe.
+export function regleFractions({ unite = 1, parts, longueur, taille = 250 } = {}) {
+  const total = unite * parts;
+  if (!(parts >= 2) || !(longueur >= 1) || longueur > total) {
+    throw new Error(`regleFractions : longueur ${longueur} hors de la règle (${total} sous-graduations)`);
+  }
+  const x0 = 14, largeurRegle = 280, pas = largeurRegle / total;
+  const haut = 4, hBande = 20, yRegle = 28, hRegle = 16;
+  const W = x0 * 2 + largeurRegle, H = 76;
+  let traits = '', reperes = '';
+  for (let i = 0; i <= total; i++) {
+    const x = (x0 + i * pas).toFixed(2);
+    const principale = i % parts === 0;
+    traits += `<line class="graduation${principale ? ' graduation--principale' : ''}" data-rang="${i}" x1="${x}" y1="${yRegle}" x2="${x}" y2="${yRegle + hRegle + (principale ? 8 : 0)}" stroke="#222" stroke-width="${principale ? 2.8 : 1.6}"/>`;
+    if (principale) reperes += `<text class="repere" data-valeur="${i / parts}" x="${x}" y="${yRegle + hRegle + 26}" font-size="16" font-weight="700" fill="#222" text-anchor="middle">${i / parts}</text>`;
+  }
+  return `<svg class="regle-fractions" data-unite="${unite}" data-parts="${parts}" data-longueur="${longueur}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}"
+    width="${taille}" height="${Math.round((taille * H) / W)}" role="img" aria-label="Règle graduée de 0 à ${unite}, chaque unité partagée en ${parts} parts égales, avec une bande à mesurer">
+    <rect class="bande" data-longueur="${longueur}" x="${x0}" y="${haut}" width="${(longueur * pas).toFixed(2)}" height="${hBande}" fill="${GRIS_PART}" stroke="#222" stroke-width="2" stroke-linejoin="round"/>
+    <rect class="regle" x="${x0}" y="${yRegle}" width="${largeurRegle}" height="${hRegle}" fill="#fff" stroke="#222" stroke-width="2"/>
+    ${traits}${reperes}
+  </svg>`;
+}

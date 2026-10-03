@@ -1021,7 +1021,7 @@ for (const opt of optionsMult) {
 {
   const fc = FICHES.find((f) => f.id === 'ce2-fractions-comparer');
   console.log('— Fractions : égales et comparaison');
-  verifier(FICHES.indexOf(fc) === FICHES.length - 1 && FICHES.indexOf(fc) === 6, 'fractions égales : fiche ajoutée en fin de FICHES (index 6)');
+  verifier(FICHES.indexOf(fc) === 6, 'fractions égales : fiche à l’index 6 de FICHES');
   verifier(fc.titre === 'Les fractions : égales et comparaison' && fc.emoji === '⚖️' && Array.isArray(fc.options) && fc.options.length === 0, 'fractions égales : titre, emoji, aucune option propre');
 
   const doc = (c, o) => new JSDOM(`<div>${rendre(fc, c, o)}</div>`).window.document;
@@ -1170,6 +1170,192 @@ for (const opt of optionsMult) {
     ['ce2-nombres-comparer', { taille: '1000' }], ['ce2-nombres-comparer', { taille: '10000' }], ['ce2-fractions-lire', {}]].map(([id, o]) => somme(empreinte(FICHES.find((x) => x.id === id), o)));
   verifier(h.join() === '2857615915,841554819,1341628403,3247079376,2467628440,3671073380,178792032,2718432813', `fractions égales : les six fiches précédentes sont inchangées (${h.join()})`);
   verifier(FICHES.slice(0, 6).map((f) => f.id).join() === 'ce2-addition-posee,ce2-soustraction-posee,ce2-multiplication,ce2-nombres-lire-ecrire,ce2-nombres-comparer,ce2-fractions-lire', 'fractions égales : ordre des six premières fiches inchangé');
+}
+
+/* Fractions : mesurer, additionner, soustraire ------------------------ */
+{
+  const fk = FICHES.find((f) => f.id === 'ce2-fractions-calculer');
+  console.log('— Fractions : mesurer, additionner, soustraire');
+  verifier(FICHES.indexOf(fk) === FICHES.length - 1 && FICHES.indexOf(fk) === 7, 'fractions calculer : fiche ajoutée en fin de FICHES (index 7)');
+  verifier(fk.titre === 'Les fractions : mesurer, additionner, soustraire' && fk.emoji === '➕'
+    && fk.options.length === 1 && fk.options[0].id === 'denominateur' && fk.options[0].defaut === '4'
+    && JSON.stringify(fk.options[0].valeurs) === JSON.stringify([{ v: '4', nom: 'Demis, tiers, quarts' }, { v: '10', nom: 'Jusqu’aux dixièmes' }]),
+    'fractions calculer : titre, emoji, option denominateur (4 puis 10, défaut 4)');
+
+  const doc = (c, o) => new JSDOM(`<div>${rendre(fk, c, o)}</div>`).window.document;
+  const nd = (f) => ({ n: +f.querySelector('.fraction__num').textContent, d: +f.querySelector('.fraction__den').textContent });
+  const fracs = (el) => [...el.querySelectorAll('.fraction')].map(nd);
+  const NOMS = { 2: 'demi', 3: 'tiers', 4: 'quart', 5: 'cinquième', 6: 'sixième', 7: 'septième', 8: 'huitième', 9: 'neuvième', 10: 'dixième' };
+  const ENLETTRES = { 1: 'un', 2: 'deux', 3: 'trois', 4: 'quatre', 5: 'cinq', 6: 'six', 7: 'sept', 8: 'huit', 9: 'neuf' };
+  const mots = (n, d) => `${ENLETTRES[n]} ${NOMS[d]}${n > 1 && d !== 3 ? 's' : ''}`;
+  const blocs = (page) => [...page.querySelectorAll('.bloc:not(.bloc--methode)')];
+  const bornes = { '4': [2, 4], '10': [2, 10] };
+
+  // Une règle SVG : relit les attributs, recalcule la position de la bande et des graduations.
+  const lireRegle = (svg) => {
+    const g = [...svg.querySelectorAll('.graduation')];
+    const xs = g.map((l) => +l.getAttribute('x1'));
+    const bande = svg.querySelector('.bande');
+    const x0 = +bande.getAttribute('x'), w = +bande.getAttribute('width');
+    const pas = (xs[xs.length - 1] - xs[0]) / (g.length - 1);
+    const pasRegulier = xs.every((x, i) => Math.abs(x - (xs[0] + i * pas)) < 0.05);
+    const reperes = [...svg.querySelectorAll('.repere')].map((t) => t.textContent);
+    return {
+      parts: +svg.dataset.parts, unite: +svg.dataset.unite, longueurAttr: +svg.dataset.longueur,
+      graduations: g.length, principales: svg.querySelectorAll('.graduation--principale').length,
+      alignee: Math.abs(x0 - xs[0]) < 0.05, longueurMesuree: Math.round(w / pas), exacte: Math.abs(w / pas - Math.round(w / pas)) < 0.02,
+      pasRegulier, reperes,
+    };
+  };
+
+  for (const den of ['4', '10']) for (const methode of [true, false]) {
+    const [dmin, dmax] = bornes[den];
+    const k = methode ? { m: 4, a: 5, s: 5, p: 2 } : { m: 6, a: 8, s: 8, p: 3 };
+    const nom = `fractions calculer ${den} ${methode ? 'avec' : 'sans'} méthode`;
+    for (const graine of [987654, 1, 2, 3, 4, 5, 6, 7]) {
+      const c = tirer(fk, { denominateur: den }, graine);
+      const d = doc(c, { corrige: true, methode });
+      const [pe, pc] = d.querySelectorAll('.feuille');
+      const tag = `${nom} (graine ${graine})`;
+      const quiet = graine !== 987654;
+      const [e1, e2, e3, e4] = blocs(pe), [c1, c2, c3, c4] = blocs(pc);
+
+      // Comptes identiques élève / corrigé
+      const cmpt = (el, sel) => el.querySelectorAll(sel).length;
+      const okc = cmpt(e1, '.mesure') === k.m && cmpt(c1, '.mesure') === k.m && cmpt(e2, '.calc') === k.a && cmpt(c2, '.calc') === k.a
+        && cmpt(e3, '.calc') === k.s && cmpt(c3, '.calc') === k.s && cmpt(e4, '.probleme-fr') === k.p && cmpt(c4, '.probleme-fr') === k.p;
+      if (!quiet || !okc) verifier(okc, `${tag} : mêmes comptes élève / corrigé (${k.m} bandes, ${k.a} + ${k.s} calculs, ${k.p} problèmes)`);
+
+      // Ex. 1 : bande, règle, mesure
+      let ok1 = true;
+      const vues = new Set();
+      [...c1.querySelectorAll('.mesure')].forEach((m, i) => {
+        const r = lireRegle(m.querySelector('svg.regle-fractions'));
+        const rep = nd(m.querySelector('.fraction--reponse'));
+        const el = lireRegle([...e1.querySelectorAll('.mesure')][i].querySelector('svg.regle-fractions'));
+        vues.add(`${rep.n}/${rep.d}`);
+        if (rep.d !== r.parts || rep.n !== r.longueurMesuree || r.longueurAttr !== r.longueurMesuree || !r.exacte || !r.alignee || !r.pasRegulier
+          || rep.n < 1 || rep.n >= rep.d || rep.d < dmin || rep.d > dmax
+          || r.graduations !== r.unite * r.parts + 1 || r.principales !== r.unite + 1 || r.reperes.join() !== '0,1'
+          || JSON.stringify(el) !== JSON.stringify(r)) ok1 = false;
+        if (m.querySelector('.mesure__mots').textContent !== mots(rep.n, rep.d)) ok1 = false;
+        const eleve = [...e1.querySelectorAll('.mesure')][i];
+        if (eleve.querySelector('.fraction--reponse, .rouge, .mesure__mots') || eleve.querySelectorAll('.case-fr').length !== 2) ok1 = false;
+      });
+      if (vues.size !== k.m) ok1 = false;
+      if (!quiet || !ok1) verifier(ok1, `${tag} : exercice 1, bande alignée sur le 0, longueur lue sur le SVG = numérateur, ${den === '4' ? '' : ''}dénominateur = nombre de parts, bornes de l’option, mots exacts`);
+
+      // Ex. 2 et 3 : calculs recalculés indépendamment
+      const verif = (cb, eb, signe) => {
+        let ok = true;
+        const eleves = [...eb.querySelectorAll('.calc')];
+        [...cb.querySelectorAll('.calc')].forEach((cl, i) => {
+          const [a, b, r] = fracs(cl);
+          const eq = cl.querySelector('.calc__eq').textContent.replace(/\s+/g, '');
+          const op = cl.querySelector('.calc__eq').textContent.includes('+') ? '+' : '−';
+          const attendu = signe === '+' ? a.n + b.n : a.n - b.n;
+          if (op !== signe || a.d !== b.d || a.d !== r.d || r.n !== attendu || a.d < dmin || a.d > dmax || a.n < 1 || b.n < 1) ok = false;
+          if (signe === '+' && (attendu > a.d)) ok = false;
+          if (signe === '−' && (attendu <= 0 || a.n > a.d || b.n >= a.n)) ok = false;
+          const regle = cl.querySelector('.calc__regle').textContent;
+          if (regle !== `: on ${signe === '+' ? 'additionne' : 'soustrait'} les numérateurs, le dénominateur ne change pas`) ok = false;
+          const ef = fracs(eleves[i]);
+          if (ef.length !== 3 || ef[0].n !== a.n || ef[1].n !== b.n || ef[0].d !== a.d || ef[1].d !== a.d || eleves[i].querySelectorAll('.case-fr').length !== 2 || eleves[i].querySelector('.fraction--reponse, .rouge')) ok = false;
+        });
+        const cles = [...cb.querySelectorAll('.calc')].map((cl) => fracs(cl).slice(0, 2).map((f) => `${f.n}/${f.d}`).join(signe));
+        if (new Set(cles).size !== cles.length) ok = false;
+        const dens = new Set([...cb.querySelectorAll('.calc')].map((cl) => fracs(cl)[0].d));
+        if (dens.size < 2) ok = false;
+        return ok;
+      };
+      const ok2 = verif(c2, e2, '+'), ok3 = verif(c3, e3, '−');
+      if (!quiet || !ok2) verifier(ok2, `${tag} : exercice 2, additions exactes, même dénominateur, somme ≤ 1, règle rappelée, cases vides côté élève`);
+      if (!quiet || !ok3) verifier(ok3, `${tag} : exercice 3, soustractions exactes, même dénominateur, résultat > 0, règle rappelée, cases vides côté élève`);
+
+      // Ex. 4 : problèmes
+      let ok4 = true;
+      [...c4.querySelectorAll('.probleme-fr')].forEach((pb, i) => {
+        const enonce = fracs(pb.querySelector('.probleme-fr__enonce'));
+        const lignes = pb.querySelectorAll('.probleme-fr__ligne');
+        const calc = lignes[0].querySelector('.probleme-fr__rep');
+        const [a, b, r] = fracs(calc);
+        const signe = calc.textContent.includes('+') ? '+' : '−';
+        const attendu = signe === '+' ? a.n + b.n : a.n - b.n;
+        const phrase = fracs(lignes[1]);
+        const texte = pb.querySelector('.probleme-fr__enonce').textContent;
+        const ajout = /ont-ils mangée|bout à bout/.test(texte);
+        if (enonce.length !== 2 || enonce[0].n !== a.n || enonce[1].n !== b.n || enonce[0].d !== a.d || enonce[1].d !== a.d
+          || a.d !== b.d || a.d !== r.d || r.n !== attendu || attendu <= 0 || attendu > a.d || a.d < dmin || a.d > dmax
+          || (signe === '+') !== ajout || phrase.length !== 1 || phrase[0].n !== r.n || phrase[0].d !== r.d
+          || !lignes[0].textContent.startsWith('Calcul :') || !lignes[1].textContent.startsWith('Phrase réponse :')) ok4 = false;
+        const el = [...e4.querySelectorAll('.probleme-fr')][i];
+        const el_l = el.querySelectorAll('.probleme-fr__ligne');
+        if (fracs(el).length !== 2 || el_l.length !== 2 || el.querySelector('.rouge, .fraction--reponse, .probleme-fr__rep') || !el_l[0].textContent.startsWith('Calcul :') || !el_l[1].textContent.startsWith('Phrase réponse :')) ok4 = false;
+      });
+      const kinds = [...c4.querySelectorAll('.probleme-fr__enonce')].map((e) => /gâteau/.test(e.textContent) ? 'g' : 'r').join('');
+      if (!/g/.test(kinds) || !/r/.test(kinds)) ok4 = false;
+      if (!quiet || !ok4) verifier(ok4, `${tag} : exercice 4, calcul et phrase exacts, énoncé cohérent avec l’opération, gâteau et ruban présents`);
+
+      // Aucune réponse sur la page élève hors rappel
+      const hors = [...pe.querySelectorAll('.rouge, .reponse, .fraction--reponse, .mesure__mots, .calc__regle, .probleme-fr__rep')].filter((x) => !x.closest('.bloc--methode')).length;
+      if (!quiet || hors) verifier(hors === 0, `${tag} : aucune réponse sur la page élève hors exemple`);
+      if (!quiet) {
+        const t = pe.textContent + pc.textContent;
+        verifier(!/faux|erreur|raté|✗|✘|❌|[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(t) && !/\d\/\d/.test(t), `${tag} : aucun mot négatif ni emoji, fractions en numérateur sur dénominateur`);
+        verifier(pe.querySelectorAll('.bloc--methode').length === (methode ? 1 : 0) && !pc.querySelector('.bloc--methode'), `${tag} : rappel présent seulement avec la méthode, jamais dans le corrigé`);
+        verifier(!pc.textContent.includes('Nom :'), `${tag} : pas de ligne Nom / Date dans le corrigé`);
+      }
+    }
+  }
+
+  // Le rappel reprend les phrases et exemples de la leçon, règles comprises
+  {
+    const d = doc(tirer(fk, {}, 11), { corrige: false, methode: true });
+    const m = d.querySelector('.bloc--methode');
+    const t = m.textContent.replace(/\s+/g, ' ');
+    const phrases = ['trois quarts d’unité', 'La longueur de la bande est égale à', 'd’unité', '2 unités et 1 quart d’unité', '3 huitièmes + 4 huitièmes = 7 huitièmes', '4 cinquièmes − 1 cinquième = 3 cinquièmes',
+      'On additionne les numérateurs, le dénominateur ne change pas', 'On soustrait les numérateurs, le dénominateur ne change pas'];
+    verifier(phrases.every((p) => t.includes(p)), 'fractions calculer : le rappel reprend les phrases de la leçon');
+    const svgs = [...m.querySelectorAll('svg.regle-fractions')].map((v) => { const r = lireRegle(v); return `${r.unite}x${r.parts}:${r.longueurMesuree}`; });
+    verifier(svgs.join() === '1x4:3,1x4:2,3x4:9', `fractions calculer : trois règles du rappel (3/4, 2/4, 2 unités et 1/4) cohérentes (${svgs.join(' ')})`);
+    const eg = [...m.querySelectorAll('.rappel-fcal__egalite')].map((e) => e.textContent.replace(/\s+/g, ''));
+    verifier(eg.join() === '38+48=78,45−15=35', `fractions calculer : exemples 3/8 + 4/8 = 7/8 et 4/5 − 1/5 = 3/5 (${eg.join(' ')})`);
+  }
+
+  // Codes reproductibles, sans changement avec l'option
+  for (const den of ['4', '10']) {
+    const c = tirer(fk, { denominateur: den });
+    const r = decoder(c.code);
+    verifier(r && r.fiche === fk && r.options.denominateur === den && JSON.stringify(tirer(r.fiche, r.options, r.graine)) === JSON.stringify(c), `fractions calculer ${den} : le code ${c.code} redonne la même fiche`);
+    verifier(rendre(fk, tirer(fk, { denominateur: den }, 77), { corrige: true }) === rendre(fk, tirer(fk, { denominateur: den }, 77), { corrige: true }), `fractions calculer ${den} : même graine, même HTML`);
+    const vus = new Set(); for (let i = 0; i < 200; i++) vus.add(tirer(fk, { denominateur: den }).code);
+    verifier(vus.size > 190, `fractions calculer ${den} : codes variés (${vus.size} sur 200)`);
+  }
+  verifier(codeDe(fk, { denominateur: '4' }, 5) !== codeDe(fk, { denominateur: '10' }, 5), 'fractions calculer : l’option change le code');
+
+  // Contraintes sur 300 tirages par option
+  for (const den of ['4', '10']) {
+    const [dmin, dmax] = bornes[den];
+    let casse = 0;
+    for (let i = 0; i < 300; i++) {
+      const t = tirer(fk, { denominateur: den }, 9000 + i);
+      const dansBornes = (x) => x.d >= dmin && x.d <= dmax;
+      if (t.mesures.length !== 6 || t.additions.length !== 8 || t.soustractions.length !== 8 || t.problemes.length !== 3
+        || t.mesures.some((m) => !dansBornes(m) || m.n < 1 || m.n >= m.d)
+        || t.additions.some((a) => !dansBornes(a) || a.a < 1 || a.b < 1 || a.a + a.b > a.d)
+        || t.soustractions.some((s) => !dansBornes(s) || s.b < 1 || s.a - s.b < 1 || s.a > s.d)
+        || t.problemes.some((p) => !dansBornes(p) || (p.op === '+' ? p.a + p.b > p.d || p.a < 1 || p.b < 1 : p.a > p.d || p.b >= p.a || p.b < 1))) casse++;
+    }
+    verifier(casse === 0, `fractions calculer ${den} : contraintes (bornes, sommes ≤ 1, différences > 0) tenues sur 300 tirages`);
+  }
+
+  // Les sept fiches précédentes inchangées : empreinte du HTML à graine fixe, mesurée avant l’ajout
+  const empreinte = (f, o) => { const t = tirer(f, o, 424242); return JSON.stringify(t) + rendre(f, t, { corrige: true, base: 'http://x/' }); };
+  const somme = (s) => { let h = 5381; for (const ch of s) h = ((h * 33) ^ ch.charCodeAt(0)) >>> 0; return h; };
+  const h = [['ce2-addition-posee', { taille: 'mix' }], ['ce2-soustraction-posee', { taille: 'mix' }], ['ce2-multiplication', { facteur: '2' }], ['ce2-nombres-lire-ecrire', { taille: '1000' }], ['ce2-nombres-lire-ecrire', { taille: '10000' }],
+    ['ce2-nombres-comparer', { taille: '1000' }], ['ce2-nombres-comparer', { taille: '10000' }], ['ce2-fractions-lire', {}], ['ce2-fractions-comparer', {}]].map(([id, o]) => somme(empreinte(FICHES.find((x) => x.id === id), o)));
+  verifier(h.join() === '2857615915,841554819,1341628403,3247079376,2467628440,3671073380,178792032,2718432813,1534335352', `fractions calculer : les sept fiches précédentes sont inchangées (${h.join()})`);
+  verifier(FICHES.slice(0, 7).map((f) => f.id).join() === 'ce2-addition-posee,ce2-soustraction-posee,ce2-multiplication,ce2-nombres-lire-ecrire,ce2-nombres-comparer,ce2-fractions-lire,ce2-fractions-comparer', 'fractions calculer : ordre des sept premières fiches inchangé');
 }
 
 process.exit(echecs ? 1 : 0);

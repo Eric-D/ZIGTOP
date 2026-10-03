@@ -37,6 +37,10 @@ et le **corrigé sur une deuxième page** pour l'adulte.
 
 Fiches disponibles (le plan complet est dans [`programme/ce2/PLAN-FICHES.md`](programme/ce2/PLAN-FICHES.md)) :
 
+- **CE2 — Les fractions : mesurer, additionner, soustraire** (p. 30–31 du livret) : mesurer
+  des bandes avec une règle graduée en fractions d'unité, additionner et soustraire des
+  fractions de même dénominateur avec la règle de la leçon, problèmes. Option : demis, tiers
+  et quarts, ou jusqu'aux dixièmes.
 - **CE2 — Les fractions : égales et comparaison** (p. 26–29 du livret) : les règles de la
   leçon (fractions égales, égales à 1/2 et à 1, même dénominateur, même numérateur) avec
   leurs figures ; fractions à entourer, comparaisons avec < et >, paires de même numérateur

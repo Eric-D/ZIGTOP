@@ -4,7 +4,7 @@
 
 import { rnd, pick, shuffle, fmt, enLettres, setAlea, generateurAleatoire } from './utils.js';
 import { qrSVG } from './qr.js';
-import { demiDroite, figureFraction } from './visuels.js';
+import { demiDroite, figureFraction, regleFractions } from './visuels.js';
 
 /* ------------------------------------------------------------------ */
 /* Outils de mise en page                                              */
@@ -1723,6 +1723,191 @@ const miseFractionsComparer = {
   },
 };
 
+/* ------------------------------------------------------------------ */
+/* CE2 — fractions : mesurer, additionner, soustraire                   */
+/* ------------------------------------------------------------------ */
+
+const intervalle = (a, b) => Array.from({ length: b - a + 1 }, (_, i) => a + i);
+const nbDenominateurs = (liste) => new Set(liste.map((x) => x.d)).size;
+
+function genererFractionsCalculer(options) {
+  const dens = options.denominateur === '10' ? intervalle(2, 10) : [2, 3, 4];
+
+  // Ex. 1 : 6 bandes de moins d'une unité, toutes différentes ; les 4 premières (avec le rappel) n'ont pas toutes le même dénominateur.
+  const paires = dens.flatMap((d) => intervalle(1, d - 1).map((n) => ({ n, d })));
+  let mesures;
+  do { mesures = shuffle(paires).slice(0, 6); } while (nbDenominateurs(mesures.slice(0, 4)) < 2 || nbDenominateurs(mesures) < 3);
+
+  // Ex. 2 : 8 additions de même dénominateur, toutes différentes, somme au plus égale à l'unité.
+  const sommes = dens.flatMap((d) => intervalle(1, d - 1).flatMap((a) => intervalle(1, d - a).map((b) => ({ a, b, d }))));
+  let additions;
+  do { additions = shuffle(sommes).slice(0, 8); } while (nbDenominateurs(additions.slice(0, 5)) < 2 || nbDenominateurs(additions) < 3);
+
+  // Ex. 3 : 8 soustractions de même dénominateur, résultat strictement positif.
+  const differences = dens.flatMap((d) => intervalle(2, d).flatMap((a) => intervalle(1, a - 1).map((b) => ({ a, b, d }))));
+  let soustractions;
+  do { soustractions = shuffle(differences).slice(0, 8); } while (nbDenominateurs(soustractions.slice(0, 5)) < 2 || nbDenominateurs(soustractions) < 3);
+
+  // Ex. 4 : 3 problèmes — un gâteau, un ruban, puis un ruban : une addition et une soustraction au moins.
+  const [p, q] = shuffle(PRENOMS);
+  const [premier, second] = shuffle(['+', '−']);
+  const probleme = (modele, op) => {
+    const d = pick(dens.filter((x) => (op === '+' ? x >= 2 : x >= 3)));
+    if (op === '+') { const a = rnd(1, d - 1); return { modele, op, d, a, b: rnd(1, d - a), p, q }; }
+    const a = rnd(2, d);
+    return { modele, op, d, a, b: rnd(1, a - 1), p, q };
+  };
+  const problemes = [probleme('gateau', premier), probleme('ruban', second), probleme('ruban', premier)];
+
+  return {
+    objectif: 'Je sais mesurer des longueurs de bandes avec une règle graduée en fractions d’unité, et additionner ou soustraire des fractions de même dénominateur.',
+    mesures, additions, soustractions, problemes,
+  };
+}
+
+const resultatProbleme = (pb) => (pb.op === '+' ? pb.a + pb.b : pb.a - pb.b);
+
+function enonceProbleme(pb) {
+  const F = (n) => fraction(n, pb.d);
+  if (pb.modele === 'gateau') {
+    return pb.op === '+'
+      ? `${pb.p} mange ${F(pb.a)} d’un gâteau et ${pb.q} en mange ${F(pb.b)}. Quelle fraction du gâteau ont-ils mangée ?`
+      : `Il reste ${F(pb.a)} d’un gâteau. ${pb.p} en mange ${F(pb.b)}. Quelle fraction du gâteau reste-t-il ?`;
+  }
+  return pb.op === '+'
+    ? `Un ruban rouge mesure ${F(pb.a)} de mètre et un ruban bleu ${F(pb.b)} de mètre. On les met bout à bout. Quelle est la longueur totale ?`
+    : `Un ruban mesure ${F(pb.a)} de mètre. On en coupe ${F(pb.b)} de mètre. Quelle longueur de ruban reste-t-il ?`;
+}
+
+function phraseProbleme(pb) {
+  const R = fractionRouge(resultatProbleme(pb), pb.d);
+  if (pb.modele === 'gateau') return pb.op === '+' ? `${pb.p} et ${pb.q} ont mangé ${R} du gâteau.` : `Il reste ${R} du gâteau.`;
+  return pb.op === '+' ? `La longueur totale est de ${R} de mètre.` : `Il reste ${R} de mètre de ruban.`;
+}
+
+const REGLE_CALCUL = { '+': 'on additionne les numérateurs, le dénominateur ne change pas', '−': 'on soustrait les numérateurs, le dénominateur ne change pas' };
+
+const miseFractionsCalculer = {
+  signe: '',
+  combien: (contenu, methode) => ({
+    mesures: contenu.mesures.slice(0, methode ? 4 : 6),
+    additions: contenu.additions.slice(0, methode ? 5 : 8),
+    soustractions: contenu.soustractions.slice(0, methode ? 5 : 8),
+    problemes: contenu.problemes.slice(0, methode ? 2 : 3),
+  }),
+  noteCorrige: 'les réponses attendues sont en rouge ; chaque bande est redessinée sur sa règle avec sa mesure, et chaque calcul rappelle la règle appliquée.',
+  // Rappel : les phrases, les exemples et les schémas de la leçon (pages 30 et 31 du livret).
+  rappel() {
+    const F = (n, d) => fraction(n, d);
+    return `
+      <div class="rappel-fcal">
+        <div class="rappel-fcal__carte">
+          ${regleFractions({ unite: 1, parts: 4, longueur: 3, taille: 200 })}
+          <p>La longueur de la bande est égale à <b>trois quarts d’unité</b> ou à ${F(3, 4)} d’unité.</p>
+        </div>
+        <div class="rappel-fcal__carte">
+          ${regleFractions({ unite: 1, parts: 4, longueur: 2, taille: 200 })}
+          <p>La longueur de la bande est égale à ${F(2, 4)} d’unité ou ${F(1, 2)} d’unité.</p>
+        </div>
+        <div class="rappel-fcal__carte">
+          ${regleFractions({ unite: 3, parts: 4, longueur: 9, taille: 200 })}
+          <p>La longueur de la bande est égale à <b>2 unités et 1 quart d’unité</b> ou à 2 unités et ${F(1, 4)} d’unité.</p>
+        </div>
+        <div class="rappel-fcal__calcul">
+          <div class="rappel-fcal__titre">Additionner</div>
+          <div class="rappel-fcal__egalite">${F(3, 8)} + ${F(4, 8)} = ${F(7, 8)}</div>
+          <p><b>3 huitièmes + 4 huitièmes = 7 huitièmes</b><br>On additionne les numérateurs, le dénominateur ne change pas.</p>
+        </div>
+        <div class="rappel-fcal__calcul">
+          <div class="rappel-fcal__titre">Soustraire</div>
+          <div class="rappel-fcal__egalite">${F(4, 5)} − ${F(1, 5)} = ${F(3, 5)}</div>
+          <p><b>4 cinquièmes − 1 cinquième = 3 cinquièmes</b><br>On soustrait les numérateurs, le dénominateur ne change pas.</p>
+        </div>
+      </div>`;
+  },
+  exercices(contenu, methode) {
+    const { mesures, additions, soustractions, problemes } = this.combien(contenu, methode);
+    const calcul = (c, i, signe) => `<div class="calc"><b>${lettre(i)}.</b><span class="calc__eq">${fraction(c.a, c.d)} ${signe} ${fraction(c.b, c.d)} =${fractionVide()}</span></div>`;
+    return `
+    <div class="bloc">
+      <h2>Exercice 1 — Mesure chaque bande avec la règle graduée. Écris la fraction.</h2>
+      <div class="mesures mesures--${mesures.length}">
+        ${mesures.map((m, i) => `<div class="mesure"><b class="mesure__lettre">${lettre(i)}.</b>
+          <div class="mesure__fig">${regleFractions({ unite: 1, parts: m.d, longueur: m.n, taille: 230 })}</div>
+          <div class="mesure__rep">=${fractionVide()}<span>d’unité</span></div></div>`).join('')}
+      </div>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 2 — Additionne.</h2>
+      <div class="calculs calculs--${additions.length}">
+        ${additions.map((c, i) => calcul(c, i, '+')).join('')}
+      </div>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 3 — Soustrais.</h2>
+      <div class="calculs calculs--${soustractions.length}">
+        ${soustractions.map((c, i) => calcul(c, i, '−')).join('')}
+      </div>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 4 — Résous chaque problème.</h2>
+      <div class="problemes-fr">
+        ${problemes.map((pb, i) => `<div class="probleme-fr">
+          <p class="probleme-fr__enonce"><b>${lettre(i)}.</b> ${enonceProbleme(pb)}</p>
+          <div class="probleme-fr__ligne"><span>Calcul :</span><span class="pointilles pointilles--ligne"></span></div>
+          <div class="probleme-fr__ligne"><span>Phrase réponse :</span><span class="pointilles pointilles--ligne"></span></div>
+        </div>`).join('')}
+      </div>
+    </div>
+`;
+  },
+  corriges(contenu, methode) {
+    const { mesures, additions, soustractions, problemes } = this.combien(contenu, methode);
+    const calcul = (c, i, signe) => {
+      const r = signe === '+' ? c.a + c.b : c.a - c.b;
+      return `<div class="calc calc--corrige"><b>${lettre(i)}.</b><span class="calc__eq">${fraction(c.a, c.d)} ${signe} ${fraction(c.b, c.d)} =${fractionRouge(r, c.d)}</span><span class="calc__regle">: ${REGLE_CALCUL[signe]}</span></div>`;
+    };
+    return `
+    <div class="bloc">
+      <h2>Exercice 1</h2>
+      <div class="mesures mesures--${mesures.length}">
+        ${mesures.map((m, i) => `<div class="mesure"><b class="mesure__lettre">${lettre(i)}.</b>
+          <div class="mesure__fig">${regleFractions({ unite: 1, parts: m.d, longueur: m.n, taille: 230 })}</div>
+          <div class="mesure__rep mesure__rep--corrige"><span class="mesure__ligne">=${fractionRouge(m.n, m.d)}<span>d’unité</span></span><span class="mesure__mots rouge">${enMots(m.n, m.d)}</span></div></div>`).join('')}
+      </div>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 2</h2>
+      <div class="calculs calculs--corriges">
+        ${additions.map((c, i) => calcul(c, i, '+')).join('')}
+      </div>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 3</h2>
+      <div class="calculs calculs--corriges">
+        ${soustractions.map((c, i) => calcul(c, i, '−')).join('')}
+      </div>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 4</h2>
+      <div class="problemes-fr">
+        ${problemes.map((pb, i) => `<div class="probleme-fr">
+          <p class="probleme-fr__enonce"><b>${lettre(i)}.</b> ${enonceProbleme(pb)}</p>
+          <div class="probleme-fr__ligne"><span>Calcul :</span><span class="probleme-fr__rep">${fraction(pb.a, pb.d)} ${pb.op} ${fraction(pb.b, pb.d)} =${fractionRouge(resultatProbleme(pb), pb.d)}</span></div>
+          <div class="probleme-fr__ligne"><span>Phrase réponse :</span><span class="probleme-fr__rep">${phraseProbleme(pb)}</span></div>
+        </div>`).join('')}
+      </div>
+    </div>
+`;
+  },
+};
+
 function pageExercices(fiche, contenu, { base = '', methode = true, identite = true } = {}) {
   const { signe } = fiche.mise;
   if (fiche.mise.rappel) return pageExercicesLibre(fiche, contenu, { base, methode, identite });
@@ -1895,6 +2080,25 @@ export const FICHES = [
     options: [],
     generer: genererFractionsComparer,
     mise: miseFractionsComparer,
+  },
+  {
+    id: 'ce2-fractions-calculer',
+    classe: 'ce2',
+    domaine: 'Nombres et calculs',
+    titre: 'Les fractions : mesurer, additionner, soustraire',
+    emoji: '➕',
+    options: [
+      {
+        id: 'denominateur', libelle: 'Dénominateurs utilisés',
+        valeurs: [
+          { v: '4', nom: 'Demis, tiers, quarts' },
+          { v: '10', nom: 'Jusqu’aux dixièmes' },
+        ],
+        defaut: '4',
+      },
+    ],
+    generer: genererFractionsCalculer,
+    mise: miseFractionsCalculer,
   },
 ];
 

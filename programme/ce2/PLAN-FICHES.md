@@ -23,7 +23,7 @@ l'enfant a vus en classe.
 | 4 | Nombres : comparer, ranger, encadrer, droite graduée | [02-nombres-jusqu-a-10000.md](01-nombres-et-calculs/02-nombres-jusqu-a-10000.md) (9–13) | [#4](https://github.com/Eric-D/ZIGTOP/issues/4) | ✅ en ligne |
 | 5 | Fractions : lire, écrire, représenter | [06-fractions.md](01-nombres-et-calculs/06-fractions.md) (22–25) | [#5](https://github.com/Eric-D/ZIGTOP/issues/5) | ✅ en ligne |
 | 6 | Fractions : égales et comparaison | [06-fractions.md](01-nombres-et-calculs/06-fractions.md) (26–29) | [#6](https://github.com/Eric-D/ZIGTOP/issues/6) | ✅ en ligne |
-| 7 | Fractions : mesurer, additionner, soustraire | [06-fractions.md](01-nombres-et-calculs/06-fractions.md) (30–31) | [#7](https://github.com/Eric-D/ZIGTOP/issues/7) | ⬜ à faire |
+| 7 | Fractions : mesurer, additionner, soustraire | [06-fractions.md](01-nombres-et-calculs/06-fractions.md) (30–31) | [#7](https://github.com/Eric-D/ZIGTOP/issues/7) | ✅ en ligne |
 | 8 | Monnaie : composer une somme, rendre la monnaie | [01-monnaie.md](02-grandeurs-et-mesures/01-monnaie.md) (32) | [#8](https://github.com/Eric-D/ZIGTOP/issues/8) | ⬜ à faire |
 | 9 | Longueurs : unités, conversions, périmètre | [02-longueurs.md](02-grandeurs-et-mesures/02-longueurs.md) (33–36) | [#9](https://github.com/Eric-D/ZIGTOP/issues/9) | ⬜ à faire |
 | 10 | Heures : lire l’heure sur une horloge à aiguilles | [03-heures.md](02-grandeurs-et-mesures/03-heures.md) (37–38) | [#10](https://github.com/Eric-D/ZIGTOP/issues/10) | ⬜ à faire |

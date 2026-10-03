@@ -1054,3 +1054,66 @@ svg.visuel {
   .rangs--fr .pointilles--rang { height: 9mm; }
   .entoure { height: 13.5mm; }
 }
+
+/* ---------- fiche fractions : mesurer, additionner, soustraire ---------- */
+.regle-fractions { display: block; max-width: 100%; height: auto; }
+.rappel-fcal { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 2mm 4mm; font-size: .82rem; line-height: 1.2; }
+.rappel-fcal p { margin: 0; }
+.rappel-fcal .fraction { font-size: .85em; line-height: 1; margin: 0 1px; }
+.rappel-fcal__carte { grid-column: span 2; display: flex; flex-direction: column; gap: 2px; }
+.rappel-fcal__calcul { grid-column: span 3; display: grid; grid-template-columns: auto 1fr; column-gap: 10px; row-gap: 0; align-items: center; border-top: 1px dashed #CFC9BC; padding-top: 2mm; }
+.rappel-fcal__titre { grid-column: 1; font-weight: 800; }
+.rappel-fcal__calcul p { grid-column: 1 / -1; }
+.rappel-fcal__egalite { grid-column: 2; }
+.rappel-fcal__egalite { font-size: 1.05rem; font-weight: 700; white-space: nowrap; }
+.rappel-fcal__egalite .fraction { font-size: 1em; }
+.mesures { display: grid; grid-template-columns: 1fr 1fr; gap: 2mm 6mm; }
+.mesure { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.mesure__lettre { flex: none; }
+.mesure__fig { flex: 1 1 auto; min-width: 0; }
+.mesure__rep { flex: none; display: flex; align-items: center; gap: 3px; font-size: .9rem; }
+.mesure__rep--corrige { flex-direction: column; gap: 0; }
+.mesure__ligne { display: flex; align-items: center; gap: 3px; }
+.mesure__mots { font-size: .7rem; font-weight: 600; white-space: nowrap; }
+.calculs { display: grid; gap: 1mm 4mm; }
+.calculs--8 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.calculs--5 { grid-template-columns: repeat(5, minmax(0, 1fr)); column-gap: 1mm; }
+.calculs--5 .calc { font-size: .88rem; gap: 2px; }
+.calculs--5 .calc__eq { gap: 1px; }
+.calculs--5 .case-fr { width: 5mm; }
+.calculs--corriges { grid-template-columns: 1fr 1fr; }
+.calc { display: flex; align-items: center; gap: 4px; min-height: 12mm; white-space: nowrap; font-size: 1.05rem; }
+.calc__eq { display: inline-flex; align-items: center; gap: 3px; }
+.calc__eq .fraction { margin: 0; }
+.calc--corrige { white-space: normal; min-height: 10mm; }
+.calc--corrige .calc__eq { flex: none; font-size: .95rem; }
+.calc__regle { flex: 1; min-width: 0; font-size: .72rem; line-height: 1.15; color: #C0392B; font-weight: 600; }
+.problemes-fr { display: grid; gap: 2mm; }
+.probleme-fr__enonce { margin: 0 0 1mm; font-size: .9rem; }
+.probleme-fr__enonce .fraction { font-size: .95em; margin: 0 1px; }
+.probleme-fr__ligne { display: flex; align-items: center; gap: 6px; min-height: 8mm; font-size: .88rem; }
+.probleme-fr__ligne > span:first-child { flex: none; font-weight: 700; }
+.probleme-fr__rep { color: #C0392B; font-weight: 600; }
+.probleme-fr__rep .fraction { margin: 0 2px; }
+@media print {
+  .calc { min-height: 10.5mm; font-size: 11pt; }
+  .calc--corrige { min-height: 8.5mm; }
+  .calc--corrige .calc__eq { font-size: 10pt; }
+  .calc__regle { font-size: 7pt; }
+  .mesure__mots { font-size: 7pt; }
+  .probleme-fr__ligne { min-height: 7mm; font-size: 9.5pt; }
+  .probleme-fr__enonce { font-size: 9.5pt; }
+  .rappel-fcal { font-size: 8.5pt; }
+  .feuille:has(.mesures) .bloc { margin-bottom: 3px; }
+  .feuille:has(.mesures) .objectif { margin-bottom: 5px; }
+  .feuille--corrige:has(.mesures) .probleme-fr__ligne { min-height: 5.5mm; }
+  .feuille--corrige:has(.mesures) .probleme-fr__enonce { margin-bottom: 0; }
+  .feuille--corrige:has(.mesures) .problemes-fr { gap: 1mm; }
+}
+.feuille--corrige .probleme-fr { display: flex; flex-wrap: wrap; align-items: center; column-gap: 8mm; }
+.feuille--corrige .probleme-fr__enonce { flex: 1 0 100%; }
+.feuille--corrige .probleme-fr__ligne:last-child { flex: 1; min-width: 0; }
+@media print {
+  .calculs--5 .calc { font-size: 9.5pt; }
+  .calculs--5 .case-fr { width: 5mm; height: 4.6mm; }
+}
