@@ -4,6 +4,7 @@
 
 import { CLASSES, CLASSE_DEFAUT, classeParId, modulesDe, moduleParId, cle, serie } from './exercices.js';
 import * as P from './progression.js';
+import * as Carnet from './carnet.js';
 import * as Son from './son.js';
 import { zigo, phrase, carte, jardin, LIEUX, DECORS, decorParId } from './univers.js';
 import * as A11y from './accessibilite.js';
@@ -436,6 +437,20 @@ const boutonRetour = (pas) => (pas > 1
 
 const nomsNotions = () => (panache ? panache.notions : [{ id: fiche.id }]).map((n) => ficheParId(n.id).court).join(' · ');
 
+/* --- Le carnet : dates et pastilles ------------------------------------- */
+
+const MOIS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+const jourCourt = (iso) => { const d = new Date(iso); return `${d.getDate()} ${MOIS[d.getMonth()]}`; };
+const LIBELLES_APPRECIATION = { acquis: 'acquis', 'en cours': 'en cours', 'a revoir': 'à revoir' };
+
+// Sous une notion du pas 1 : « vu le 3 oct. » et, s'il y a lieu, « à revoir ».
+function pastillesVu(r) {
+  if (!r) return '';
+  const revoir = r.derniereAppreciation && r.derniereAppreciation.valeur === 'a revoir';
+  if (!r.derniereRevision && !revoir) return '';
+  return `<span class="fiche__vu">${r.derniereRevision ? `<span>vu le ${jourCourt(r.derniereRevision)}</span>` : ''}${revoir ? '<span class="pastille-carnet pastille-carnet--a-revoir">à revoir</span>' : ''}</span>`;
+}
+
 /* --- Raccourcis de révision (pas 1) -------------------------------------- */
 
 const PAGE_MIN = 3;
@@ -472,7 +487,8 @@ function selectionner(ids) {
   rafraichir();
 }
 
-// Les moins tirées d'abord ; au hasard à égalité ; jamais deux fois la même.
+// D'abord les notions « à revoir », puis les plus anciennes (jamais vues en premier) ;
+// à égalité, les moins tirées, puis au hasard. Jamais deux fois la même.
 function tirerSemaine() {
   const visibles = fichesVisibles().map((f) => f.id);
   const dernieres = P.derniereSelection().filter((id) => visibles.includes(id));
@@ -480,14 +496,13 @@ function tirerSemaine() {
   if (!permis.length) permis = fichesVisibles().filter((f) => premierePage(f.pages) <= P.pageVue()).map((f) => f.id);
   if (!permis.length) permis = visibles;
   const compteurs = P.tirages();
+  const carnet = Carnet.resume();
   const rang = (id) => compteurs[id] || 0;
-  const choisies = [];
-  const niveaux = [...new Set(permis.map(rang))].sort((x, y) => x - y);
-  for (const niveau of niveaux) {
-    const groupe = shuffle(permis.filter((id) => rang(id) === niveau));
-    choisies.push(...groupe.slice(0, NB_SEMAINE - choisies.length));
-    if (choisies.length >= NB_SEMAINE) break;
-  }
+  const aRevoir = (id) => (carnet[id]?.derniereAppreciation?.valeur === 'a revoir' ? 0 : 1);
+  const vuLe = (id) => carnet[id]?.derniereRevision || '';
+  const choisies = shuffle(permis)
+    .sort((x, y) => aRevoir(x) - aRevoir(y) || (vuLe(x) < vuLe(y) ? -1 : vuLe(x) > vuLe(y) ? 1 : 0) || rang(x) - rang(y))
+    .slice(0, NB_SEMAINE);
   const suite = { ...compteurs };
   choisies.forEach((id) => { suite[id] = rang(id) + 1; });
   P.setRaccourcis({ tirages: suite });
@@ -521,13 +536,14 @@ function blocRaccourcis(liste) {
         <div class="raccourci">
           <div class="reglage__libelle">La révision de la semaine</div>
           <button class="btn btn--vert" data-semaine>Tirer ${NB_SEMAINE} notions au sort</button>
-          <div class="reglage__aide">Parmi celles de la dernière fois, ou celles jusqu’à la page ${page} ; on commence par celles qu’on a le moins revues.</div>
+          <div class="reglage__aide">Parmi celles de la dernière fois, ou celles jusqu’à la page ${page} ; on commence par celles à revoir, puis par les plus anciennes.</div>
         </div>
       </div>`;
 }
 
 function pasReviser(c, liste, disponibles) {
   const n = fiche.selection.length;
+  const carnet = Carnet.resume();
   return `
       ${bulle('Coche ce que tu veux réviser : une leçon, et je fabrique sa fiche ; plusieurs, et je les mélange sur une même feuille. Avec son corrigé !', 'curieux', 78)}
       ${disponibles.length ? '' : `<p class="note">Pas encore de fiche pour le ${c.nom} — voici celles qui existent aujourd’hui.</p>`}
@@ -548,6 +564,7 @@ function pasReviser(c, liste, disponibles) {
               <span class="fiche__texte">
                 <span class="fiche__titre">${f.titre}</span>
                 <span class="fiche__pages">p. ${f.pages}</span>
+                ${pastillesVu(carnet[f.id])}
                 <span class="fiche__objectif">${f.objectif}</span>
               </span>
             </label>
@@ -722,7 +739,15 @@ function vueFiches() {
     ${pas === 3 ? `<div id="impression">${ficheHTML()}</div>` : ''}`;
   if (pas !== 3) return;
 
-  app.querySelector('#imprimer').addEventListener('click', () => window.print());
+  app.querySelector('#imprimer').addEventListener('click', () => {
+    // Un événement par code imprimé, avec les notions de la feuille.
+    for (const code of codesAffiches()) {
+      const t = decoder(code);
+      const notions = t ? (t.panache ? t.notions.map((n) => n.id) : [t.fiche.id]) : [];
+      Carnet.ajouter('fiche', '', { code, notions });
+    }
+    window.print();
+  });
   app.querySelectorAll('[data-copier]').forEach((b) => b.addEventListener('click', async () => {
     const champ = app.querySelector(`#${b.dataset.copier}`);
     const message = app.querySelector('#message-copie');
@@ -800,6 +825,7 @@ function demarrerSession(choix) {
     exercices: serie(c.id, ids, nbQuestions(), (moduleId) => P.difficulte(cle(c.id, moduleId))),
     index: 0,
     etoiles: 0,
+    parModule: {},        // moduleId -> étoiles gagnées (pour le carnet)
     essaisSurQuestion: 0,
     saisie: '',
     retour: null,
@@ -891,7 +917,10 @@ function valider(valeur) {
 
   if (juste) {
     const premierCoup = s.essaisSurQuestion === 1;
-    if (premierCoup) s.etoiles += 1;
+    if (premierCoup) {
+      s.etoiles += 1;
+      s.parModule[ex.moduleId] = (s.parModule[ex.moduleId] || 0) + 1;
+    }
     P.enregistrerReponse(cleMod, premierCoup);
     Son.jouer('juste');
     confettis();
@@ -939,6 +968,14 @@ function suivant() {
 function vueBilan() {
   const s = session || { etoiles: 0, exercices: [], ids: [] };
   const nb = s.exercices.length || nbQuestions();
+  // Le carnet garde une trace de la série : un événement par thème travaillé.
+  if (session && s.exercices.length) {
+    const questions = {};
+    s.exercices.forEach((ex) => { questions[ex.moduleId] = (questions[ex.moduleId] || 0) + 1; });
+    for (const [moduleId, n] of Object.entries(questions)) {
+      Carnet.ajouter('serie', cle(s.classeId, moduleId), { etoiles: (s.parModule || {})[moduleId] || 0, questions: n });
+    }
+  }
   const nouveaux = P.verifierBadges();
   if (s.etoiles > 0) confettis();
   Son.jouer(nouveaux.length ? 'badge' : 'juste');
@@ -973,6 +1010,81 @@ function vueBilan() {
 /* Écran : progrès                                                     */
 /* ------------------------------------------------------------------ */
 
+// Le carnet : par notion (dans l'ordre des fiches), puis les feuilles imprimées avec leurs appréciations.
+function pastilleAppreciation(valeur) {
+  const cl = valeur.replace(' ', '-');
+  return `<span class="pastille-carnet pastille-carnet--${cl}">${LIBELLES_APPRECIATION[valeur]}</span>`;
+}
+
+// Dernière valeur donnée à une notion pour une feuille précise.
+const appreciationDe = (id, code) =>
+  Carnet.evenements({ type: 'appreciation', notion: id }).filter((e) => e.donnees.code === code).pop()?.donnees.valeur;
+
+function carnetHTML(message = '') {
+  const resume = Carnet.resume();
+  const lignes = FICHES.filter((f) => resume[f.id]);
+  const imprimees = [];
+  for (const e of Carnet.evenements({ type: 'fiche' }).reverse()) {
+    if (!imprimees.some((x) => x.donnees.code === e.donnees.code)) imprimees.push(e);
+  }
+  if (!lignes.length && !imprimees.length) {
+    return '<p class="reglage__aide">Ton carnet se remplit tout seul : chaque série terminée et chaque fiche imprimée y laisse une trace.</p>';
+  }
+  return `
+    ${lignes.map((f) => {
+      const r = resume[f.id];
+      return `<div class="ligne-stat carnet-ligne">
+        <span>${f.emoji}</span>
+        <span class="ligne-stat__nom">${f.court}
+          <span class="carnet-ligne__vu">${r.derniereRevision ? `vu le ${jourCourt(r.derniereRevision)}` : 'pas encore revu'}</span>
+        </span>
+        ${r.derniereAppreciation ? pastilleAppreciation(r.derniereAppreciation.valeur) : ''}
+      </div>`;
+    }).join('')}
+    ${imprimees.length ? `
+    <h3 class="carnet-titre">Fiches imprimées</h3>
+    ${imprimees.slice(0, 10).map((e) => {
+      const code = e.donnees.code;
+      const notions = (e.donnees.notions || []).map((id) => ficheParId(id)).filter(Boolean);
+      const actuelle = notions.length && notions.every((f) => appreciationDe(f.id, code) === appreciationDe(notions[0].id, code))
+        ? appreciationDe(notions[0].id, code) : undefined;
+      return `<div class="carnet-fiche">
+        <div class="carnet-fiche__haut">
+          <a class="carnet-fiche__code" href="?fiche=${code}&vue=corrige" data-corrige="${code}" aria-label="Ouvrir le corrigé ${code}">${code}</a>
+          <span class="carnet-ligne__vu">imprimée le ${jourCourt(e.date)}</span>
+        </div>
+        <div class="carnet-fiche__notions">${notions.map((f) => f.court).join(' · ')}</div>
+        <div class="reglage__options" role="group" aria-label="Comment c’était ?">
+          ${Carnet.APPRECIATIONS.map((v) => `<button class="option" data-appreciation="${v}" data-code="${code}" aria-pressed="${actuelle === v}">${LIBELLES_APPRECIATION[v]}</button>`).join('')}
+        </div>
+      </div>`;
+    }).join('')}` : ''}
+    <p class="reglage__aide" id="message-appreciation" role="status" aria-live="polite">${message}</p>`;
+}
+
+// L'adulte donne son avis après correction : une appréciation pour chaque notion de la feuille.
+function apprecier(code, valeur) {
+  const t = decoder(code);
+  if (!t) return;
+  const ids = t.panache ? t.notions.map((n) => n.id) : [t.fiche.id];
+  ids.filter((id) => appreciationDe(id, code) !== valeur).forEach((id) => Carnet.ajouter('appreciation', id, { valeur, code }));
+  Son.jouer('clic');
+  const zone = app.querySelector('#carnet');
+  if (zone) zone.innerHTML = carnetHTML(`C’est noté : ${LIBELLES_APPRECIATION[valeur]}.`);
+}
+
+// Ouvre le corrigé d'une feuille déjà imprimée, au pas 3 du tunnel.
+function ouvrirCorrige(code) {
+  const t = decoder(code);
+  if (!t) return;
+  ouvrirCodes([t], { methode: true, identite: true, corrige: true, eleve: false });
+  fiche.arrivee = true;
+  vue = { nom: 'fiches', pas: 3 };
+  window.history.pushState({ pas: 3 }, '', adressePas(3));
+  rendre();
+  window.scrollTo(0, 0);
+}
+
 function vueProgres() {
   const e = P.get();
   const c = classeCourante();
@@ -1005,11 +1117,47 @@ function vueProgres() {
       <p style="color:var(--encre-douce);font-size:.9rem">Les points de couleur montrent la difficulté des exercices proposés : elle
       monte toute seule quand tu réussis bien.</p>
     </div>
+    <div class="section-titre">Carnet</div>
+    <div class="carte" id="carnet">${carnetHTML()}</div>
     <div class="pied-page">
       <button class="btn btn--large btn--vert" data-jouer="melange">Jouer ▶</button>
       <button class="btn btn--fantome" data-aller="accueil">← Accueil</button>
+      <button class="btn btn--fantome" id="exporter-carnet">Exporter mon carnet</button>
+      <label class="btn btn--fantome" for="importer-carnet">Importer un carnet</label>
+      <input type="file" id="importer-carnet" accept=".json,application/json" hidden />
+      <p class="reglage__aide" id="message-carnet" role="status" aria-live="polite"></p>
       <button class="btn btn--fantome" id="reset">Espace parent : remettre à zéro</button>
     </div>`;
+
+  app.querySelector('#exporter-carnet').addEventListener('click', () => {
+    const lien = document.createElement('a');
+    lien.href = URL.createObjectURL(new Blob([Carnet.exporter()], { type: 'application/json' }));
+    const j = new Date();
+    const deux = (n) => String(n).padStart(2, '0');
+    lien.download = `mathoo-carnet-${j.getFullYear()}-${deux(j.getMonth() + 1)}-${deux(j.getDate())}.json`;
+    document.body.appendChild(lien);
+    lien.click();
+    lien.remove();
+    setTimeout(() => URL.revokeObjectURL(lien.href), 1000);
+    app.querySelector('#message-carnet').textContent = 'Ton carnet est enregistré dans le fichier téléchargé.';
+  });
+  app.querySelector('#importer-carnet').addEventListener('change', (ev) => {
+    const fichier = ev.target.files && ev.target.files[0];
+    if (!fichier) return;
+    const lecteur = new FileReader();
+    lecteur.onload = () => {
+      const n = Carnet.importer(String(lecteur.result));
+      if (n < 0) {
+        app.querySelector('#message-carnet').textContent = 'Ce fichier n’est pas un carnet Mathoo : choisis un fichier mathoo-carnet-….json.';
+        return;
+      }
+      vueProgres();
+      app.querySelector('#message-carnet').textContent = n
+        ? `${n} événement${n > 1 ? 's' : ''} ajouté${n > 1 ? 's' : ''} à ton carnet.`
+        : 'Ton carnet était déjà à jour : rien à ajouter.';
+    };
+    lecteur.readAsText(fichier);
+  });
 
   app.querySelector('#reset').addEventListener('click', () => {
     if (confirm('Effacer tous les progrès enregistrés sur cet appareil ?')) {
@@ -1067,8 +1215,14 @@ app.addEventListener('change', (ev) => {
 });
 
 app.addEventListener('click', (ev) => {
-  const cible = ev.target.closest('[data-aller],[data-jouer],[data-touche],[data-choix],[data-decor],[data-reglage],[data-pas],[data-fiche],[data-fiche-option],[data-page-pas],[data-cocher-page],[data-domaine],[data-semaine],[data-affichage],[data-nb-feuilles],[data-compo],#regenerer,#suivant,#ecouter');
+  const cible = ev.target.closest('[data-aller],[data-jouer],[data-touche],[data-choix],[data-decor],[data-reglage],[data-pas],[data-fiche],[data-fiche-option],[data-page-pas],[data-cocher-page],[data-domaine],[data-semaine],[data-affichage],[data-nb-feuilles],[data-compo],[data-appreciation],[data-corrige],#regenerer,#suivant,#ecouter');
   if (!cible) return;
+
+  if (cible.dataset.appreciation) return apprecier(cible.dataset.code, cible.dataset.appreciation);
+  if (cible.dataset.corrige) {
+    ev.preventDefault();
+    return ouvrirCorrige(cible.dataset.corrige);
+  }
 
   if (cible.dataset.pas) {
     if (vue.pas === 1 && Number(cible.dataset.pas) > 1 && fiche.selection.length) P.setRaccourcis({ derniereSelection: idsCoches() });

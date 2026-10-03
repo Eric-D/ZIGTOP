@@ -150,6 +150,17 @@ La tenue sur une A4 est garantie par des hauteurs de blocs mesurées en mode imp
 (`js/hauteurs-blocs.js`, à régénérer avec `programme/outils/mesurer-blocs.mjs` après tout
 changement de rendu). L'interface de composition est l'objet de l'issue #20.
 
+### Le carnet : ce qui a déjà été révisé
+
+Sans compte, dans le navigateur, un **carnet** note ce qui a été révisé : les séries faites
+dans l'application, les fiches imprimées avec leur code, et les appréciations que l'adulte
+saisit après correction (« acquis », « en cours », « à revoir » — la formulation la plus
+forte). *Mes progrès* montre le carnet par notion, avec le corrigé de chaque fiche imprimée
+à un clic ; le tunnel signale « vu le … » et « à revoir » sous chaque notion ; « la révision
+de la semaine » prend d'abord ce qui est à revoir, puis le plus ancien. Le carnet est un
+journal d'événements qu'on ajoute et qu'on n'écrase jamais, ce qui le rend exportable,
+importable (fusion sans doublon) et, plus tard, synchronisable entre appareils (#23).
+
 ### Partager un lien, sans compte ni serveur
 
 Le code contenant tout, **une adresse suffit à partager une fiche ou sa correction**.
@@ -377,6 +388,7 @@ node tests/ecran-fiches.mjs       # écran des fiches : domaines, liens vers les
 node tests/panache.mjs            # feuilles panachées : code Z, budget de hauteur, report sur plusieurs feuilles
 node tests/tunnel.mjs             # tunnel : cocher → composer → imprimer, retour, ouverture par lien au pas 3
 node tests/raccourcis.mjs         # raccourcis : jusqu'à la page N, domaine, révision de la semaine, mémorisation
+node tests/carnet.mjs             # carnet : séries, fiches imprimées, appréciations, export/import sans doublon
 
 # vérification approfondie du QR code (dépendances en plus) :
 npm i --no-save playwright jsqr pngjs && npx playwright install chromium

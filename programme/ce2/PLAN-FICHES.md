@@ -52,7 +52,7 @@ réviser*, *composer* et *imprimer*, et permet des feuilles qui panachent les no
 
 | # | Sujet | Issue | État |
 | --- | --- | --- | --- |
-| 22 | Carnet local : journal des séries, fiches imprimées et appréciations, export/import, sans compte | [#22](https://github.com/Eric-D/ZIGTOP/issues/22) | ⬜ à faire |
+| 22 | Carnet local : journal des séries, fiches imprimées et appréciations, export/import, sans compte | [#22](https://github.com/Eric-D/ZIGTOP/issues/22) | ✅ en ligne |
 | 23 | Espace personnel Firebase : enfants à part entière, responsables, invitations, appareils d'enfant, synchronisation du carnet (épique) | [#23](https://github.com/Eric-D/ZIGTOP/issues/23) | ⬜ décisions à prendre (projet Firebase, région européenne) |
 
 ## Phase 8 — un support parmi d'autres

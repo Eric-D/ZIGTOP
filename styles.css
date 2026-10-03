@@ -1589,3 +1589,24 @@ svg.visuel {
 .raccourci__pas { background: #F2F0EA; color: var(--encre); border: 3px solid transparent; min-width: 48px; min-height: 48px; padding: 0; font-size: 1.5rem; line-height: 1; }
 .raccourci .btn { min-height: 48px; }
 .raccourcis__titre { margin: 0; }
+
+/* ---------- carnet ---------- */
+.fiche__vu { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: .75rem; color: var(--encre-douce); }
+.pastille-carnet {
+  display: inline-block; padding: 2px 10px; border-radius: 999px;
+  font-size: .78rem; font-weight: 800; white-space: nowrap;
+  background: #F2F0EA; color: var(--encre);
+}
+.pastille-carnet--acquis { background: #D9F5EC; color: #006B54; }
+.pastille-carnet--en-cours { background: #FFF1CC; color: #7A5600; }
+.pastille-carnet--a-revoir { background: #F0ECFF; color: var(--violet); }
+.carnet-ligne__vu { display: block; font-size: .8rem; font-weight: 600; color: var(--encre-douce); }
+.carnet-titre { margin: 18px 0 8px; font-size: 1.05rem; }
+.carnet-fiche { display: grid; gap: 8px; padding: 12px 0; border-top: 2px dotted #EFE9DE; }
+.carnet-fiche__haut { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
+.carnet-fiche__code {
+  display: inline-flex; align-items: center; min-height: 48px;
+  font-weight: 800; letter-spacing: .04em; color: var(--violet); text-decoration: underline;
+}
+.carnet-fiche__notions { font-size: .85rem; color: var(--encre-douce); }
+.pied-page label.btn { display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }

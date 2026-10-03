@@ -18,6 +18,7 @@ const vide = () => ({
   pageVue: null,        // fiches : dernière « page jusqu'où on a vu » saisie (null = 56)
   derniereSelection: [],// fiches : notions cochées en quittant le pas 1
   tirages: {},          // fiches : identifiant de notion -> fois tirée par « la révision de la semaine »
+  carnet: [],           // journal d'événements, on n'écrase jamais : voir js/carnet.js
 });
 
 let etat = charger();
@@ -39,6 +40,12 @@ function sauver() {
 }
 
 export const get = () => etat;
+
+// Pour les modules qui modifient `get()` en place (le carnet) : on enregistre ensuite.
+export const sauvegarder = sauver;
+
+// Relit la sauvegarde (les tests simulent ainsi un nouveau chargement de la page).
+export function recharger() { etat = charger(); }
 
 export function setProfil({ prenom, avatar, classe }) {
   if (prenom !== undefined) etat.prenom = prenom;
