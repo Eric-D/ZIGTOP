@@ -36,6 +36,18 @@ l'enfant a vus en classe.
 
 Transverse : [#17](https://github.com/Eric-D/ZIGTOP/issues/17) écran des fiches regroupé par domaine, lié aux leçons, ordre de `FICHES` figé par un test — ✅ en ligne.
 
+## Phase 6 — la révision panachée
+
+Réviser notion par notion est la forme la plus faible de l'entraînement : ce qui fait
+tenir les acquis, c'est le mélange (pratique entrelacée). Cette phase sépare *quoi
+réviser*, *composer* et *imprimer*, et permet des feuilles qui panachent les notions.
+
+| # | Sujet | Issue | État |
+| --- | --- | --- | --- |
+| 19 | Feuille panachée : un exercice par notion choisie, code `Z…`, tenue sur une A4 par hauteurs mesurées | [#19](https://github.com/Eric-D/ZIGTOP/issues/19) | 🔧 en cours |
+| 20 | Tunnel en trois pas : que réviser → composer → imprimer et partager | [#20](https://github.com/Eric-D/ZIGTOP/issues/20) | ⬜ à faire |
+| 21 | Raccourcis : jusqu'à la page N, un domaine, la révision de la semaine | [#21](https://github.com/Eric-D/ZIGTOP/issues/21) | ⬜ à faire |
+
 ## Règles communes à toutes les fiches
 
 **Fidélité au livret.** Le rappel de méthode reprend les étapes, les exemples et le
