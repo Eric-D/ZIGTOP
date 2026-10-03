@@ -15,14 +15,17 @@ const nombre = (txt) => parseInt(String(txt).replace(/\s/g, ''), 10);
 // formulation. Les empreintes à graine fixe ci-dessous, mesurées avant la séparation, comparent
 // toujours « le tirage d'autrefois + le HTML en formulation livret » : on rebâtit le tirage
 // d'autrefois (mêmes clés, même ordre) pour prouver que le rendu `livret` n'a pas changé d'un octet.
+// La clé devant laquelle l'objectif se trouvait dans l'ancien tirage (méthode ou sommes par défaut).
+const AVANT_OBJECTIF = { 'ce2-nombres-comparer': ['paires'], 'ce2-fractions-lire': ['lire'], 'ce2-fractions-comparer': ['demi'], 'ce2-fractions-calculer': ['mesures'] };
 function contenuHistorique(f, c) {
   const fm = formulation(f, 'livret');
   if (!fm) return c;
   const val = (x) => (typeof x === 'function' ? x(c) : x);
   const out = {};
   let objectifPose = false;
+  const avant = AVANT_OBJECTIF[f.id] || ['methode', 'sommes'];
   for (const [k, v] of Object.entries(c)) {
-    if (!objectifPose && (k === 'methode' || k === 'sommes')) { out.objectif = val(fm.objectif); objectifPose = true; }
+    if (!objectifPose && avant.includes(k)) { out.objectif = val(fm.objectif); objectifPose = true; }
     out[k] = k === 'methode' && fm.rappel.etapes ? { ...v, etapes: val(fm.rappel.etapes) } : v;
   }
   return out;
@@ -3043,19 +3046,25 @@ for (const opt of optionsMult) {
 /* Séparer la notion de sa formulation (#26) : livret / commune ------------------ */
 {
   console.log('— Formulations : livret et commune');
-  const ids = ['ce2-addition-posee', 'ce2-soustraction-posee', 'ce2-multiplication', 'ce2-monnaie'];
+  const ids = ['ce2-addition-posee', 'ce2-soustraction-posee', 'ce2-multiplication', 'ce2-monnaie',
+    'ce2-nombres-lire-ecrire', 'ce2-nombres-comparer', 'ce2-fractions-lire', 'ce2-fractions-comparer', 'ce2-fractions-calculer', 'ce2-longueurs', 'ce2-heures'];
   const optsDe = { 'ce2-addition-posee': [{ taille: '3' }, { taille: 'mix' }], 'ce2-soustraction-posee': [{ taille: '3' }, { taille: 'mix' }],
-    'ce2-multiplication': [{ facteur: '1' }, { facteur: '2' }], 'ce2-monnaie': [{ centimes: 'non' }, { centimes: 'oui' }] };
+    'ce2-multiplication': [{ facteur: '1' }, { facteur: '2' }], 'ce2-monnaie': [{ centimes: 'non' }, { centimes: 'oui' }],
+    'ce2-nombres-lire-ecrire': [{ taille: '1000' }, { taille: '10000' }], 'ce2-nombres-comparer': [{ taille: '1000' }, { taille: '10000' }],
+    'ce2-fractions-lire': [{}], 'ce2-fractions-comparer': [{}], 'ce2-fractions-calculer': [{ denominateur: '4' }, { denominateur: '10' }],
+    'ce2-longueurs': [{ km: 'non' }, { km: 'oui' }], 'ce2-heures': [{ minutes: 'quarts' }, { minutes: 'cinq' }] };
   const somme = (x) => { let h = 5381; for (const ch of x) h = ((h * 33) ^ ch.charCodeAt(0)) >>> 0; return h; };
-  const dom = (html) => new JSDOM(`<div>${html}</div>`).window.document;
+  const ouverts = [];   // les fenêtres jsdom pèsent lourd : on les ferme au fil de l'eau
+  const dom = (html) => { const w = new JSDOM(`<div>${html}</div>`).window; ouverts.push(w); return w.document; };
   const nombres = (el) => (el.textContent.match(/\d+/g) || []).join(' ');
   const NEGATIFS = /\b(faux|fausse|fausses|erreur|erreurs|incorrect|incorrecte|mauvais|mauvaise|raté|ratée|perdu|échec)\b|[✗✘❌]/i;
   const structure = (o) => (o && typeof o === 'object' && typeof o !== 'function'
     ? `{${Object.keys(o).sort().map((k) => `${k}:${structure(o[k])}`).join(',')}}` : typeof o === 'function' ? 'f' : 'v');
 
-  verifier(formulation(FICHES.find((f) => f.id === 'ce2-nombres-lire-ecrire'), 'commune') === null, 'formulation : une fiche non convertie n’a pas de formulation (null)');
+  verifier(formulation(FICHES.find((f) => f.id === 'ce2-masses-contenances'), 'commune') === null, 'formulation : une fiche non convertie n’a pas de formulation (null)');
   const empreintesCommune = [];
 
+  const parDom = ['ce2-addition-posee', 'ce2-soustraction-posee', 'ce2-multiplication', 'ce2-monnaie'];
   for (const id of ids) {
     const f = FICHES.find((x) => x.id === id);
     verifier(!!f.formulations && Object.keys(f.formulations).join() === 'livret,commune', `${id} : deux formulations nommées (livret, commune)`);
@@ -3069,14 +3078,27 @@ for (const opt of optionsMult) {
         const c = tirer(f, options, graine);
         for (const methode of [true, false]) {
           const rendu = (nom) => rendre(f, c, { corrige: true, methode, formulation: nom, base: 'http://x/' });
-          const L = dom(rendu('livret')), C = dom(rendu('commune'));
+          const rL = rendu('livret'), rC = rendu('commune');
+          if (!parDom.includes(id)) {
+            // Fiches du lot 2 : sans DOM (jsdom ne libère pas ses documents, la suite dépasserait la mémoire de node).
+            // Les blocs d'exercices et de corrigé sont ceux de la fiche, rappel, objectif et note exclus.
+            const texteDe = (nom, vue) => nombres({ textContent: f.blocs(c, { methode, formulation: nom }).map((b) => b[vue].replace(/<[^>]*>/g, '')).join('') });
+            if (texteDe('livret', 'eleve') !== texteDe('commune', 'eleve')) { memesNombres = false; console.log(id, graine, '\n', texteDe('livret', 'eleve'), '\n', texteDe('commune', 'eleve')); }
+            if (texteDe('livret', 'corrige') !== texteDe('commune', 'corrige')) { memesReponses = false; console.log(id, graine, '\n', texteDe('livret', 'corrige'), '\n', texteDe('commune', 'corrige')); }
+            if (NEGATIFS.test(rL.replace(/<[^>]*>/g, ' ')) || NEGATIFS.test(rC.replace(/<[^>]*>/g, ' '))) sansNegatif = false;
+            if (rL === rC) differents = false;
+            continue;
+          }
+          const L = dom(rL), C = dom(rC);
           const eleve = (d) => { const e = d.querySelector('.feuille:not(.feuille--corrige)').cloneNode(true); e.querySelectorAll('.bloc--methode, .objectif').forEach((n) => n.remove()); return nombres(e); };
           if (eleve(L) !== eleve(C)) { memesNombres = false; console.log(id, graine, '\n', eleve(L), '\n', eleve(C)); }
           const corrige = (d) => { const e = d.querySelector('.feuille--corrige').cloneNode(true); e.querySelectorAll('.objectif--corrige, .pose__retenues, .ret-petite, .un, .note, .methode').forEach((n) => n.remove()); return nombres(e); };
           if (corrige(L) !== corrige(C)) { memesReponses = false; console.log(id, graine, '\n', corrige(L), '\n', corrige(C)); }
           if (NEGATIFS.test(L.body.textContent) || NEGATIFS.test(C.body.textContent)) sansNegatif = false;
-          if (rendu('livret') === rendu('commune')) differents = false;
+          if (rL === rC) differents = false;
+          ouverts.splice(0).forEach((w) => w.close());
         }
+        ouverts.splice(0).forEach((w) => w.close());
         if (tirer(f, options, graine).code !== c.code || decoder(c.code).graine !== graine) memeCode = false;
         // les opérations d'une addition se dessinent de la même façon dans les deux formulations
         if (id === 'ce2-addition-posee') {
@@ -3091,19 +3113,19 @@ for (const opt of optionsMult) {
     verifier(differents, `${id} : la formulation commune change bien le rendu`);
     verifier(memeCode, `${id} : le code d’un tirage ne dépend pas de la formulation`);
     verifier(memeGrille || id !== 'ce2-addition-posee', 'addition : les retenues dessinées sont inchangées en commune');
-    const c0 = tirer(f, f.options[0].id === 'taille' ? { taille: 'mix' } : f.options[0].id === 'facteur' ? { facteur: '2' } : { centimes: 'oui' }, 424242);
+    const c0 = tirer(f, optionsParDefaut(f), 424242);
     verifier(!/livret|commune/.test(JSON.stringify(c0)) && !/livret|commune/.test(c0.code), `${id} : ni le tirage ni le code ne portent la formulation`);
-    verifier(objectifDe(f, c0, 'commune') !== objectifDe(f, c0, 'livret') || id === 'ce2-monnaie', `${id} : objectifs distincts`);
+    verifier(objectifDe(f, c0, 'commune') !== objectifDe(f, c0, 'livret') || id === 'ce2-monnaie' || id === 'ce2-longueurs', `${id} : objectifs distincts`);
     verifier(f.formulations.livret.noteParent !== f.formulations.commune.noteParent, `${id} : notes pour le parent distinctes`);
     const eC = (o) => somme(JSON.stringify(c0) + rendre(f, c0, { corrige: true, base: 'http://x/', formulation: 'commune' }) + o);
     empreintesCommune.push(eC(''));
   }
   // Empreintes à graine fixe de la formulation commune (mesurées à l'écriture de la formulation).
-  verifier(empreintesCommune.join() === '1315942214,2128063412,1053273845,47222720', `rendu commune stable (${empreintesCommune.join()})`);
+  verifier(empreintesCommune.join() === '1315942214,2128063412,1053273845,47222720,2641884119,1530593338,3947914584,2909159360,1934417952,2903052303,3773132777', `rendu commune stable (${empreintesCommune.join()})`);
 
   // Une fiche non convertie ignore l'option
-  const nb = FICHES.find((x) => x.id === 'ce2-nombres-lire-ecrire');
-  const cn = tirer(nb, { taille: '1000' }, 77);
+  const nb = FICHES.find((x) => x.id === 'ce2-masses-contenances');
+  const cn = tirer(nb, optionsParDefaut(nb), 77);
   verifier(rendre(nb, cn, { formulation: 'commune', base: 'http://x/' }) === rendre(nb, cn, { base: 'http://x/' })
     && nb.blocs(cn, { formulation: 'commune' }).length === nb.blocs(cn).length, 'une fiche non convertie ignore l’option formulation');
 
@@ -3168,9 +3190,25 @@ for (const opt of optionsMult) {
   const mo = FICHES.find((x) => x.id === 'ce2-monnaie');
   const MC = dom(rendre(mo, tirer(mo, { centimes: 'oui' }, 9), { formulation: 'commune' })).body.textContent;
   verifier(!/leçon|livret/i.test(MC) && /en deux temps/.test(MC) && !/Je complète à 13/.test(MC), 'monnaie commune : complément en deux temps, sans citer le livret');
-  const SC = ['ce2-addition-posee', 'ce2-soustraction-posee', 'ce2-multiplication'].map((i) => FICHES.find((x) => x.id === i))
-    .map((f) => dom(rendre(f, tirer(f, optionsParDefaut(f), 9), { formulation: 'commune' })).body.textContent);
+  const SC = ids.map((i) => FICHES.find((x) => x.id === i))
+    .map((f) => rendre(f, tirer(f, optionsParDefaut(f), 9), { formulation: 'commune' }).replace(/<[^>]*>/g, ' '));
   verifier(SC.every((t) => !/leçon|livret|Mila|Enzo|casse/i.test(t)), 'formulation commune : aucune tournure propre au livret (leçon, Mila, Enzo, « casser »)');
+
+  // Lot 2 : les définitions sont les mêmes dans les deux formulations
+  const texteDe = (id, o, nom) => { const f = FICHES.find((x) => x.id === id); return rendre(f, tirer(f, o, 9), { formulation: nom }).replace(/<[^>]*>/g, '').replace(/&lt;/g, '<').replace(/&nbsp;|\u00a0|\u202f/g, ' ').replace(/\s+/g, ' '); };
+  const defs = [
+    ['ce2-nombres-lire-ecrire', { taille: '10000' }, ['1 millier = 10 centaines = 100 dizaines = 1 000 unités', 'm milliers · c centaines · d dizaines · u unités']],
+    ['ce2-nombres-comparer', { taille: '10000' }, ['Comparer deux nombres', 'Ranger', 'Encadrer', 'Intercaler']],
+    ['ce2-fractions-lire', {}, ['4 est le dénominateur', '3 est le numérateur', 'un demi', 'un quart', 'trois quarts']],
+    ['ce2-fractions-comparer', {}, ['5 douzièmes < 7 douzièmes', '1 sixième', 'égale à 1']],
+    ['ce2-fractions-calculer', { denominateur: '4' }, ['trois quarts d’unité', '2 unités et 1 quart d’unité', 'On additionne les numérateurs', 'On soustrait les numérateurs']],
+    ['ce2-longueurs', { km: 'oui' }, ['1 cm = 10 mm', '1 m = 100 cm', '1 m = 10 dm', '1 dm = 10 cm', '1 km = 1 000 m', 'Le périmètre d’une figure est la longueur du tour de cette figure.']],
+    ['ce2-heures', { minutes: 'cinq' }, ['La petite aiguille indique les heures.', 'La grande aiguille indique les minutes.', '1 heure = 60 minutes', 'moins le quart → 45']],
+  ];
+  for (const [id, o, phrases] of defs) {
+    const L = texteDe(id, o, 'livret'), C = texteDe(id, o, 'commune');
+    verifier(phrases.every((p) => L.includes(p) && C.includes(p)), `${id} : les définitions sont reprises à l’identique dans les deux formulations`);
+  }
 }
 
 process.exit(echecs ? 1 : 0);

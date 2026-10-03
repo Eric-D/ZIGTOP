@@ -99,7 +99,7 @@ verifier(memesNombres[0] === memesNombres[1], 'un même code rouvre les mêmes n
 w = await ouvrir('');
 d = w.document;
 clic(d.querySelector('[data-aller="fiches"]'));
-for (const f of [addition, soustraction, FICHES[3]]) clic(d.querySelector(`[data-fiche="${f.id}"]`));
+for (const f of [addition, soustraction, FICHES[11]]) clic(d.querySelector(`[data-fiche="${f.id}"]`));
 continuer();
 clic(d.querySelector('[data-compo="mini"][data-valeur="oui"]'));
 verifier(!!d.querySelector('#choix-formulation'), 'pas 2 (feuille panachée) : le choix de la méthode est proposé');

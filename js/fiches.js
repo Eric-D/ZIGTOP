@@ -798,9 +798,6 @@ function genererNombres(options) {
 
   return {
     quatre,
-    objectif: quatre
-      ? 'Je sais que 1 millier = 10 centaines et je sais représenter un nombre de différentes façons.'
-      : 'Je sais qu’une centaine, c’est aussi dix dizaines et cent unités, et je sais représenter un nombre de différentes façons.',
     methode: { exemple, lignes: representations(exemple) },
     lire, ecrire, decomp, recomp, combien, tableau,
   };
@@ -1170,6 +1167,61 @@ function tableauNumeration(lignes, quatre, corrige, sens) {
       </table>`;
 }
 
+// Les définitions (1 centaine = 10 dizaines, la valeur d'un chiffre dépend de son rang, les colonnes m c d u)
+// sont les mêmes ; seuls changent les mots autour : l'objectif, la façon de nommer les représentations,
+// les consignes et les phrases du corrigé.
+const FORMULATIONS_NOMBRES = {
+  livret: {
+    nom: 'livret',
+    objectif: (c) => (c.quatre
+      ? 'Je sais que 1 millier = 10 centaines et je sais représenter un nombre de différentes façons.'
+      : 'Je sais qu’une centaine, c’est aussi dix dizaines et cent unités, et je sais représenter un nombre de différentes façons.'),
+    rappel: {
+      position: (n, k) => `${fmt(n)} est un nombre à ${k} chiffres. La valeur du chiffre dépend de sa position dans l’écriture du nombre.`,
+      titre: (n) => `Je sais représenter le nombre ${fmt(n)} de différentes façons.`,
+      etiquettes: () => ['', '', '', '', '', '', ''],
+    },
+    consignes: {
+      ex1: 'Écris chaque nombre en chiffres, ou en lettres.',
+      ex2: 'Complète les décompositions, puis recompose les nombres.',
+      ex3: 'Combien de dizaines et de centaines en tout dans chaque nombre ?',
+      dans: (n) => `Dans ${fmt(n)} :`,
+      dizaines: 'dizaines ;',
+      centaines: 'centaines',
+      ex4: 'Range chaque nombre dans les colonnes, ou écris le nombre.',
+    },
+    corrige: {
+      combien: (n, d, c) => `Dans ${fmt(n)} : ${d} dizaines ; ${c} centaines`,
+    },
+    noteParent: 'les écritures attendues sont en rouge : les nombres en lettres s’écrivent avec des traits d’union ; le nombre de dizaines (ou de centaines) est celui qu’on compte en tout dans le nombre, comme « 32 centaines » pour 3 258 dans la leçon ; les colonnes du tableau sont m (milliers), c (centaines), d (dizaines) et u (unités).',
+  },
+  commune: {
+    nom: 'commune',
+    objectif: (c) => (c.quatre
+      ? 'Je sais que 1 millier = 10 centaines, et je sais écrire un nombre de plusieurs façons.'
+      : 'Je sais qu’une centaine, c’est aussi dix dizaines et cent unités, et je sais écrire un nombre de plusieurs façons.'),
+    rappel: {
+      position: (n, k) => `${fmt(n)} s’écrit avec ${k} chiffres. Chaque chiffre a une valeur qui dépend de sa place (son rang) dans le nombre.`,
+      titre: (n) => `Un nombre s’écrit de plusieurs façons : ${fmt(n)}.`,
+      etiquettes: (quatre) => ['Chiffres : ', 'Lettres : ', quatre ? 'Milliers : ' : 'Centaines : ', 'Somme : ', 'Produits : ',
+        quatre ? 'Centaines : ' : 'Dizaines : ', 'Rangs : '],
+    },
+    consignes: {
+      ex1: 'Écris chaque nombre en lettres, ou en chiffres.',
+      ex2: 'Complète les décompositions, puis calcule chaque somme.',
+      ex3: 'Combien de dizaines, puis de centaines, y a-t-il en tout dans chaque nombre ?',
+      dans: (n) => `Dans ${fmt(n)}, il y a`,
+      dizaines: 'dizaines et',
+      centaines: 'centaines',
+      ex4: 'Place chaque nombre dans le tableau, ou écris le nombre.',
+    },
+    corrige: {
+      combien: (n, d, c) => `Dans ${fmt(n)}, il y a ${d} dizaines et ${c} centaines.`,
+    },
+    noteParent: 'les écritures attendues sont en rouge : les nombres en lettres s’écrivent avec des traits d’union ; le nombre de dizaines (ou de centaines) est celui qu’on compte en tout dans le nombre, par exemple 32 centaines pour 3 258 ; les colonnes du tableau de numération sont m (milliers), c (centaines), d (dizaines) et u (unités).',
+  },
+};
+
 const miseNombres = {
   signe: '',
   combien: (contenu, methode) => ({
@@ -1180,15 +1232,15 @@ const miseNombres = {
     combien: contenu.combien.slice(0, methode ? 4 : 6),
     tableau: contenu.tableau.slice(0, methode ? 4 : 6),
   }),
-  noteCorrige: 'les écritures attendues sont en rouge : les nombres en lettres s’écrivent avec des traits d’union ; le nombre de dizaines (ou de centaines) est celui qu’on compte en tout dans le nombre, comme « 32 centaines » pour 3 258 dans la leçon ; les colonnes du tableau sont m (milliers), c (centaines), d (dizaines) et u (unités).',
   // Rappel : tableau de numération avec l'exemple du livret, façons de représenter le nombre.
-  rappel(contenu) {
+  rappel(contenu, fm = FORMULATIONS_NOMBRES.livret) {
     const { exemple, lignes } = contenu.methode;
     const quatre = contenu.quatre;
     const colonnes = quatre ? ['m', 'c', 'd', 'u'] : ['c', 'd', 'u'];
     const legende = quatre ? 'm milliers · c centaines · d dizaines · u unités' : 'c centaines · d dizaines · u unités';
     const relation = quatre ? '1 millier = 10 centaines = 100 dizaines = 1 000 unités' : '1 centaine = 10 dizaines = 100 unités';
     const nbChiffres = String(exemple).length;
+    const etiquettes = fm.rappel.etiquettes(quatre);
     return `
       <div class="methode methode--nombres">
         <div class="methode__tableau">
@@ -1197,21 +1249,22 @@ const miseNombres = {
             <tr>${chiffresDe3(exemple).map((c) => `<td>${c}</td>`).join('')}</tr>
           </table>
           <div class="methode__legende">${legende}</div>
-          <div class="methode__legende">${fmt(exemple)} est un nombre à ${nbChiffres} chiffres. La valeur du chiffre dépend de sa position dans l’écriture du nombre.</div>
+          <div class="methode__legende">${fm.rappel.position(exemple, nbChiffres)}</div>
         </div>
         <div class="methode__droite">
-          <div class="representations__titre">Je sais représenter le nombre ${fmt(exemple)} de différentes façons.</div>
-          <ul class="representations">${lignes.map((l) => `<li>${l}</li>`).join('')}</ul>
+          <div class="representations__titre">${fm.rappel.titre(exemple)}</div>
+          <ul class="representations">${lignes.map((l, i) => `<li>${etiquettes[i]}${l}</li>`).join('')}</ul>
         </div>
       </div>
       <div class="methode__relation">${relation}</div>`;
   },
-  exercices(contenu, methode) {
+  exercices(contenu, methode, fm = FORMULATIONS_NOMBRES.livret) {
     const { lire, ecrire, decomp, recomp, combien, tableau } = this.combien(contenu, methode);
+    const k = fm.consignes;
     const dec = (t, vides, corrige) => termesDe(t).map((v, i) => (vides.includes(i) ? (corrige ? rouge(fmt(v)) : trou) : fmt(v))).join(' + ');
     return `
     <div class="bloc">
-      <h2>Exercice 1 — Écris chaque nombre en chiffres, ou en lettres.</h2>
+      <h2>Exercice 1 — ${k.ex1}</h2>
       <ul class="lignes">
         ${lire.map((n, i) => `<li><span class="ligne__texte">${lettre(i)}. ${enLettres(n)}</span><span class="ligne__egal">=</span><span class="pointilles pointilles--ligne"></span></li>`).join('')}
       </ul>
@@ -1221,7 +1274,7 @@ const miseNombres = {
     </div>
 
     <div class="bloc">
-      <h2>Exercice 2 — Complète les décompositions, puis recompose les nombres.</h2>
+      <h2>Exercice 2 — ${k.ex2}</h2>
       <ul class="lignes lignes--deux">
         ${decomp.map(({ n, vides }, i) => `<li><span class="ligne__texte">${lettre(i)}. ${fmt(n)} = ${dec(n, vides, false)}</span></li>`).join('')}
         ${recomp.map((n, i) => `<li><span class="ligne__texte">${lettre(decomp.length + i)}. ${termesDe(n).map(fmt).join(' + ')} =</span>${trou}</li>`).join('')}
@@ -1229,14 +1282,14 @@ const miseNombres = {
     </div>
 
     <div class="bloc">
-      <h2>Exercice 3 — Combien de dizaines et de centaines en tout dans chaque nombre ?</h2>
+      <h2>Exercice 3 — ${k.ex3}</h2>
       <ul class="lignes lignes--deux">
-        ${combien.map((n, i) => `<li><span class="ligne__texte">${lettre(i)}. Dans ${fmt(n)} :</span>${trou}<span class="ligne__texte">dizaines ;</span>${trou}<span class="ligne__texte">centaines</span></li>`).join('')}
+        ${combien.map((n, i) => `<li><span class="ligne__texte">${lettre(i)}. ${k.dans(n)}</span>${trou}<span class="ligne__texte">${k.dizaines}</span>${trou}<span class="ligne__texte">${k.centaines}</span></li>`).join('')}
       </ul>
     </div>
 
     <div class="bloc">
-      <h2>Exercice 4 — Range chaque nombre dans les colonnes, ou écris le nombre.</h2>
+      <h2>Exercice 4 — ${k.ex4}</h2>
       <div class="tableaux">
         ${tableauNumeration(tableau, contenu.quatre, false, 'nombre')}
         ${tableauNumeration(tableau, contenu.quatre, false, 'colonnes')}
@@ -1244,7 +1297,7 @@ const miseNombres = {
     </div>
 `;
   },
-  corriges(contenu, methode) {
+  corriges(contenu, methode, fm = FORMULATIONS_NOMBRES.livret) {
     const { lire, ecrire, decomp, recomp, combien, tableau } = this.combien(contenu, methode);
     const dec = (t, vides) => termesDe(t).map((v, i) => (vides.includes(i) ? rouge(fmt(v)) : fmt(v))).join(' + ');
     return `
@@ -1269,7 +1322,7 @@ const miseNombres = {
     <div class="bloc">
       <h2>Exercice 3</h2>
       <ul class="lignes lignes--deux lignes--corrigees">
-        ${combien.map((n, i) => `<li><span class="ligne__texte">${lettre(i)}. Dans ${fmt(n)} : ${rouge(Math.floor(n / 10))} dizaines ; ${rouge(Math.floor(n / 100))} centaines</span></li>`).join('')}
+        ${combien.map((n, i) => `<li><span class="ligne__texte">${lettre(i)}. ${fm.corrige.combien(n, rouge(Math.floor(n / 10)), rouge(Math.floor(n / 100)))}</span></li>`).join('')}
       </ul>
     </div>
 
@@ -1388,7 +1441,6 @@ function genererNombresComparer(options) {
 
   return {
     quatre, chif,
-    objectif: 'Je sais comparer, ranger et encadrer des nombres entiers, et les placer sur une demi-droite graduée.',
     paires, croissant, decroissant, encadrer, intercaler,
     droite: { max: petit * 100, grand: petit * 10, petit, points, ordre },
   };
@@ -1397,6 +1449,64 @@ function genererNombresComparer(options) {
 const NOM_UNITE = { dizaine: 'à la dizaine', centaine: 'à la centaine', millier: 'au millier' };
 const nb = (n) => `<span class="n">${fmt(n)}</span>`;
 const trouBorne = '<span class="trou-borne"></span>';
+
+// Les définitions (comparer, ranger, encadrer, intercaler) sont les mêmes ; la règle de comparaison est
+// dite avec les mots de chaque formulation, et les consignes aussi.
+const L2 = '\n          ';   // retour à la ligne + indentation dans le gabarit du rappel
+const FORMULATIONS_COMPARER = {
+  livret: {
+    nom: 'livret',
+    objectif: 'Je sais comparer, ranger et encadrer des nombres entiers, et les placer sur une demi-droite graduée.',
+    rappel: {
+      col1: ({ quatre, ul }) => [
+        '<p>Comparer deux nombres, c’est chercher quel nombre est le plus grand et quel nombre est le plus petit.</p>',
+        `<p>Pour trouver, ${quatre
+          ? 'on regarde le nombre de milliers ; si c’est le même, on regarde le nombre de centaines ; si c’est le même, on regarde le nombre de dizaines…'
+          : 'on regarde le nombre de centaines ; si c’est le même, on regarde le nombre de dizaines ; si c’est le même, on regarde le nombre d’unités.'} On s’arrête dès que deux chiffres de même rang sont différents.</p>`,
+        ul,
+        '<p>Les symboles : <b>&lt;</b> plus petit que, <b>&gt;</b> plus grand que, <b>=</b> égal à.</p>',
+      ],
+      col2: ({ croiss, decroiss, enc }) => [
+        `<p><b>Ranger</b> des nombres dans l’ordre croissant, c’est les écrire du plus petit au plus grand : ${croiss}.<br>${L2}Dans l’ordre décroissant, c’est les écrire du plus grand au plus petit : ${decroiss}.</p>`,
+        `<p><b>Encadrer</b> un nombre entier, c’est le situer entre deux autres nombres entiers. <b>Intercaler</b> un nombre entre deux nombres, c’est trouver un nombre compris entre ces deux nombres : ${enc}.</p>`,
+        '<p>Pour placer des nombres sur une demi-droite graduée, il faut connaître la valeur de l’écart entre deux graduations.</p>',
+      ],
+    },
+    consignes: {
+      ex1: 'Compare avec &lt;, &gt; ou =.',
+      ex2: 'Range ces nombres, du plus petit au plus grand, puis du plus grand au plus petit.',
+      ex3: 'Encadre chaque nombre, puis intercale un nombre entre les deux nombres donnés.',
+      ex4: 'Place chaque nombre sur la demi-droite graduée : trace une flèche.',
+      droite: (grand, petit) => `Cette demi-droite est graduée de ${fmt(grand)} en ${fmt(grand)} ; chaque petit trait vaut ${fmt(petit)}.`,
+    },
+    noteParent: 'les réponses attendues sont en rouge. Pour intercaler, plusieurs nombres conviennent : un seul est donné. Sur la demi-droite, chaque flèche pointe la graduation du nombre.',
+  },
+  commune: {
+    nom: 'commune',
+    objectif: 'Je sais comparer et ranger des nombres entiers, les encadrer, et les placer sur une demi-droite graduée.',
+    rappel: {
+      col1: ({ quatre, ul }) => [
+        '<p>Comparer deux nombres, c’est trouver lequel est le plus grand et lequel est le plus petit, ou voir qu’ils sont égaux.</p>',
+        `<p>Je compare les chiffres de même rang en commençant par la gauche : ${quatre ? 'les milliers, puis les centaines, puis les dizaines, puis les unités' : 'les centaines, puis les dizaines, puis les unités'}. Je m’arrête au premier rang où les chiffres sont différents : le nombre qui a le plus grand chiffre à ce rang est le plus grand.</p>`,
+        ul,
+        '<p>Les symboles : <b>&lt;</b> se lit « plus petit que », <b>&gt;</b> « plus grand que », <b>=</b> « égal à ».</p>',
+      ],
+      col2: ({ croiss, decroiss, enc }) => [
+        `<p><b>Ranger</b> des nombres dans l’ordre croissant, c’est les écrire du plus petit au plus grand : ${croiss}.<br>${L2}Dans l’ordre décroissant, c’est les écrire du plus grand au plus petit : ${decroiss}.</p>`,
+        `<p><b>Encadrer</b> un nombre entier, c’est trouver deux nombres entiers entre lesquels il se situe. <b>Intercaler</b> un nombre entre deux nombres, c’est en trouver un compris entre eux : ${enc}.</p>`,
+        '<p>Sur une demi-droite graduée, je commence par chercher la valeur de l’écart entre deux graduations.</p>',
+      ],
+    },
+    consignes: {
+      ex1: 'Compare ces nombres avec &lt;, &gt; ou =.',
+      ex2: 'Range ces nombres dans l’ordre croissant, puis dans l’ordre décroissant.',
+      ex3: 'Encadre chaque nombre comme demandé, puis intercale un nombre entre les deux nombres donnés.',
+      ex4: 'Place chaque nombre sur la demi-droite graduée avec une flèche.',
+      droite: (grand, petit) => `Sur cette demi-droite, les graduations vont de ${fmt(grand)} en ${fmt(grand)} ; entre deux graduations, chaque petit trait vaut ${fmt(petit)}.`,
+    },
+    noteParent: 'les réponses attendues sont en rouge ; pour encadrer, on donne les deux dizaines (centaines, milliers) entières les plus proches de part et d’autre du nombre ; pour intercaler, plusieurs nombres conviennent et un seul est donné ; sur la demi-droite, chaque flèche pointe la graduation du nombre.',
+  },
+};
 
 const miseComparer = {
   signe: '',
@@ -1413,41 +1523,33 @@ const miseComparer = {
     const { points, ordre } = contenu.droite;
     return { ...contenu.droite, valeurs: indices.map((i) => points[i]), aPlacer: ordre.filter((i) => indices.includes(i)).map((i) => points[i]) };
   },
-  noteCorrige: 'les réponses attendues sont en rouge. Pour intercaler, plusieurs nombres conviennent : un seul est donné. Sur la demi-droite, chaque flèche pointe la graduation du nombre.',
   // Rappel : les phrases et les exemples de la leçon (pages 10 à 13 du livret).
-  rappel(contenu) {
+  rappel(contenu, fm = FORMULATIONS_COMPARER.livret) {
     const quatre = contenu.quatre;
     const sym = (t) => t.replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const suite = (t) => `<span class="n">${sym(t)}</span>`;   // les symboles ne doivent jamais ouvrir une balise
     const exemples = (quatre
       ? ['506 < 2 302', '7 532 > 6 985', '6 427 < 6 500', '9 483 > 9 468', '1 238 < 1 239']
       : ['427 < 500', '532 > 498', '483 > 468', '238 < 239']).map(sym);
-    const rang = quatre
-      ? 'on regarde le nombre de milliers ; si c’est le même, on regarde le nombre de centaines ; si c’est le même, on regarde le nombre de dizaines…'
-      : 'on regarde le nombre de centaines ; si c’est le même, on regarde le nombre de dizaines ; si c’est le même, on regarde le nombre d’unités.';
     const croiss = suite(quatre ? '5 254 < 5 285 < 5 308 < 5 347' : '254 < 285 < 308 < 347');
     const decroiss = suite(quatre ? '5 470 > 5 108 > 3 285 > 752' : '470 > 308 > 285 > 108');
     const enc = suite(quatre ? '5 800 < 5 823 < 5 900' : '800 < 823 < 900');
+    const ul = `<ul class="rappel-comp__exemples">${exemples.map((e) => `<li>${e}</li>`).join('')}</ul>`;
     return `
       <div class="rappel-comp">
         <div class="rappel-comp__col">
           <div class="rappel-comp__titre">Comparer deux nombres</div>
-          <p>Comparer deux nombres, c’est chercher quel nombre est le plus grand et quel nombre est le plus petit.</p>
-          <p>Pour trouver, ${rang} On s’arrête dès que deux chiffres de même rang sont différents.</p>
-          <ul class="rappel-comp__exemples">${exemples.map((e) => `<li>${e}</li>`).join('')}</ul>
-          <p>Les symboles : <b>&lt;</b> plus petit que, <b>&gt;</b> plus grand que, <b>=</b> égal à.</p>
+          ${fm.rappel.col1({ quatre, ul }).join(L2)}
         </div>
         <div class="rappel-comp__col">
-          <p><b>Ranger</b> des nombres dans l’ordre croissant, c’est les écrire du plus petit au plus grand : ${croiss}.<br>
-          Dans l’ordre décroissant, c’est les écrire du plus grand au plus petit : ${decroiss}.</p>
-          <p><b>Encadrer</b> un nombre entier, c’est le situer entre deux autres nombres entiers. <b>Intercaler</b> un nombre entre deux nombres, c’est trouver un nombre compris entre ces deux nombres : ${enc}.</p>
-          <p>Pour placer des nombres sur une demi-droite graduée, il faut connaître la valeur de l’écart entre deux graduations.</p>
+          ${fm.rappel.col2({ croiss, decroiss, enc }).join(L2)}
         </div>
       </div>`;
   },
-  exercices(contenu, methode) {
+  exercices(contenu, methode, fm = FORMULATIONS_COMPARER.livret) {
     const { paires, croissant, decroissant, encadrer, intercaler } = this.combien(contenu, methode);
     const d = this.droite(contenu, methode);
+    const k = fm.consignes;
     const ligneRang = (l, i, sens) => `
         <div class="rang">
           <div class="rang__nombres"><b>${lettre(i)}.</b> ${l.map(nb).join('&nbsp;; ')}</div>
@@ -1455,14 +1557,14 @@ const miseComparer = {
         </div>`;
     return `
     <div class="bloc">
-      <h2>Exercice 1 — Compare avec &lt;, &gt; ou =.</h2>
+      <h2>Exercice 1 — ${k.ex1}</h2>
       <div class="paires">
         ${paires.map((p, i) => `<div class="paire"><b>${lettre(i)}.</b> <span class="paire__a">${nb(p.a)}</span><span class="case-symbole"></span><span class="paire__b">${nb(p.b)}</span></div>`).join('')}
       </div>
     </div>
 
     <div class="bloc">
-      <h2>Exercice 2 — Range ces nombres, du plus petit au plus grand, puis du plus grand au plus petit.</h2>
+      <h2>Exercice 2 — ${k.ex2}</h2>
       <div class="rangs">
         ${ligneRang(croissant, 0, '&lt;')}
         ${ligneRang(decroissant, 1, '&gt;')}
@@ -1470,7 +1572,7 @@ const miseComparer = {
     </div>
 
     <div class="bloc">
-      <h2>Exercice 3 — Encadre chaque nombre, puis intercale un nombre entre les deux nombres donnés.</h2>
+      <h2>Exercice 3 — ${k.ex3}</h2>
       <div class="encadrements">
         <ul class="lignes">
           ${encadrer.map(({ n, unite }, i) => `<li class="encadrement"><span class="ligne__texte"><b>${lettre(i)}.</b> ${NOM_UNITE[unite]} :</span>${trouBorne}<span class="rang__signe">&lt;</span>${nb(n)}<span class="rang__signe">&lt;</span>${trouBorne}</li>`).join('')}
@@ -1482,14 +1584,14 @@ const miseComparer = {
     </div>
 
     <div class="bloc">
-      <h2>Exercice 4 — Place chaque nombre sur la demi-droite graduée : trace une flèche.</h2>
-      <p class="consigne-droite">Cette demi-droite est graduée de ${fmt(d.grand)} en ${fmt(d.grand)} ; chaque petit trait vaut ${fmt(d.petit)}.
+      <h2>Exercice 4 — ${k.ex4}</h2>
+      <p class="consigne-droite">${k.droite(d.grand, d.petit)}
         Nombres à placer : ${d.aPlacer.map(nb).join('&nbsp;; ')}</p>
       ${demiDroite({ max: d.max, grand: d.grand, petit: d.petit })}
     </div>
 `;
   },
-  corriges(contenu, methode) {
+  corriges(contenu, methode, fm = FORMULATIONS_COMPARER.livret) {
     const { paires, croissant, decroissant, encadrer, intercaler } = this.combien(contenu, methode);
     const d = this.droite(contenu, methode);
     const croissants = [...croissant].sort((x, y) => x - y), decroissants = [...decroissant].sort((x, y) => y - x);
@@ -1593,7 +1695,6 @@ function genererFractions() {
   const affirmations = shuffle(MODELES_AFFIRMATION).slice(0, 6).map((m, i) => affirmationDe(m, vrais[i]));
 
   return {
-    objectif: 'Je sais lire et écrire une fraction.',
     lire, colorier, lettres, chiffres, affirmations,
   };
 }
@@ -1621,6 +1722,61 @@ function texteAffirmation(a) {
 const LARGEUR_FIGURE = { disque: 84, bande: 112, carre: 84 };
 const LARGEUR_FIGURE_GRANDE = { disque: 90, bande: 130, carre: 90 };
 
+// Les définitions (unité, parts égales, numérateur, dénominateur, noms des fractions) sont les mêmes ;
+// seule change la façon de les dire, et les consignes.
+const FORMULATIONS_FRACTIONS = {
+  livret: {
+    nom: 'livret',
+    objectif: 'Je sais lire et écrire une fraction.',
+    rappel: {
+      gauche: () => [
+        'La bande de papier correspond à une unité, c’est-à-dire à 1. Elle est partagée en quatre parts égales : on a donc des quarts. Chaque part représente un quart.',
+        `${fraction(1, 4)}, c’est quand il en faut 4 pour faire 1.`,
+        `On a colorié trois parts. Cela représente trois quarts. Trois quarts, c’est trois fois un quart. Trois quarts s’écrit ${fraction(3, 4)}.`,
+      ],
+      droite: () => [
+        `Dans la fraction ${fraction(3, 4)}, le nombre du bas indique qu’on a des quarts et le nombre du haut qu’on a trois quarts.`,
+        '<b>4 est le dénominateur</b> : il indique qu’on a partagé l’unité en 4 parts égales.',
+        '<b>3 est le numérateur</b> : il indique qu’on a colorié 3 fois une part.',
+      ],
+    },
+    consignes: {
+      ex1: 'Écris la fraction représentée par chaque figure.',
+      ex2: 'Colorie la fraction demandée.',
+      ex3: 'Écris chaque fraction en lettres, puis chaque fraction en chiffres.',
+      lettres: 'En lettres',
+      chiffres: 'En chiffres',
+      ex4: 'Coche la bonne case : V si c’est vrai, F sinon.',
+    },
+    noteParent: 'les réponses attendues sont en rouge ; sur les figures de l’exercice 2, les parts à colorier sont grisées. Dans l’exercice 4, la case cochée est la bonne.',
+  },
+  commune: {
+    nom: 'commune',
+    objectif: 'Je sais lire et écrire une fraction, et la représenter sur une figure.',
+    rappel: {
+      gauche: () => [
+        'Cette bande représente une unité, c’est-à-dire 1. On la partage en quatre parts égales : chaque part est un quart de l’unité.',
+        `${fraction(1, 4)} : il faut 4 quarts pour faire 1.`,
+        `On colorie trois parts : cela fait trois quarts, c’est-à-dire trois fois un quart. On écrit ${fraction(3, 4)}.`,
+      ],
+      droite: () => [
+        `Dans ${fraction(3, 4)}, le nombre du bas dit en combien de parts on partage l’unité, celui du haut combien on en prend.`,
+        '<b>4 est le dénominateur</b> : l’unité est partagée en 4 parts.',
+        '<b>3 est le numérateur</b> : on prend 3 de ces parts.',
+      ],
+    },
+    consignes: {
+      ex1: 'Écris la fraction coloriée sur chaque figure.',
+      ex2: 'Colorie la fraction demandée sur chaque figure.',
+      ex3: 'Écris chaque fraction en lettres, puis chaque fraction en chiffres.',
+      lettres: 'En lettres',
+      chiffres: 'En chiffres',
+      ex4: 'Pour chaque phrase, coche V si elle est vraie, F sinon.',
+    },
+    noteParent: 'les réponses attendues sont en rouge ; sur les figures de l’exercice 2, les parts à colorier sont grisées ; dans l’exercice 4, la case cochée est la bonne réponse. Les noms demi, tiers, quart, cinquième… sont ceux du programme.',
+  },
+};
+
 const miseFractions = {
   signe: '',
   combien: (contenu, methode) => ({
@@ -1630,36 +1786,38 @@ const miseFractions = {
     chiffres: contenu.chiffres.slice(0, methode ? 4 : 6),
     affirmations: contenu.affirmations.slice(0, methode ? 4 : 6),
   }),
-  noteCorrige: 'les réponses attendues sont en rouge ; sur les figures de l’exercice 2, les parts à colorier sont grisées. Dans l’exercice 4, la case cochée est la bonne.',
   // Rappel : les phrases et les figures de la leçon (pages 22 à 25 du livret).
-  rappel() {
+  rappel(contenu, fm = FORMULATIONS_FRACTIONS.livret) {
+    const [g1, g2, g3] = fm.rappel.gauche();
+    const [d1, d2, d3] = fm.rappel.droite();
     const noms = [[1, 2], [1, 3], [1, 4], [1, 5], [1, 6], [1, 8], [1, 10]]
       .map(([n, d]) => `<li>${fraction(n, d)} : <b>un ${NOM_FRACTION[d]}</b></li>`).join('');
     return `
       <div class="rappel-frac">
         <div class="rappel-frac__col">
           ${figureFraction({ forme: 'bande', parts: 4, coloriees: 3, taille: 120 })}
-          <p>La bande de papier correspond à une unité, c’est-à-dire à 1. Elle est partagée en quatre parts égales : on a donc des quarts. Chaque part représente un quart.
-          ${fraction(1, 4)}, c’est quand il en faut 4 pour faire 1.</p>
-          <p>On a colorié trois parts. Cela représente trois quarts. Trois quarts, c’est trois fois un quart. Trois quarts s’écrit ${fraction(3, 4)}.</p>
+          <p>${g1}
+          ${g2}</p>
+          <p>${g3}</p>
         </div>
         <div class="rappel-frac__col">
           <div class="rappel-frac__vedette">
             ${figureFraction({ forme: 'disque', parts: 4, coloriees: 3, taille: 70 })}
             ${fraction(3, 4, 'fraction--grande')}
           </div>
-          <p>Dans la fraction ${fraction(3, 4)}, le nombre du bas indique qu’on a des quarts et le nombre du haut qu’on a trois quarts.</p>
-          <p><b>4 est le dénominateur</b> : il indique qu’on a partagé l’unité en 4 parts égales.<br>
-          <b>3 est le numérateur</b> : il indique qu’on a colorié 3 fois une part.</p>
+          <p>${d1}</p>
+          <p>${d2}<br>
+          ${d3}</p>
         </div>
         <ul class="rappel-frac__noms">${noms}</ul>
       </div>`;
   },
-  exercices(contenu, methode) {
+  exercices(contenu, methode, fm = FORMULATIONS_FRACTIONS.livret) {
     const { lire, colorier, lettres, chiffres, affirmations } = this.combien(contenu, methode);
+    const k = fm.consignes;
     return `
     <div class="bloc">
-      <h2>Exercice 1 — Écris la fraction représentée par chaque figure.</h2>
+      <h2>Exercice 1 — ${k.ex1}</h2>
       <div class="figures-lire figures-lire--${lire.length}">
         ${lire.map((f, i) => `<div class="figure-cellule"><b class="figure-cellule__lettre">${lettre(i)}.</b>
           <div class="figure-cellule__dessin">${figureFraction({ forme: f.forme, parts: f.parts, coloriees: f.n, taille: LARGEUR_FIGURE[f.forme] })}</div>
@@ -1668,7 +1826,7 @@ const miseFractions = {
     </div>
 
     <div class="bloc">
-      <h2>Exercice 2 — Colorie la fraction demandée.</h2>
+      <h2>Exercice 2 — ${k.ex2}</h2>
       <div class="figures-colorier">
         ${colorier.map((f, i) => `<div class="figure-cellule"><b class="figure-cellule__lettre">${lettre(i)}.</b>
           <div class="figure-cellule__dessin">${figureFraction({ forme: f.forme, parts: f.parts, coloriees: 0, taille: LARGEUR_FIGURE_GRANDE[f.forme] })}</div>
@@ -1677,16 +1835,16 @@ const miseFractions = {
     </div>
 
     <div class="bloc">
-      <h2>Exercice 3 — Écris chaque fraction en lettres, puis chaque fraction en chiffres.</h2>
+      <h2>Exercice 3 — ${k.ex3}</h2>
       <div class="ecritures">
         <div>
-          <div class="sous-titre">En lettres</div>
+          <div class="sous-titre">${k.lettres}</div>
           <ul class="lignes lignes--lettres">
             ${lettres.map((f, i) => `<li class="ecriture ecriture--lettres"><b>${lettre(i)}.</b> ${fraction(f.n, f.d)}<span class="pointilles pointilles--ligne"></span></li>`).join('')}
           </ul>
         </div>
         <div>
-          <div class="sous-titre">En chiffres</div>
+          <div class="sous-titre">${k.chiffres}</div>
           <ul class="lignes lignes--chiffres lignes--n${chiffres.length}">
             ${chiffres.map((f, i) => `<li class="ecriture ecriture--chiffres"><b>${lettre(i)}.</b> <span class="mots">${enMots(f.n, f.d)}</span> =${fractionVide()}</li>`).join('')}
           </ul>
@@ -1695,15 +1853,16 @@ const miseFractions = {
     </div>
 
     <div class="bloc">
-      <h2>Exercice 4 — Coche la bonne case : V si c’est vrai, F sinon.</h2>
+      <h2>Exercice 4 — ${k.ex4}</h2>
       <ul class="affirmations">
         ${affirmations.map((a, i) => `<li class="affirmation"><span class="affirmation__texte"><b>${lettre(i)}.</b> ${texteAffirmation(a)}</span><span class="cases-vf">${case_('V', false)}${case_('F', false)}</span></li>`).join('')}
       </ul>
     </div>
 `;
   },
-  corriges(contenu, methode) {
+  corriges(contenu, methode, fm = FORMULATIONS_FRACTIONS.livret) {
     const { lire, colorier, lettres, chiffres, affirmations } = this.combien(contenu, methode);
+    const k = fm.consignes;
     return `
     <div class="bloc">
       <h2>Exercice 1</h2>
@@ -1727,13 +1886,13 @@ const miseFractions = {
       <h2>Exercice 3</h2>
       <div class="ecritures ecritures--corrigees">
         <div>
-          <div class="sous-titre">En lettres</div>
+          <div class="sous-titre">${k.lettres}</div>
           <ul class="lignes lignes--lettres lignes--corrigees">
             ${lettres.map((f, i) => `<li class="ecriture ecriture--lettres"><b>${lettre(i)}.</b> ${fraction(f.n, f.d)}<span class="mots reponse">${rouge(enMots(f.n, f.d))}</span></li>`).join('')}
           </ul>
         </div>
         <div>
-          <div class="sous-titre">En chiffres</div>
+          <div class="sous-titre">${k.chiffres}</div>
           <ul class="lignes lignes--chiffres lignes--n${chiffres.length} lignes--corrigees">
             ${chiffres.map((f, i) => `<li class="ecriture ecriture--chiffres"><b>${lettre(i)}.</b> <span class="mots">${enMots(f.n, f.d)}</span> =${fractionRouge(f.n, f.d)}</li>`).join('')}
           </ul>
@@ -1809,10 +1968,66 @@ function genererFractionsComparer() {
   });
 
   return {
-    objectif: 'Je sais reconnaître des fractions égales et comparer des fractions.',
     demi, un, memeDen, memeNum, ranger,
   };
 }
+
+// Les définitions (fractions égales, égales à 1/2 et à 1, comparer à même dénominateur ou à même
+// numérateur) sont les mêmes ; la règle est dite avec les mots de chaque formulation.
+const FORMULATIONS_FRACTIONS_COMPARER = {
+  livret: {
+    nom: 'livret',
+    objectif: 'Je sais reconnaître des fractions égales et comparer des fractions.',
+    rappel: {
+      cartes: (F) => [
+        { titre: 'Des fractions égales', texte: `${F(6, 8)} = ${F(3, 4)}. Six huitièmes du gâteau est égal à <b>trois quarts</b> de ce gâteau.` },
+        { titre: `Égales à ${F(1, 2)}`, texte: `Le numérateur est la moitié du dénominateur : ${F(2, 4)} · ${F(3, 6)} · ${F(4, 8)} · ${F(5, 10)} sont égales à ${F(1, 2)}.` },
+        { titre: 'Égales à 1', texte: `Quand le numérateur est égal au dénominateur, la fraction est égale à 1 : ${F(4, 4)} = 1.` },
+        { titre: 'Même dénominateur (le même nombre en bas)', texte: `${F(5, 12)} &lt; ${F(7, 12)} : <b>5 douzièmes &lt; 7 douzièmes</b>.<br>La plus grande fraction est celle qui a le plus grand numérateur.` },
+        { titre: 'Même numérateur (le même nombre en haut)', texte: `${F(1, 6)} &gt; ${F(1, 10)} : <b>1 sixième</b> est plus grand que <b>1 dixième</b>. Lorsqu’on partage un gâteau en 6 parts égales, on fait moins de parts que lorsqu’on le partage en 10 parts égales, donc chaque part d’un sixième est <b>plus grande</b> que chaque part d’un dixième. ${F(3, 6)} &gt; ${F(3, 10)} : <b>3 sixièmes</b> est plus grand que <b>3 dixièmes</b>.` },
+      ],
+    },
+    consignes: {
+      ex1: (F) => `Entoure les fractions égales à ${F(1, 2)}, puis les fractions égales à 1.`,
+      egalesA: 'Égales à',
+      ex2: 'Compare avec &lt; ou &gt;.',
+      ex3: 'Compare avec &lt; ou &gt;. Les figures peuvent t’aider.',
+      ex4: 'Range les fractions du plus petit au plus grand.',
+    },
+    corrige: {
+      memeDen: (a, b, s) => `même dénominateur : ${a} ${s} ${b}`,
+      memeNum: (nom1, nom2, s) => `même numérateur : ${nom1} ${s} ${nom2}`,
+      rang: (tri) => `même dénominateur : ${tri.join(' &lt; ')}`,
+    },
+    noteParent: 'les réponses attendues sont en rouge ; dans l’exercice 1, les fractions à entourer sont encerclées. Chaque comparaison rappelle la règle appliquée.',
+  },
+  commune: {
+    nom: 'commune',
+    objectif: 'Je sais reconnaître des fractions égales et comparer des fractions de même dénominateur ou de même numérateur.',
+    rappel: {
+      cartes: (F) => [
+        { titre: 'Des fractions égales', texte: `${F(6, 8)} = ${F(3, 4)}. Six huitièmes d’un gâteau, c’est la même quantité que <b>trois quarts</b> de ce gâteau.` },
+        { titre: `Égales à ${F(1, 2)}`, texte: `Quand le numérateur est la moitié du dénominateur, la fraction est égale à ${F(1, 2)} : ${F(2, 4)} · ${F(3, 6)} · ${F(4, 8)} · ${F(5, 10)}.` },
+        { titre: 'Égales à 1', texte: `Quand le numérateur est égal au dénominateur, la fraction est égale à 1 : ${F(4, 4)} = 1.` },
+        { titre: 'Même dénominateur (le même nombre en bas)', texte: `${F(5, 12)} &lt; ${F(7, 12)} : <b>5 douzièmes &lt; 7 douzièmes</b>.<br>Les parts sont de même taille : la plus grande fraction est celle qui a le plus grand numérateur.` },
+        { titre: 'Même numérateur (le même nombre en haut)', texte: `${F(1, 6)} &gt; ${F(1, 10)} : <b>1 sixième</b> est plus grand que <b>1 dixième</b>. Plus on partage l’unité en de nombreuses parts, plus chaque part est petite : une part d’un sixième est <b>plus grande</b> qu’une part d’un dixième. De même, ${F(3, 6)} &gt; ${F(3, 10)} : <b>3 sixièmes</b> est plus grand que <b>3 dixièmes</b>.` },
+      ],
+    },
+    consignes: {
+      ex1: (F) => `Entoure, dans chaque ligne, les fractions égales à ${F(1, 2)}, puis celles égales à 1.`,
+      egalesA: 'Égales à',
+      ex2: 'Compare ces fractions de même dénominateur avec &lt; ou &gt;.',
+      ex3: 'Compare ces fractions de même numérateur avec &lt; ou &gt;. Les figures peuvent t’aider.',
+      ex4: 'Range ces fractions dans l’ordre croissant.',
+    },
+    corrige: {
+      memeDen: (a, b, s) => `même dénominateur, on compare les numérateurs : ${a} ${s} ${b}`,
+      memeNum: (nom1, nom2, s) => `même numérateur, plus de parts donne des parts plus petites : ${nom1} ${s} ${nom2}`,
+      rang: (tri) => `même dénominateur, on range les numérateurs : ${tri.join(' &lt; ')}`,
+    },
+    noteParent: 'les réponses attendues sont en rouge ; dans l’exercice 1, les fractions à entourer sont encerclées. Chaque comparaison rappelle la règle appliquée : avec le même dénominateur, on compare les numérateurs ; avec le même numérateur, plus le dénominateur est grand, plus la part est petite.',
+  },
+};
 
 const miseFractionsComparer = {
   signe: '',
@@ -1823,60 +2038,61 @@ const miseFractionsComparer = {
     memeNum: contenu.memeNum.slice(0, methode ? 4 : 6),
     ranger: contenu.ranger.slice(0, methode ? 1 : 2),
   }),
-  noteCorrige: 'les réponses attendues sont en rouge ; dans l’exercice 1, les fractions à entourer sont encerclées. Chaque comparaison rappelle la règle appliquée.',
   // Rappel : les phrases, les exemples et les figures de la leçon (pages 26 à 29 du livret).
-  rappel() {
+  rappel(contenu, fm = FORMULATIONS_FRACTIONS_COMPARER.livret) {
     const paire = (a, b, signe) => `<div class="rappel-fc__figs">${figureFraction({ forme: 'bande', parts: a[0], coloriees: a[1], taille: 104 })}<span class="rappel-fc__signe">${signe}</span>${figureFraction({ forme: 'bande', parts: b[0], coloriees: b[1], taille: 104 })}</div>`;
     const F = (n, d) => fraction(n, d);
+    const c = fm.rappel.cartes(F);
     return `
       <div class="rappel-fc">
         <div class="rappel-fc__carte">
-          <div class="rappel-fc__titre">Des fractions égales</div>
+          <div class="rappel-fc__titre">${c[0].titre}</div>
           ${paire([8, 6], [4, 3], '=')}
-          <p>${F(6, 8)} = ${F(3, 4)}. Six huitièmes du gâteau est égal à <b>trois quarts</b> de ce gâteau.</p>
+          <p>${c[0].texte}</p>
         </div>
         <div class="rappel-fc__carte">
-          <div class="rappel-fc__titre">Égales à ${F(1, 2)}</div>
+          <div class="rappel-fc__titre">${c[1].titre}</div>
           ${paire([2, 1], [6, 3], '=')}
-          <p>Le numérateur est la moitié du dénominateur : ${F(2, 4)} · ${F(3, 6)} · ${F(4, 8)} · ${F(5, 10)} sont égales à ${F(1, 2)}.</p>
+          <p>${c[1].texte}</p>
         </div>
         <div class="rappel-fc__carte">
-          <div class="rappel-fc__titre">Égales à 1</div>
+          <div class="rappel-fc__titre">${c[2].titre}</div>
           ${paire([4, 4], [1, 1], '=')}
-          <p>Quand le numérateur est égal au dénominateur, la fraction est égale à 1 : ${F(4, 4)} = 1.</p>
+          <p>${c[2].texte}</p>
         </div>
         <div class="rappel-fc__carte rappel-fc__carte--large">
-          <div class="rappel-fc__titre">Même dénominateur (le même nombre en bas)</div>
+          <div class="rappel-fc__titre">${c[3].titre}</div>
           ${paire([12, 5], [12, 7], '&lt;')}
-          <p>${F(5, 12)} &lt; ${F(7, 12)} : <b>5 douzièmes &lt; 7 douzièmes</b>.<br>La plus grande fraction est celle qui a le plus grand numérateur.</p>
+          <p>${c[3].texte}</p>
         </div>
         <div class="rappel-fc__carte rappel-fc__carte--large">
-          <div class="rappel-fc__titre">Même numérateur (le même nombre en haut)</div>
+          <div class="rappel-fc__titre">${c[4].titre}</div>
           ${paire([6, 3], [10, 3], '&gt;')}
-          <p>${F(1, 6)} &gt; ${F(1, 10)} : <b>1 sixième</b> est plus grand que <b>1 dixième</b>. Lorsqu’on partage un gâteau en 6 parts égales, on fait moins de parts que lorsqu’on le partage en 10 parts égales, donc chaque part d’un sixième est <b>plus grande</b> que chaque part d’un dixième. ${F(3, 6)} &gt; ${F(3, 10)} : <b>3 sixièmes</b> est plus grand que <b>3 dixièmes</b>.</p>
+          <p>${c[4].texte}</p>
         </div>
       </div>`;
   },
-  exercices(contenu, methode) {
+  exercices(contenu, methode, fm = FORMULATIONS_FRACTIONS_COMPARER.livret) {
     const { demi, un, memeDen, memeNum, ranger } = this.combien(contenu, methode);
-    const ligne = (l, cible) => `<div class="entoures"><span class="entoures__cible">Égales à ${cible} :</span>${l.map((f) => `<span class="entoure">${fraction(f.n, f.d)}</span>`).join('')}</div>`;
+    const k = fm.consignes;
+    const ligne = (l, cible) => `<div class="entoures"><span class="entoures__cible">${k.egalesA} ${cible} :</span>${l.map((f) => `<span class="entoure">${fraction(f.n, f.d)}</span>`).join('')}</div>`;
     const cote = (f, d) => `${fraction(f, d)}`;
     return `
     <div class="bloc">
-      <h2>Exercice 1 — Entoure les fractions égales à ${fraction(1, 2)}, puis les fractions égales à 1.</h2>
+      <h2>Exercice 1 — ${k.ex1(fraction)}</h2>
       ${ligne(demi, fraction(1, 2))}
       ${ligne(un, '1')}
     </div>
 
     <div class="bloc">
-      <h2>Exercice 2 — Compare avec &lt; ou &gt;.</h2>
+      <h2>Exercice 2 — ${k.ex2}</h2>
       <div class="paires-fr paires-fr--${memeDen.length}">
         ${memeDen.map((p, i) => `<div class="paire-fr"><b>${lettre(i)}.</b>${cote(p.a, p.d)}<span class="case-symbole"></span>${cote(p.b, p.d)}</div>`).join('')}
       </div>
     </div>
 
     <div class="bloc">
-      <h2>Exercice 3 — Compare avec &lt; ou &gt;. Les figures peuvent t’aider.</h2>
+      <h2>Exercice 3 — ${k.ex3}</h2>
       <div class="paires-fr paires-fr--fig paires-fr--fig${memeNum.length}">
         ${memeNum.map((p, i) => `<div class="paire-fr-cellule"><div class="paire-fr"><b>${lettre(i)}.</b>${cote(p.n, p.a)}<span class="case-symbole"></span>${cote(p.n, p.b)}</div>
           <div class="appui">${figureFraction({ forme: 'bande', parts: p.a, coloriees: p.n, taille: 118 })}${figureFraction({ forme: 'bande', parts: p.b, coloriees: p.n, taille: 118 })}</div></div>`).join('')}
@@ -1884,7 +2100,7 @@ const miseFractionsComparer = {
     </div>
 
     <div class="bloc">
-      <h2>Exercice 4 — Range les fractions du plus petit au plus grand.</h2>
+      <h2>Exercice 4 — ${k.ex4}</h2>
       <div class="rangs rangs--fr">
         ${ranger.map((r, i) => `<div class="rang">
           <div class="rang__nombres"><b>${lettre(i)}.</b> ${r.valeurs.map((n) => fraction(n, r.d)).join('<span class="rang__sep">;</span>')}</div>
@@ -1894,9 +2110,10 @@ const miseFractionsComparer = {
     </div>
 `;
   },
-  corriges(contenu, methode) {
+  corriges(contenu, methode, fm = FORMULATIONS_FRACTIONS_COMPARER.livret) {
     const { demi, un, memeDen, memeNum, ranger } = this.combien(contenu, methode);
-    const ligne = (l, cible) => `<div class="entoures"><span class="entoures__cible">Égales à ${cible} :</span>${l.map((f) => `<span class="entoure${f.egal ? ' entoure--oui' : ''}"${f.egal ? ' data-egal="oui"' : ''}>${fraction(f.n, f.d)}</span>`).join('')}</div>`;
+    const k = fm.consignes;
+    const ligne = (l, cible) => `<div class="entoures"><span class="entoures__cible">${k.egalesA} ${cible} :</span>${l.map((f) => `<span class="entoure${f.egal ? ' entoure--oui' : ''}"${f.egal ? ' data-egal="oui"' : ''}>${fraction(f.n, f.d)}</span>`).join('')}</div>`;
     const sym = (a, b) => (a < b ? '&lt;' : '&gt;');
     return `
     <div class="bloc">
@@ -1909,7 +2126,7 @@ const miseFractionsComparer = {
       <h2>Exercice 2</h2>
       <div class="paires-fr paires-fr--${memeDen.length}">
         ${memeDen.map((p, i) => `<div class="paire-fr-cellule"><div class="paire-fr"><b>${lettre(i)}.</b>${fraction(p.a, p.d)}<span class="case-symbole case-symbole--rep rouge">${sym(p.a, p.b)}</span>${fraction(p.b, p.d)}</div>
-          <div class="regle">même dénominateur : ${p.a} ${sym(p.a, p.b)} ${p.b}</div></div>`).join('')}
+          <div class="regle">${fm.corrige.memeDen(p.a, p.b, sym(p.a, p.b))}</div></div>`).join('')}
       </div>
     </div>
 
@@ -1918,7 +2135,7 @@ const miseFractionsComparer = {
       <div class="paires-fr paires-fr--fig paires-fr--fig${memeNum.length}">
         ${memeNum.map((p, i) => `<div class="paire-fr-cellule"><div class="paire-fr"><b>${lettre(i)}.</b>${fraction(p.n, p.a)}<span class="case-symbole case-symbole--rep rouge">${sym(p.b, p.a)}</span>${fraction(p.n, p.b)}</div>
           <div class="appui">${figureFraction({ forme: 'bande', parts: p.a, coloriees: p.n, taille: 118 })}${figureFraction({ forme: 'bande', parts: p.b, coloriees: p.n, taille: 118 })}</div>
-          <div class="regle">même numérateur : ${nomPluriel(p.n, p.a)} ${sym(p.b, p.a)} ${nomPluriel(p.n, p.b)}</div></div>`).join('')}
+          <div class="regle">${fm.corrige.memeNum(nomPluriel(p.n, p.a), nomPluriel(p.n, p.b), sym(p.b, p.a))}</div></div>`).join('')}
       </div>
     </div>
 
@@ -1929,7 +2146,7 @@ const miseFractionsComparer = {
           const tri = [...r.valeurs].sort((x, y) => x - y);
           return `<div class="rang">
           <div class="rang__nombres"><b>${lettre(i)}.</b> ${r.valeurs.map((n) => fraction(n, r.d)).join('<span class="rang__sep">;</span>')}</div>
-          <div class="rang__reponse rang__reponse--corrige">${tri.map((n) => fractionRouge(n, r.d)).join('<span class="rang__signe">&lt;</span>')}<span class="regle regle--rang">même dénominateur : ${tri.join(' &lt; ')}</span></div>
+          <div class="rang__reponse rang__reponse--corrige">${tri.map((n) => fractionRouge(n, r.d)).join('<span class="rang__signe">&lt;</span>')}<span class="regle regle--rang">${fm.corrige.rang(tri)}</span></div>
         </div>`;
         }).join('')}
       </div>
@@ -1975,7 +2192,6 @@ function genererFractionsCalculer(options) {
   const problemes = [probleme('gateau', premier), probleme('ruban', second), probleme('ruban', premier)];
 
   return {
-    objectif: 'Je sais mesurer des longueurs de bandes avec une règle graduée en fractions d’unité, et additionner ou soustraire des fractions de même dénominateur.',
     mesures, additions, soustractions, problemes,
   };
 }
@@ -2000,7 +2216,56 @@ function phraseProbleme(pb) {
   return pb.op === '+' ? `La longueur totale est de ${R} de mètre.` : `Il reste ${R} de mètre de ruban.`;
 }
 
-const REGLE_CALCUL = { '+': 'on additionne les numérateurs, le dénominateur ne change pas', '−': 'on soustrait les numérateurs, le dénominateur ne change pas' };
+// Les définitions (mesure en fractions d'unité, addition et soustraction à même dénominateur) sont les
+// mêmes ; seuls changent les mots du rappel, les consignes et la règle rappelée dans le corrigé.
+const FORMULATIONS_FRACTIONS_CALCULER = {
+  livret: {
+    nom: 'livret',
+    objectif: 'Je sais mesurer des longueurs de bandes avec une règle graduée en fractions d’unité, et additionner ou soustraire des fractions de même dénominateur.',
+    rappel: {
+      cartes: (F) => [
+        `La longueur de la bande est égale à <b>trois quarts d’unité</b> ou à ${F(3, 4)} d’unité.`,
+        `La longueur de la bande est égale à ${F(2, 4)} d’unité ou ${F(1, 2)} d’unité.`,
+        `La longueur de la bande est égale à <b>2 unités et 1 quart d’unité</b> ou à 2 unités et ${F(1, 4)} d’unité.`,
+      ],
+      additionner: 'On additionne les numérateurs, le dénominateur ne change pas.',
+      soustraire: 'On soustrait les numérateurs, le dénominateur ne change pas.',
+    },
+    consignes: {
+      ex1: 'Mesure chaque bande avec la règle graduée. Écris la fraction.',
+      ex2: 'Additionne.',
+      ex3: 'Soustrais.',
+      ex4: 'Résous chaque problème.',
+    },
+    corrige: {
+      regle: { '+': 'on additionne les numérateurs, le dénominateur ne change pas', '−': 'on soustrait les numérateurs, le dénominateur ne change pas' },
+    },
+    noteParent: 'les réponses attendues sont en rouge ; chaque bande est redessinée sur sa règle avec sa mesure, et chaque calcul rappelle la règle appliquée.',
+  },
+  commune: {
+    nom: 'commune',
+    objectif: 'Je sais mesurer une longueur avec une règle graduée en fractions d’unité, et additionner ou soustraire des fractions de même dénominateur.',
+    rappel: {
+      cartes: (F) => [
+        `La bande mesure <b>trois quarts d’unité</b>, soit ${F(3, 4)} d’unité.`,
+        `La bande mesure ${F(2, 4)} d’unité, soit ${F(1, 2)} d’unité : ces deux fractions sont égales.`,
+        `La bande mesure <b>2 unités et 1 quart d’unité</b>, soit 2 unités et ${F(1, 4)} d’unité.`,
+      ],
+      additionner: 'On additionne les numérateurs et on garde le dénominateur.',
+      soustraire: 'On soustrait les numérateurs et on garde le dénominateur.',
+    },
+    consignes: {
+      ex1: 'Lis la longueur de chaque bande sur la règle graduée et écris-la sous forme de fraction.',
+      ex2: 'Additionne ces fractions de même dénominateur.',
+      ex3: 'Soustrais ces fractions de même dénominateur.',
+      ex4: 'Résous chaque problème.',
+    },
+    corrige: {
+      regle: { '+': 'même dénominateur : on additionne les numérateurs et on garde le dénominateur', '−': 'même dénominateur : on soustrait les numérateurs et on garde le dénominateur' },
+    },
+    noteParent: 'les réponses attendues sont en rouge ; chaque bande est redessinée sur sa règle avec sa mesure, et chaque calcul rappelle la règle appliquée : même dénominateur, on calcule sur les numérateurs et on garde le dénominateur.',
+  },
+};
 
 const miseFractionsCalculer = {
   signe: '',
@@ -2010,42 +2275,43 @@ const miseFractionsCalculer = {
     soustractions: contenu.soustractions.slice(0, methode ? 5 : 8),
     problemes: contenu.problemes.slice(0, methode ? 2 : 3),
   }),
-  noteCorrige: 'les réponses attendues sont en rouge ; chaque bande est redessinée sur sa règle avec sa mesure, et chaque calcul rappelle la règle appliquée.',
   // Rappel : les phrases, les exemples et les schémas de la leçon (pages 30 et 31 du livret).
-  rappel() {
+  rappel(contenu, fm = FORMULATIONS_FRACTIONS_CALCULER.livret) {
     const F = (n, d) => fraction(n, d);
+    const cartes = fm.rappel.cartes(F);
     return `
       <div class="rappel-fcal">
         <div class="rappel-fcal__carte">
           ${regleFractions({ unite: 1, parts: 4, longueur: 3, taille: 200 })}
-          <p>La longueur de la bande est égale à <b>trois quarts d’unité</b> ou à ${F(3, 4)} d’unité.</p>
+          <p>${cartes[0]}</p>
         </div>
         <div class="rappel-fcal__carte">
           ${regleFractions({ unite: 1, parts: 4, longueur: 2, taille: 200 })}
-          <p>La longueur de la bande est égale à ${F(2, 4)} d’unité ou ${F(1, 2)} d’unité.</p>
+          <p>${cartes[1]}</p>
         </div>
         <div class="rappel-fcal__carte">
           ${regleFractions({ unite: 3, parts: 4, longueur: 9, taille: 200 })}
-          <p>La longueur de la bande est égale à <b>2 unités et 1 quart d’unité</b> ou à 2 unités et ${F(1, 4)} d’unité.</p>
+          <p>${cartes[2]}</p>
         </div>
         <div class="rappel-fcal__calcul">
           <div class="rappel-fcal__titre">Additionner</div>
           <div class="rappel-fcal__egalite">${F(3, 8)} + ${F(4, 8)} = ${F(7, 8)}</div>
-          <p><b>3 huitièmes + 4 huitièmes = 7 huitièmes</b><br>On additionne les numérateurs, le dénominateur ne change pas.</p>
+          <p><b>3 huitièmes + 4 huitièmes = 7 huitièmes</b><br>${fm.rappel.additionner}</p>
         </div>
         <div class="rappel-fcal__calcul">
           <div class="rappel-fcal__titre">Soustraire</div>
           <div class="rappel-fcal__egalite">${F(4, 5)} − ${F(1, 5)} = ${F(3, 5)}</div>
-          <p><b>4 cinquièmes − 1 cinquième = 3 cinquièmes</b><br>On soustrait les numérateurs, le dénominateur ne change pas.</p>
+          <p><b>4 cinquièmes − 1 cinquième = 3 cinquièmes</b><br>${fm.rappel.soustraire}</p>
         </div>
       </div>`;
   },
-  exercices(contenu, methode) {
+  exercices(contenu, methode, fm = FORMULATIONS_FRACTIONS_CALCULER.livret) {
     const { mesures, additions, soustractions, problemes } = this.combien(contenu, methode);
+    const k = fm.consignes;
     const calcul = (c, i, signe) => `<div class="calc"><b>${lettre(i)}.</b><span class="calc__eq">${fraction(c.a, c.d)} ${signe} ${fraction(c.b, c.d)} =${fractionVide()}</span></div>`;
     return `
     <div class="bloc">
-      <h2>Exercice 1 — Mesure chaque bande avec la règle graduée. Écris la fraction.</h2>
+      <h2>Exercice 1 — ${k.ex1}</h2>
       <div class="mesures mesures--${mesures.length}">
         ${mesures.map((m, i) => `<div class="mesure"><b class="mesure__lettre">${lettre(i)}.</b>
           <div class="mesure__fig">${regleFractions({ unite: 1, parts: m.d, longueur: m.n, taille: 230 })}</div>
@@ -2054,21 +2320,21 @@ const miseFractionsCalculer = {
     </div>
 
     <div class="bloc">
-      <h2>Exercice 2 — Additionne.</h2>
+      <h2>Exercice 2 — ${k.ex2}</h2>
       <div class="calculs calculs--${additions.length}">
         ${additions.map((c, i) => calcul(c, i, '+')).join('')}
       </div>
     </div>
 
     <div class="bloc">
-      <h2>Exercice 3 — Soustrais.</h2>
+      <h2>Exercice 3 — ${k.ex3}</h2>
       <div class="calculs calculs--${soustractions.length}">
         ${soustractions.map((c, i) => calcul(c, i, '−')).join('')}
       </div>
     </div>
 
     <div class="bloc">
-      <h2>Exercice 4 — Résous chaque problème.</h2>
+      <h2>Exercice 4 — ${k.ex4}</h2>
       <div class="problemes-fr">
         ${problemes.map((pb, i) => `<div class="probleme-fr">
           <p class="probleme-fr__enonce"><b>${lettre(i)}.</b> ${enonceProbleme(pb)}</p>
@@ -2079,11 +2345,11 @@ const miseFractionsCalculer = {
     </div>
 `;
   },
-  corriges(contenu, methode) {
+  corriges(contenu, methode, fm = FORMULATIONS_FRACTIONS_CALCULER.livret) {
     const { mesures, additions, soustractions, problemes } = this.combien(contenu, methode);
     const calcul = (c, i, signe) => {
       const r = signe === '+' ? c.a + c.b : c.a - c.b;
-      return `<div class="calc calc--corrige"><b>${lettre(i)}.</b><span class="calc__eq">${fraction(c.a, c.d)} ${signe} ${fraction(c.b, c.d)} =${fractionRouge(r, c.d)}</span><span class="calc__regle">: ${REGLE_CALCUL[signe]}</span></div>`;
+      return `<div class="calc calc--corrige"><b>${lettre(i)}.</b><span class="calc__eq">${fraction(c.a, c.d)} ${signe} ${fraction(c.b, c.d)} =${fractionRouge(r, c.d)}</span><span class="calc__regle">: ${fm.corrige.regle[signe]}</span></div>`;
     };
     return `
     <div class="bloc">
@@ -2580,9 +2846,6 @@ function genererLongueurs(options) {
 
   return {
     km,
-    objectif: km
-      ? 'Je connais les relations entre mm, cm, dm, m et km, et je sais calculer le périmètre d’une figure.'
-      : 'Je connais les relations entre mm, cm, dm et m, et je sais calculer le périmètre d’une figure.',
     methode: { exemple: { forme: 'pentagone', cotes: [18, 12, 30, 7, 20] } },
     conversions, ecritures, comparaisons, rangement, figures: figuresLongueurs(),
   };
@@ -2590,6 +2853,48 @@ function genererLongueurs(options) {
 
 const lgn = (n, u) => `<span class="n">${lg(n, u)}</span>`;
 const sommeLg = (f) => `${cotesTour(f).map((c) => lg(c, 'cm')).join(' + ')} = ${lg(perimetreLg(f), 'cm')}`;
+
+// Ici le livret n'a presque que des définitions (relations entre unités, périmètre) : elles sont reprises
+// telles quelles dans les deux formulations. Ne changent que l'objectif, la phrase du calcul du périmètre,
+// la façon de dire les écritures mixtes et les consignes.
+const FORMULATIONS_LONGUEURS = {
+  livret: {
+    nom: 'livret',
+    objectif: (c) => (c.km
+      ? 'Je connais les relations entre mm, cm, dm, m et km, et je sais calculer le périmètre d’une figure.'
+      : 'Je connais les relations entre mm, cm, dm et m, et je sais calculer le périmètre d’une figure.'),
+    rappel: {
+      exprimer: () => `On peut exprimer une longueur de différentes façons : <b>5${NBSP}km, c’est 5${NBSP}000${NBSP}m.</b> <b>3${NBSP}700${NBSP}m, c’est 3${NBSP}km 700${NBSP}m.</b>`,
+      calculer: () => 'On calcule le périmètre d’une figure en additionnant les longueurs de tous les côtés de la figure.',
+      resultat: (cm) => `Le périmètre de cette figure mesure ${cm}${NBSP}cm.`,
+    },
+    consignes: {
+      ex1: 'Convertis.',
+      ex2: 'Écris la longueur autrement.',
+      ex3: 'Compare avec &lt;, &gt; ou =, puis range les longueurs du plus petit au plus grand.',
+      ex4: 'Calcule le périmètre de chaque figure.',
+    },
+    noteParent: 'les réponses attendues sont en rouge ; pour chaque périmètre, on additionne les longueurs de tous les côtés de la figure, comme dans la leçon.',
+  },
+  commune: {
+    nom: 'commune',
+    objectif: (c) => (c.km
+      ? 'Je connais les relations entre mm, cm, dm, m et km, et je sais calculer le périmètre d’une figure.'
+      : 'Je connais les relations entre mm, cm, dm et m, et je sais calculer le périmètre d’une figure.'),
+    rappel: {
+      exprimer: () => `Une même longueur peut s’écrire avec une seule unité ou avec deux unités : <b>5${NBSP}km = 5${NBSP}000${NBSP}m</b> ; <b>3${NBSP}700${NBSP}m = 3${NBSP}km 700${NBSP}m</b>.`,
+      calculer: () => 'Pour calculer le périmètre d’une figure, j’additionne les longueurs de tous ses côtés.',
+      resultat: (cm) => `Le périmètre de cette figure est ${cm}${NBSP}cm.`,
+    },
+    consignes: {
+      ex1: 'Convertis.',
+      ex2: 'Écris la même longueur avec d’autres unités.',
+      ex3: 'Compare avec &lt;, &gt; ou =, puis range les longueurs dans l’ordre croissant.',
+      ex4: 'Calcule le périmètre de chaque figure.',
+    },
+    noteParent: 'les réponses attendues sont en rouge ; pour chaque périmètre, on additionne les longueurs de tous les côtés de la figure, y compris les quatre côtés d’un carré ou d’un rectangle.',
+  },
+};
 
 const miseLongueurs = {
   signe: '',
@@ -2599,9 +2904,8 @@ const miseLongueurs = {
     comparaisons: contenu.comparaisons.slice(0, methode ? 4 : 6),
     figures: contenu.figures.slice(0, methode ? 3 : 4),
   }),
-  noteCorrige: 'les réponses attendues sont en rouge ; pour chaque périmètre, on additionne les longueurs de tous les côtés de la figure, comme dans la leçon.',
   // Rappel : les phrases et l'exemple de la leçon (pages 33 à 36 du livret).
-  rappel(contenu) {
+  rappel(contenu, fm = FORMULATIONS_LONGUEURS.livret) {
     const km = contenu.km;
     return `
       <div class="rappel-lg">
@@ -2611,33 +2915,34 @@ const miseLongueurs = {
           <p>Le mètre est une unité de longueur dix fois plus grande que le décimètre. <b>1${NBSP}m = 10${NBSP}dm</b></p>
           <p>Le décimètre est une unité de longueur dix fois plus grande que le centimètre. <b>1${NBSP}dm = 10${NBSP}cm</b></p>
           ${km ? `<p>Le kilomètre est une unité de longueur 1${NBSP}000 fois plus grande que le mètre. <b>1${NBSP}km = 1${NBSP}000${NBSP}m</b></p>
-          <p>On peut exprimer une longueur de différentes façons : <b>5${NBSP}km, c’est 5${NBSP}000${NBSP}m.</b> <b>3${NBSP}700${NBSP}m, c’est 3${NBSP}km 700${NBSP}m.</b></p>` : ''}
+          <p>${fm.rappel.exprimer()}</p>` : ''}
         </div>
         <div class="rappel-lg__perimetre">
           <p><b>Le périmètre d’une figure est la longueur du tour de cette figure.</b></p>
           <div class="rappel-lg__exemple">
             ${polygoneCote({ ...contenu.methode.exemple, taille: 150 })}
-            <p>On calcule le périmètre d’une figure en additionnant les longueurs de tous les côtés de la figure.<br>
+            <p>${fm.rappel.calculer()}<br>
             <b>30${NBSP}cm + 12${NBSP}cm + 18${NBSP}cm + 20${NBSP}cm + 7${NBSP}cm = 87${NBSP}cm</b><br>
-            Le périmètre de cette figure mesure 87${NBSP}cm.</p>
+            ${fm.rappel.resultat(87)}</p>
           </div>
         </div>
       </div>`;
   },
-  exercices(contenu, methode) {
+  exercices(contenu, methode, fm = FORMULATIONS_LONGUEURS.livret) {
     const { conversions, ecritures, comparaisons, figures } = this.combien(contenu, methode);
+    const kc = fm.consignes;
     const pts = '<span class="pointilles pointilles--mini"></span>';
     const k = comparaisons.length;
     return `
     <div class="bloc">
-      <h2>Exercice 1 — Convertis.</h2>
+      <h2>Exercice 1 — ${kc.ex1}</h2>
       <div class="conversions conversions--3">
         ${conversions.map((c, i) => `<div class="conversion"><b>${lettre(i)}.</b><span>${lg(c.n, c.de)} =</span>${pts}<span>${c.vers}</span></div>`).join('')}
       </div>
     </div>
 
     <div class="bloc">
-      <h2>Exercice 2 — Écris la longueur autrement.</h2>
+      <h2>Exercice 2 — ${kc.ex2}</h2>
       <div class="conversions">
         ${ecritures.map((e, i) => `<div class="conversion"><b>${lettre(i)}.</b>${e.sens === 'mixte'
     ? `<span>${lg(totalMixte(e), e.petite)} =</span>${pts}<span>${e.grande}</span>${pts}<span>${e.petite}</span>`
@@ -2646,7 +2951,7 @@ const miseLongueurs = {
     </div>
 
     <div class="bloc">
-      <h2>Exercice 3 — Compare avec &lt;, &gt; ou =, puis range les longueurs du plus petit au plus grand.</h2>
+      <h2>Exercice 3 — ${kc.ex3}</h2>
       <div class="paires paires--lg${k === 4 ? ' paires--lg4' : ''}">
         ${comparaisons.map((p, i) => `<div class="paire"><b>${lettre(i)}.</b> <span class="paire__a">${lgn(p.a.n, p.a.u)}</span><span class="case-symbole"></span><span class="paire__b">${lgn(p.b.n, p.b.u)}</span></div>`).join('')}
       </div>
@@ -2659,7 +2964,7 @@ const miseLongueurs = {
     </div>
 
     <div class="bloc">
-      <h2>Exercice 4 — Calcule le périmètre de chaque figure.</h2>
+      <h2>Exercice 4 — ${kc.ex4}</h2>
       <div class="figures-lg figures-lg--${figures.length}">
         ${figures.map((f, i) => `<div class="figure-lg">
           <div class="figure-lg__dessin"><b>${lettre(i)}.</b>${polygoneCote({ ...f, taille: 150 })}</div>
@@ -2669,7 +2974,7 @@ const miseLongueurs = {
     </div>
 `;
   },
-  corriges(contenu, methode) {
+  corriges(contenu, methode, fm = FORMULATIONS_LONGUEURS.livret) {
     const { conversions, ecritures, comparaisons, figures } = this.combien(contenu, methode);
     const k = comparaisons.length;
     const croissant = [...contenu.rangement].sort((x, y) => mmDe(x) - mmDe(y));
@@ -2772,7 +3077,6 @@ function genererHeures(options) {
 
   return {
     minutes: quarts ? 'quarts' : 'cinq',
-    objectif: 'Je sais lire l’heure sur une horloge à aiguilles et les horaires comme 8 heures moins 10.',
     methode: {},
     lire, moins, tracer, vingtQuatre,
   };
@@ -2783,6 +3087,54 @@ const grilleH = (cartes, colonnes, classe = '') => `<div class="horloges${classe
 const caseH = '<span class="case-h"></span>';
 const TITRE_ELEVE = 'Horloge à aiguilles';
 
+// Une seule définition dans la leçon (la petite aiguille indique les heures, la grande les minutes) :
+// elle est identique dans les deux formulations. Ne changent que quelques tournures : l'objectif, les phrases
+// d'exemple, les consignes et les phrases du corrigé.
+const FORMULATIONS_HEURES = {
+  livret: {
+    nom: 'livret',
+    objectif: 'Je sais lire l’heure sur une horloge à aiguilles et les horaires comme 8 heures moins 10.',
+    rappel: {
+      aiguilles: () => ['<b>La petite aiguille indique les heures.</b><br><b>La grande aiguille indique les minutes.</b>', 'Il est 20 heures 13 minutes.'],
+      moins: () => ['<b>Il est 8 heures moins 10.</b><br><b>Il est 7 h 50.</b>', 'Il est 7 heures 50 minutes.<br>Dans 10 minutes, il sera 8 heures.'],
+      minutes: 'Les minutes se comptent de 5 en 5. Le 15 est relié à « et quart » ; le 30 est relié à « et demie ».',
+    },
+    consignes: {
+      ex1: 'Lis l’heure du matin sur chaque horloge.',
+      ex2: (quarts) => (quarts ? 'Lis chaque horloge avec « moins le quart » ou « et demie ».' : 'Lis chaque horloge avec « moins ».'),
+      ex3: 'Dessine les deux aiguilles de chaque horloge.',
+      ex4: 'Écris l’heure sur 24 heures.',
+      exemple4: `Exemple : 8${NBSP}h${NBSP}13 le soir, c’est 20${NBSP}h${NBSP}13.`,
+    },
+    corrige: {
+      moins: (lecture, heure) => `${lecture}, c’est ${heure}.`,
+      vingtQuatre: (heure, periode, h24) => `${heure} ${periode}, c’est ${h24}.`,
+    },
+    noteParent: 'les réponses attendues sont en rouge ; l’heure lue est écrite sous chaque horloge, les aiguilles à tracer sont dessinées sur les cadrans, et l’heure de l’après-midi ou du soir s’écrit sur 24 heures (12 heures de plus).',
+  },
+  commune: {
+    nom: 'commune',
+    objectif: 'Je sais lire l’heure, la dire comme 8 heures moins 10, et l’écrire sur 24 heures.',
+    rappel: {
+      aiguilles: () => ['<b>La petite aiguille indique les heures.</b><br><b>La grande aiguille indique les minutes.</b>', 'Le matin, il est 8 h 13 ; le soir, il est 20 h 13.'],
+      moins: () => ['<b>Il est 7 h 50, ou 8 heures moins 10.</b>', 'Dans 10 minutes, il sera 8 heures.'],
+      minutes: 'Les minutes se comptent de 5 en 5 : le 3 donne « et quart », le 6 donne « et demie ».',
+    },
+    consignes: {
+      ex1: 'Lis l’heure du matin sur chaque horloge, et écris-la.',
+      ex2: (quarts) => (quarts ? 'Dis l’heure de chaque horloge avec « moins le quart » ou « et demie ».' : 'Dis l’heure de chaque horloge avec « moins ».'),
+      ex3: 'Trace les deux aiguilles de chaque horloge.',
+      ex4: 'Écris l’heure sur 24 heures.',
+      exemple4: `Exemple : 8${NBSP}h${NBSP}13 le soir s’écrit 20${NBSP}h${NBSP}13.`,
+    },
+    corrige: {
+      moins: (lecture, heure) => `${lecture} s’écrit ${heure}.`,
+      vingtQuatre: (heure, periode, h24) => `${heure} ${periode} s’écrit ${h24}.`,
+    },
+    noteParent: 'les réponses attendues sont en rouge ; l’heure lue est écrite sous chaque horloge, les aiguilles à tracer sont dessinées sur les cadrans, et l’heure de l’après-midi ou du soir s’écrit sur 24 heures en ajoutant 12 heures.',
+  },
+};
+
 const miseHeures = {
   signe: '',
   combien: (contenu, methode) => ({
@@ -2791,63 +3143,65 @@ const miseHeures = {
     tracer: contenu.tracer.slice(0, methode ? 4 : 6),
     vingtQuatre: contenu.vingtQuatre.slice(0, methode ? 4 : 6),
   }),
-  noteCorrige: 'les réponses attendues sont en rouge ; l’heure lue est écrite sous chaque horloge, les aiguilles à tracer sont dessinées sur les cadrans, et l’heure de l’après-midi ou du soir s’écrit sur 24 heures (12 heures de plus).',
   // Rappel : les phrases et les exemples de la leçon (pages 37 et 38 du livret).
-  rappel() {
+  rappel(contenu, fm = FORMULATIONS_HEURES.livret) {
+    const [a1, a2] = fm.rappel.aiguilles();
+    const [m1, m2] = fm.rappel.moins();
     return `
       <div class="rappel-h">
         <div class="rappel-h__partie">
           ${horloge({ heures: 8, minutes: 13, taille: 84, titre: 'Horloge qui indique 8 heures 13' })}
           <div class="rappel-h__texte">
-            <p><b>La petite aiguille indique les heures.</b><br><b>La grande aiguille indique les minutes.</b></p>
-            <p>Il est 20 heures 13 minutes.</p>
+            <p>${a1}</p>
+            <p>${a2}</p>
           </div>
         </div>
         <div class="rappel-h__partie rappel-h__partie--moins">
           ${horloge({ heures: 7, minutes: 50, taille: 84, titre: 'Horloge qui indique 7 heures 50' })}
           <div class="rappel-h__texte">
-            <p><b>Il est 8 heures moins 10.</b><br><b>Il est 7 h 50.</b></p>
-            <p>Il est 7 heures 50 minutes.<br>Dans 10 minutes, il sera 8 heures.</p>
+            <p>${m1}</p>
+            <p>${m2}</p>
           </div>
         </div>
-        <p class="rappel-h__ligne">Les minutes se comptent de 5 en 5. Le 15 est relié à « et quart » ; le 30 est relié à « et demie ».
+        <p class="rappel-h__ligne">${fm.rappel.minutes}
           <b>1 heure = 60 minutes · une demi-heure = 30 minutes · un quart d’heure = 15 minutes · trois quarts d’heure = 45 minutes</b></p>
         <p class="rappel-h__ligne rappel-h__ligne--moins"><b>moins 5 → 55 · moins 10 → 50 · moins le quart → 45 · moins 20 → 40 · moins 25 → 35</b></p>
       </div>`;
   },
-  exercices(contenu, methode) {
+  exercices(contenu, methode, fm = FORMULATIONS_HEURES.livret) {
     const { lire, moins, tracer, vingtQuatre } = this.combien(contenu, methode);
     const quarts = contenu.minutes === 'quarts';
+    const k = fm.consignes;
     const colLire = lire.length === 8 ? 4 : 6;
     const taille = (n) => (n >= 6 ? 96 : 98);
     return `
     <div class="bloc">
-      <h2>Exercice 1 — Lis l’heure du matin sur chaque horloge.</h2>
+      <h2>Exercice 1 — ${k.ex1}</h2>
       ${grilleH(lire.map((x, i) => `<div class="horloge-item"><b class="horloge-item__lettre">${lettre(i)}.</b>${horloge({ heures: x.h, minutes: x.m, taille: lire.length === 8 ? 90 : taille(colLire), titre: TITRE_ELEVE })}
         <div class="horloge-item__rep">${caseH}<span>h</span>${caseH}</div></div>`), colLire)}
     </div>
 
     <div class="bloc">
-      <h2>Exercice 2 — ${quarts ? 'Lis chaque horloge avec « moins le quart » ou « et demie ».' : 'Lis chaque horloge avec « moins ».'}</h2>
+      <h2>Exercice 2 — ${k.ex2(quarts)}</h2>
       ${grilleH(moins.map((x, i) => `<div class="horloge-item"><b class="horloge-item__lettre">${lettre(i)}.</b>${horloge({ heures: x.h, minutes: x.m, taille: taille(4), titre: TITRE_ELEVE })}
         <div class="horloge-item__rep"><span class="ligne-h">${caseH}<span>heures</span></span><span class="ligne-h"><span>${x.m === 30 ? 'et demie' : x.m === 45 ? 'moins le quart' : 'moins'}</span>${x.m === 30 || x.m === 45 ? '' : caseH}</span></div></div>`), moins.length === 6 ? 3 : 4, moins.length === 6 ? 'horloges--large horloges--moins' : 'horloges--moins')}
     </div>
 
     <div class="bloc">
-      <h2>Exercice 3 — Dessine les deux aiguilles de chaque horloge.</h2>
+      <h2>Exercice 3 — ${k.ex3}</h2>
       ${grilleH(tracer.map((x, i) => `<div class="horloge-item"><b class="horloge-item__lettre">${lettre(i)}.</b>${horloge({ heures: x.h, minutes: x.m, taille: taille(tracer.length), aiguilles: false })}
         <div class="horloge-item__rep horloge-item__rep--heure"><span class="n">${heureLue(x)}</span></div></div>`), tracer.length)}
     </div>
 
     <div class="bloc">
-      <h2>Exercice 4 — Écris l’heure sur 24 heures. <span class="exemple-h">Exemple : 8${NBSP}h${NBSP}13 le soir, c’est 20${NBSP}h${NBSP}13.</span></h2>
+      <h2>Exercice 4 — ${k.ex4} <span class="exemple-h">${k.exemple4}</span></h2>
       ${grilleH(vingtQuatre.map((x, i) => `<div class="horloge-item"><b class="horloge-item__lettre">${lettre(i)}.</b>${horloge({ heures: x.h, minutes: x.m, taille: taille(vingtQuatre.length), titre: TITRE_ELEVE })}
         <div class="horloge-item__periode">${nomPeriode[x.periode]}</div>
         <div class="horloge-item__rep">${caseH}<span>h</span>${caseH}</div></div>`), vingtQuatre.length)}
     </div>
 `;
   },
-  corriges(contenu, methode) {
+  corriges(contenu, methode, fm = FORMULATIONS_HEURES.livret) {
     const { lire, moins, tracer, vingtQuatre } = this.combien(contenu, methode);
     const colLire = lire.length === 8 ? 4 : 6;
     const taille = (n) => (n >= 6 ? 88 : 92);
@@ -2861,7 +3215,7 @@ const miseHeures = {
     <div class="bloc">
       <h2>Exercice 2</h2>
       ${grilleH(moins.map((x, i) => `<div class="horloge-item"><b class="horloge-item__lettre">${lettre(i)}.</b>${horloge({ heures: x.h, minutes: x.m, taille: taille(4) })}
-        <div class="horloge-item__rep horloge-item__rep--phrase"><span>${rouge(lectureH(x))}, c’est ${rouge(heureLue(x))}.</span></div></div>`), moins.length === 6 ? 3 : 4, moins.length === 6 ? 'horloges--corrigees horloges--large' : 'horloges--corrigees')}
+        <div class="horloge-item__rep horloge-item__rep--phrase"><span>${fm.corrige.moins(rouge(lectureH(x)), rouge(heureLue(x)))}</span></div></div>`), moins.length === 6 ? 3 : 4, moins.length === 6 ? 'horloges--corrigees horloges--large' : 'horloges--corrigees')}
     </div>
 
     <div class="bloc">
@@ -2873,7 +3227,7 @@ const miseHeures = {
     <div class="bloc">
       <h2>Exercice 4</h2>
       ${grilleH(vingtQuatre.map((x, i) => `<div class="horloge-item"><b class="horloge-item__lettre">${lettre(i)}.</b>${horloge({ heures: x.h, minutes: x.m, taille: taille(vingtQuatre.length) })}
-        <div class="horloge-item__rep horloge-item__rep--phrase"><span>${heureLue(x)} ${nomPeriode[x.periode]}, c’est ${rouge(heureLue({ h: x.h + 12, m: x.m }))}.</span></div></div>`), vingtQuatre.length, 'horloges--corrigees')}
+        <div class="horloge-item__rep horloge-item__rep--phrase"><span>${fm.corrige.vingtQuatre(heureLue(x), nomPeriode[x.periode], rouge(heureLue({ h: x.h + 12, m: x.m })))}</span></div></div>`), vingtQuatre.length, 'horloges--corrigees')}
     </div>
 `;
   },
@@ -4338,6 +4692,7 @@ export const FICHES = [
       },
     ],
     generer: genererNombres,
+    formulations: FORMULATIONS_NOMBRES,
     mise: miseNombres,
   },
   {
@@ -4361,6 +4716,7 @@ export const FICHES = [
       },
     ],
     generer: genererNombresComparer,
+    formulations: FORMULATIONS_COMPARER,
     mise: miseComparer,
   },
   {
@@ -4375,6 +4731,7 @@ export const FICHES = [
     emoji: '🍰',
     options: [],
     generer: genererFractions,
+    formulations: FORMULATIONS_FRACTIONS,
     mise: miseFractions,
   },
   {
@@ -4389,6 +4746,7 @@ export const FICHES = [
     emoji: '⚖️',
     options: [],
     generer: genererFractionsComparer,
+    formulations: FORMULATIONS_FRACTIONS_COMPARER,
     mise: miseFractionsComparer,
   },
   {
@@ -4412,6 +4770,7 @@ export const FICHES = [
       },
     ],
     generer: genererFractionsCalculer,
+    formulations: FORMULATIONS_FRACTIONS_CALCULER,
     mise: miseFractionsCalculer,
   },
   {
@@ -4459,6 +4818,7 @@ export const FICHES = [
       },
     ],
     generer: genererLongueurs,
+    formulations: FORMULATIONS_LONGUEURS,
     mise: miseLongueurs,
   },
   {
@@ -4482,6 +4842,7 @@ export const FICHES = [
       },
     ],
     generer: genererHeures,
+    formulations: FORMULATIONS_HEURES,
     mise: miseHeures,
   },
   {
