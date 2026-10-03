@@ -2,7 +2,7 @@
 // Une fiche = un générateur d'exercices + une mise en page A4 (voir @media print
 // dans styles.css). Tout est régénérable : une nouvelle série à chaque clic.
 
-import { rnd, pick, shuffle, fmt, setAlea, generateurAleatoire } from './utils.js';
+import { rnd, pick, shuffle, fmt, enLettres, setAlea, generateurAleatoire } from './utils.js';
 import { qrSVG } from './qr.js';
 
 /* ------------------------------------------------------------------ */
@@ -516,6 +516,93 @@ function genererMultiplication(options) {
 }
 
 /* ------------------------------------------------------------------ */
+/* CE2 — nombres : lire, écrire, décomposer                            */
+/* ------------------------------------------------------------------ */
+
+const pluriel = (x, un, plusieurs) => `${fmt(x)} ${x > 1 ? plusieurs : un}`;
+
+// Nombre sans 0 : un 0 dans l'écriture ajoute des cas (« deux-cents », colonne vide)
+// que la fiche ne traite pas.
+function nombreSansZero(chif) {
+  let n = 0;
+  for (let i = 0; i < chif; i++) n = n * 10 + rnd(1, 9);
+  return n;
+}
+
+// Les chiffres d'un nombre, de la colonne la plus à gauche aux unités.
+const chiffresDe3 = (n) => String(n).split('').map(Number);
+// Valeur de chaque terme de la décomposition : 4 726 → [4000, 700, 20, 6].
+const termesDe = (n) => chiffresDe3(n).map((c, i, t) => c * 10 ** (t.length - 1 - i));
+
+// Les façons de représenter un nombre, dans l'ordre et avec les mots de la leçon
+// (3 258 : page 7 du livret ; avec trois chiffres, même contenu avec des centaines).
+function representations(n) {
+  const c = chiffresDe3(n);
+  const noms = n >= 1000
+    ? [['millier', 'milliers'], ['centaine', 'centaines'], ['dizaine', 'dizaines'], ['unité', 'unités']]
+    : [['centaine', 'centaines'], ['dizaine', 'dizaines'], ['unité', 'unités']];
+  const termes = termesDe(n).map(fmt).join(' + ');
+  const produits = c.map((x, i) => `(${x} × ${fmt(10 ** (c.length - 1 - i))})`).join(' + ');
+  const parNom = c.map((x, i) => pluriel(x, ...noms[i])).join(' + ');
+  const unites = pluriel(n % 10, 'unité', 'unités');
+  if (n >= 1000) {
+    return [
+      fmt(n), enLettres(n),
+      `${pluriel(c[0], 'millier', 'milliers')} + ${pluriel(n % 1000, 'unité', 'unités')}`,
+      termes, produits,
+      `${pluriel(Math.floor(n / 100), 'centaine', 'centaines')} + ${pluriel(c[2], 'dizaine', 'dizaines')} + ${unites}`,
+      parNom,
+    ];
+  }
+  return [
+    fmt(n), enLettres(n),
+    `${pluriel(c[0], 'centaine', 'centaines')} + ${pluriel(n % 100, 'unité', 'unités')}`,
+    termes, produits,
+    `${pluriel(Math.floor(n / 10), 'dizaine', 'dizaines')} + ${unites}`,
+    parNom,
+  ];
+}
+
+function genererNombres(options) {
+  const quatre = options.taille !== '1000';
+  const chif = quatre ? 4 : 3;
+  const exemple = quatre ? 3258 : 863;
+  const vus = new Set([exemple]);
+  const nouveau = () => {
+    for (let essai = 0; essai < 500; essai++) {
+      const n = nombreSansZero(chif);
+      if (!vus.has(n)) { vus.add(n); return n; }
+    }
+    return exemple;
+  };
+  const nombres = (k) => Array.from({ length: k }, nouveau);
+
+  // Les nombres supplémentaires ne sont imprimés que sans le rappel de méthode.
+  const lire = nombres(6);
+  const ecrire = nombres(6);
+  // Décomposition : on garde deux termes sur trois ou quatre, les autres sont à compléter.
+  const decomp = nombres(4).map((n) => {
+    const k = chif;
+    const vides = shuffle([...Array(k).keys()]).slice(0, 2).sort((a, b) => a - b);
+    return { n, vides };
+  });
+  const recomp = nombres(4);
+  const combien = nombres(6);
+  // Tableau de numération : une ligne sur deux donne le nombre (à répartir dans les
+  // colonnes), l'autre donne les colonnes (à lire comme un nombre).
+  const tableau = nombres(6).map((n, i) => ({ n, sens: i % 2 === 0 ? 'nombre' : 'colonnes' }));
+
+  return {
+    quatre,
+    objectif: quatre
+      ? 'Je sais que 1 millier = 10 centaines et je sais représenter un nombre de différentes façons.'
+      : 'Je sais qu’une centaine, c’est aussi dix dizaines et cent unités, et je sais représenter un nombre de différentes façons.',
+    methode: { exemple, lignes: representations(exemple) },
+    lire, ecrire, decomp, recomp, combien, tableau,
+  };
+}
+
+/* ------------------------------------------------------------------ */
 /* Mise en page de la fiche                                            */
 /* ------------------------------------------------------------------ */
 
@@ -846,6 +933,141 @@ const miseMultiplication = {
   },
 };
 
+const rouge = (t) => `<span class="rouge">${t}</span>`;
+const trou = '<span class="pointilles pointilles--mini"></span>';
+
+// Tableau de numération : une ligne par nombre. `sens` 'nombre' : le nombre est donné, les
+// colonnes sont à remplir ; 'colonnes' : les colonnes sont données, le nombre est à écrire.
+function tableauNumeration(lignes, quatre, corrige, sens) {
+  const colonnes = quatre ? ['m', 'c', 'd', 'u'] : ['c', 'd', 'u'];
+  const rangs = lignes.filter((l) => l.sens === sens);
+  const corps = rangs.map((l) => {
+    const cases = chiffresDe3(l.n).map((c) => (sens === 'colonnes' ? `<td>${c}</td>` : `<td class="${corrige ? 'rouge' : 'vide'}">${corrige ? c : ''}</td>`)).join('');
+    const nb = sens === 'nombre' ? `<td class="tab-num__nombre">${fmt(l.n)}</td>`
+      : `<td class="tab-num__nombre ${corrige ? 'rouge' : 'vide'}">${corrige ? fmt(l.n) : ''}</td>`;
+    return `<tr>${nb}${cases}</tr>`;
+  }).join('');
+  return `
+      <table class="tab-num">
+        <tr class="tab-num__entetes"><td class="tab-num__nombre">nombre</td>${colonnes.map((c) => `<td>${c}</td>`).join('')}</tr>
+        ${corps}
+      </table>`;
+}
+
+const miseNombres = {
+  signe: '',
+  combien: (contenu, methode) => ({
+    lire: contenu.lire.slice(0, methode ? 4 : 6),
+    ecrire: contenu.ecrire.slice(0, methode ? 4 : 6),
+    decomp: contenu.decomp.slice(0, methode ? 3 : 4),
+    recomp: contenu.recomp.slice(0, methode ? 3 : 4),
+    combien: contenu.combien.slice(0, methode ? 4 : 6),
+    tableau: contenu.tableau.slice(0, methode ? 4 : 6),
+  }),
+  noteCorrige: 'les écritures attendues sont en rouge : les nombres en lettres s’écrivent avec des traits d’union ; le nombre de dizaines (ou de centaines) est celui qu’on compte en tout dans le nombre, comme « 32 centaines » pour 3 258 dans le livret ; les colonnes du tableau sont m (milliers), c (centaines), d (dizaines) et u (unités).',
+  // Rappel : tableau de numération avec l'exemple du livret, façons de représenter le nombre.
+  rappel(contenu) {
+    const { exemple, lignes } = contenu.methode;
+    const quatre = contenu.quatre;
+    const colonnes = quatre ? ['m', 'c', 'd', 'u'] : ['c', 'd', 'u'];
+    const legende = quatre ? 'm milliers · c centaines · d dizaines · u unités' : 'c centaines · d dizaines · u unités';
+    const relation = quatre ? '1 millier = 10 centaines = 100 dizaines = 1 000 unités' : '1 centaine = 10 dizaines = 100 unités';
+    const nbChiffres = String(exemple).length;
+    return `
+      <div class="methode methode--nombres">
+        <div class="methode__tableau">
+          <table class="tab-num tab-num--exemple">
+            <tr class="tab-num__entetes">${colonnes.map((c) => `<td>${c}</td>`).join('')}</tr>
+            <tr>${chiffresDe3(exemple).map((c) => `<td>${c}</td>`).join('')}</tr>
+          </table>
+          <div class="methode__legende">${legende}</div>
+          <div class="methode__legende">${fmt(exemple)} est un nombre à ${nbChiffres} chiffres. La valeur du chiffre dépend de sa position dans l’écriture du nombre.</div>
+        </div>
+        <div class="methode__droite">
+          <div class="representations__titre">Je sais représenter le nombre ${fmt(exemple)} de différentes façons.</div>
+          <ul class="representations">${lignes.map((l) => `<li>${l}</li>`).join('')}</ul>
+        </div>
+      </div>
+      <div class="methode__relation">${relation}</div>`;
+  },
+  exercices(contenu, methode) {
+    const { lire, ecrire, decomp, recomp, combien, tableau } = this.combien(contenu, methode);
+    const dec = (t, vides, corrige) => termesDe(t).map((v, i) => (vides.includes(i) ? (corrige ? rouge(fmt(v)) : trou) : fmt(v))).join(' + ');
+    return `
+    <div class="bloc">
+      <h2>Exercice 1 — Écris chaque nombre en chiffres, ou en lettres.</h2>
+      <ul class="lignes">
+        ${lire.map((n, i) => `<li><span class="ligne__texte">${lettre(i)}. ${enLettres(n)}</span><span class="ligne__egal">=</span><span class="pointilles pointilles--ligne"></span></li>`).join('')}
+      </ul>
+      <ul class="lignes">
+        ${ecrire.map((n, i) => `<li><span class="ligne__texte">${lettre(lire.length + i)}. ${fmt(n)}</span><span class="ligne__egal">=</span><span class="pointilles pointilles--ligne"></span></li>`).join('')}
+      </ul>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 2 — Complète les décompositions, puis recompose les nombres.</h2>
+      <ul class="lignes lignes--deux">
+        ${decomp.map(({ n, vides }, i) => `<li><span class="ligne__texte">${lettre(i)}. ${fmt(n)} = ${dec(n, vides, false)}</span></li>`).join('')}
+        ${recomp.map((n, i) => `<li><span class="ligne__texte">${lettre(decomp.length + i)}. ${termesDe(n).map(fmt).join(' + ')} =</span>${trou}</li>`).join('')}
+      </ul>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 3 — Combien de dizaines et de centaines en tout dans chaque nombre ?</h2>
+      <ul class="lignes lignes--deux">
+        ${combien.map((n, i) => `<li><span class="ligne__texte">${lettre(i)}. Dans ${fmt(n)} :</span>${trou}<span class="ligne__texte">dizaines ;</span>${trou}<span class="ligne__texte">centaines</span></li>`).join('')}
+      </ul>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 4 — Range chaque nombre dans les colonnes, ou écris le nombre.</h2>
+      <div class="tableaux">
+        ${tableauNumeration(tableau, contenu.quatre, false, 'nombre')}
+        ${tableauNumeration(tableau, contenu.quatre, false, 'colonnes')}
+      </div>
+    </div>
+`;
+  },
+  corriges(contenu, methode) {
+    const { lire, ecrire, decomp, recomp, combien, tableau } = this.combien(contenu, methode);
+    const dec = (t, vides) => termesDe(t).map((v, i) => (vides.includes(i) ? rouge(fmt(v)) : fmt(v))).join(' + ');
+    return `
+    <div class="bloc">
+      <h2>Exercice 1</h2>
+      <ul class="lignes lignes--deux lignes--corrigees">
+        ${lire.map((n, i) => `<li><span class="ligne__texte">${lettre(i)}. ${enLettres(n)} = ${rouge(fmt(n))}</span></li>`).join('')}
+      </ul>
+      <ul class="lignes lignes--corrigees">
+        ${ecrire.map((n, i) => `<li><span class="ligne__texte">${lettre(lire.length + i)}. ${fmt(n)} = ${rouge(enLettres(n))}</span></li>`).join('')}
+      </ul>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 2</h2>
+      <ul class="lignes lignes--deux lignes--corrigees">
+        ${decomp.map(({ n, vides }, i) => `<li><span class="ligne__texte">${lettre(i)}. ${fmt(n)} = ${dec(n, vides)}</span></li>`).join('')}
+        ${recomp.map((n, i) => `<li><span class="ligne__texte">${lettre(decomp.length + i)}. ${termesDe(n).map(fmt).join(' + ')} = ${rouge(fmt(n))}</span></li>`).join('')}
+      </ul>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 3</h2>
+      <ul class="lignes lignes--deux lignes--corrigees">
+        ${combien.map((n, i) => `<li><span class="ligne__texte">${lettre(i)}. Dans ${fmt(n)} : ${rouge(Math.floor(n / 10))} dizaines ; ${rouge(Math.floor(n / 100))} centaines</span></li>`).join('')}
+      </ul>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 4</h2>
+      <div class="tableaux">
+        ${tableauNumeration(tableau, contenu.quatre, true, 'nombre')}
+        ${tableauNumeration(tableau, contenu.quatre, true, 'colonnes')}
+      </div>
+    </div>
+`;
+  },
+};
+
 function pageExercices(fiche, contenu, { base = '', methode = true, identite = true } = {}) {
   const { signe } = fiche.mise;
   if (fiche.mise.rappel) return pageExercicesLibre(fiche, contenu, { base, methode, identite });
@@ -960,6 +1182,25 @@ export const FICHES = [
     ],
     generer: genererMultiplication,
     mise: miseMultiplication,
+  },
+  {
+    id: 'ce2-nombres-lire-ecrire',
+    classe: 'ce2',
+    domaine: 'Nombres et calculs',
+    titre: 'Les nombres : lire, écrire, décomposer',
+    emoji: '🔢',
+    options: [
+      {
+        id: 'taille', libelle: 'Nombres utilisés',
+        valeurs: [
+          { v: '1000', nom: 'Jusqu’à 999' },
+          { v: '10000', nom: 'Jusqu’à 9 999' },
+        ],
+        defaut: '10000',
+      },
+    ],
+    generer: genererNombres,
+    mise: miseNombres,
   },
 ];
 

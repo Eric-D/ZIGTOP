@@ -337,7 +337,7 @@ verifier(!rendre(sous, cs, { identite: true }).split('feuille--corrige')[1].incl
 /* ================================================================== */
 
 const mult = FICHES.find((f) => f.id === 'ce2-multiplication');
-verifier(FICHES.indexOf(mult) === 2 && FICHES.length === 3, 'la multiplication est ajoutée à la fin de FICHES (les codes imprimés ne bougent pas)');
+verifier(FICHES.indexOf(mult) === 2, 'la multiplication garde sa place dans FICHES (les codes imprimés ne bougent pas)');
 verifier(JSON.stringify(mult.options[0].valeurs.map((v) => v.v)) === '["1","2"]' && mult.options[0].defaut === '2' && mult.options[0].id === 'facteur',
   'option « facteur » : 1 puis 2, défaut 2');
 
@@ -508,6 +508,145 @@ for (const opt of optionsMult) {
     'addition et soustraction : options inchangées');
   const html = rendre(fiche, a, { corrige: true }) + rendre(sous, s, { corrige: true });
   verifier(!html.includes('pose--multiplication') && !html.includes('methode--multiplication'), 'addition et soustraction : aucune trace du rendu de multiplication');
+}
+
+/* Nombres : lire, écrire, décomposer ---------------------------------- */
+{
+  const nb = FICHES.find((f) => f.id === 'ce2-nombres-lire-ecrire');
+  console.log('— Nombres : lire, écrire, décomposer');
+  verifier(FICHES.indexOf(nb) === FICHES.length - 1 && FICHES.length === 4, 'nombres : fiche ajoutée en fin de FICHES');
+  verifier(nb.options[0].valeurs.map((v) => v.v).join() === '1000,10000' && nb.options[0].defaut === '10000', 'nombres : option taille 1000 / 10000, défaut 10000');
+
+  // Écriture en lettres recalculée par une autre méthode que enLettres (nombres sans 0).
+  const U = ['', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf'];
+  const ADO = ['dix', 'onze', 'douze', 'treize', 'quatorze', 'quinze', 'seize', 'dix-sept', 'dix-huit', 'dix-neuf'];
+  const DZ = { 2: 'vingt', 3: 'trente', 4: 'quarante', 5: 'cinquante', 6: 'soixante' };
+  const deuxChiffres = (d, u) => {
+    if (d === 0) return U[u];
+    if (d === 1) return ADO[u];
+    if (d === 7) return 'soixante-' + (u === 1 ? 'et-onze' : ADO[u]);
+    if (d === 9) return 'quatre-vingt-' + ADO[u];
+    if (d === 8) return u ? 'quatre-vingt-' + U[u] : 'quatre-vingts';
+    return DZ[d] + (u === 0 ? '' : (u === 1 ? '-et-un' : '-' + U[u]));
+  };
+  const troisChiffres = (c, d, u) => {
+    const reste = deuxChiffres(d, u);
+    const tete = c === 0 ? '' : (c === 1 ? 'cent' : U[c] + '-cent');
+    return [tete, reste].filter(Boolean).join('-');
+  };
+  const lettresDe = (n) => {
+    const m = Math.floor(n / 1000), r = n % 1000;
+    const reste = troisChiffres(Math.floor(r / 100), Math.floor(r / 10) % 10, r % 10);
+    const mille = m === 0 ? '' : (m === 1 ? 'mille' : U[m] + '-mille');
+    return [mille, reste].filter(Boolean).join('-');
+  };
+  verifier(lettresDe(3258) === 'trois-mille-deux-cent-cinquante-huit' && lettresDe(863) === 'huit-cent-soixante-trois', 'nombres : l’écriture de référence redonne 3 258 et 863');
+
+  const lireTexte = (el) => el.textContent.replace(/\s+/g, ' ').trim();
+  const N = (s) => String(s).replace(/\s+/g, ' ');
+  const sansEspace = (s) => s.replace(/\s/g, '');
+  const tableCorrige = (table) => [...table.querySelectorAll('tr')].slice(1).map((tr) => [...tr.children].map((td) => td.textContent.trim()));
+
+  for (const taille of ['1000', '10000']) {
+    const [min, max] = taille === '1000' ? [100, 999] : [1000, 9999];
+    const quatre = taille === '10000';
+    for (const methode of [true, false]) {
+      const nom = `nombres ${taille} ${methode ? 'avec' : 'sans'} méthode`;
+      const c = tirer(nb, { taille }, 987654);
+      const doc = new JSDOM(`<div>${rendre(nb, c, { corrige: true, methode })}</div>`).window.document;
+      const [pe, pc] = doc.querySelectorAll('.feuille');
+      const k = { lire: methode ? 4 : 6, decomp: methode ? 3 : 4, combien: methode ? 4 : 6, tab: methode ? 4 : 6 };
+
+      // bornes
+      const tous = [...c.lire, ...c.ecrire, ...c.decomp.map((d) => d.n), ...c.recomp, ...c.combien, ...c.tableau.map((l) => l.n)];
+      verifier(tous.every((n) => n >= min && n <= max && !String(n).includes('0')), `${nom} : nombres dans les bornes ${min}–${max}`);
+
+      // exercice 1 : corrigé recalculé
+      const [ulire, uecrire] = pc.querySelectorAll('.bloc')[0].querySelectorAll('ul');
+      const l1 = [...ulire.querySelectorAll('li')].map(lireTexte);
+      const a1 = c.lire.slice(0, k.lire).map((n, i) => `${lettre(i)}. ${lettresDe(n)} = ${fmt(n)}`).map(N);
+      verifier(JSON.stringify(l1) === JSON.stringify(a1), `${nom} : ex. 1, lettres vers chiffres exacts`);
+      const l2 = [...uecrire.querySelectorAll('li')].map(lireTexte);
+      const a2 = c.ecrire.slice(0, k.lire).map((n, i) => `${lettre(k.lire + i)}. ${fmt(n)} = ${lettresDe(n)}`).map(N);
+      verifier(JSON.stringify(l2) === JSON.stringify(a2), `${nom} : ex. 1, chiffres vers lettres exacts (recalculés)`);
+      verifier(c.lire.concat(c.ecrire).every((n) => fmt(n).replace(/\s/g, '') === String(n) && (n < 1000 || /^\d \d{3}$/.test(fmt(n).replace(/\s/, ' ')))), `${nom} : espaces des milliers`);
+
+      // exercice 2
+      const lis2 = [...pc.querySelectorAll('.bloc')[1].querySelectorAll('li')];
+      verifier(pc.querySelectorAll('.bloc')[1].querySelectorAll('ul').length === 1 && lis2.length % 2 === 0, `${nom} : ex. 2 dans une seule grille à deux colonnes`);
+      const termes = (n) => String(n).split('').map((ch, i, a) => +ch * 10 ** (a.length - 1 - i));
+      const g = (v) => fmt(v);
+      const d2 = lis2.slice(0, k.decomp).map(lireTexte);
+      const ad2 = c.decomp.slice(0, k.decomp).map(({ n }, i) => `${lettre(i)}. ${fmt(n)} = ${termes(n).map(g).join(' + ')}`).map(N);
+      verifier(JSON.stringify(d2) === JSON.stringify(ad2), `${nom} : ex. 2, décompositions exactes`);
+      const r2 = lis2.slice(k.decomp).map(lireTexte);
+      const ar2 = c.recomp.slice(0, k.decomp).map((n, i) => `${lettre(k.decomp + i)}. ${termes(n).map(g).join(' + ')} = ${fmt(n)}`).map(N);
+      verifier(JSON.stringify(r2) === JSON.stringify(ar2), `${nom} : ex. 2, recompositions exactes`);
+      verifier(c.decomp.every((d) => d.vides.length === 2 && new Set(d.vides).size === 2), `${nom} : deux termes à compléter par décomposition`);
+
+      // exercice 3 : nombres de dizaines et de centaines ENTIÈRES
+      const e3 = [...pc.querySelectorAll('.bloc')[2].querySelectorAll('li')].map(lireTexte);
+      const ae3 = c.combien.slice(0, k.combien).map((n, i) => `${lettre(i)}. Dans ${fmt(n)} : ${parseInt(String(n).slice(0, -1), 10)} dizaines ; ${parseInt(String(n).slice(0, -2), 10)} centaines`).map(N);
+      verifier(JSON.stringify(e3) === JSON.stringify(ae3), `${nom} : ex. 3, dizaines et centaines entières (ex. ${e3[0]})`);
+
+      // exercice 4 : tableaux remplis
+      const [tn, tc] = pc.querySelectorAll('.tab-num');
+      const lignes = c.tableau.slice(0, k.tab);
+      const att1 = lignes.filter((l) => l.sens === 'nombre').map((l) => [fmt(l.n), ...String(l.n).split('')]);
+      const att2 = lignes.filter((l) => l.sens === 'colonnes').map((l) => [fmt(l.n), ...String(l.n).split('')]);
+      verifier(JSON.stringify(tableCorrige(tn)) === JSON.stringify(att1) && JSON.stringify(tableCorrige(tc)) === JSON.stringify(att2), `${nom} : ex. 4, tableaux de numération remplis`);
+      const entetes = [...tn.querySelector('tr').children].map((td) => td.textContent.trim()).join();
+      verifier(entetes === (quatre ? 'nombre,m,c,d,u' : 'nombre,c,d,u'), `${nom} : colonnes ${entetes}`);
+      verifier(att1.length === lignes.length / 2 && att2.length === lignes.length / 2 && lignes.length === (methode ? 4 : 6), `${nom} : tableau, moitié nombre donné / moitié colonnes données (${lignes.length} lignes)`);
+
+      // mêmes comptes élève / corrigé
+      const compte = (page) => { const b = page.querySelectorAll('.bloc:not(.bloc--methode)'); return [0, 1, 2].map((i) => b[i].querySelectorAll('li').length).concat(b[3].querySelectorAll('.tab-num tr').length); };
+      verifier(JSON.stringify(compte(pe)) === JSON.stringify(compte(pc)),
+        `${nom} : mêmes comptes élève et corrigé (${compte(pe)})`);
+      verifier(compte(pe)[0] === 2 * k.lire && compte(pe)[1] === 2 * k.decomp && compte(pe)[2] === k.combien, `${nom} : ${compte(pe).slice(0, 3).join(' + ')} lignes`);
+
+      // aucune réponse sur la page élève (hors exemple du rappel)
+      const eleve = pe.cloneNode(true);
+      eleve.querySelectorAll('.bloc--methode').forEach((n) => n.remove());
+      verifier(eleve.querySelectorAll('.rouge').length === 0 && ![...eleve.querySelectorAll('.tab-num .vide')].some((td) => td.textContent.trim()), `${nom} : aucune réponse sur la page élève`);
+      const ligne1 = lireTexte(eleve.querySelectorAll('.bloc')[0].querySelector('li'));
+      verifier(!sansEspace(ligne1).includes(String(c.lire[0])), `${nom} : le nombre à trouver n’est pas écrit`);
+      verifier(methode ? pe.textContent.includes('Je me souviens de la méthode') : !pe.textContent.includes('Je me souviens'), `${nom} : rappel présent / masqué`);
+
+      // ton et emoji
+      const texte = doc.body.textContent.toLowerCase();
+      verifier(!/\b(faux|erreur|raté|nul|négatif)\b/.test(texte) && !/[✘❌✖]/.test(texte), `${nom} : aucun mot négatif`);
+      verifier(!/[\u{1F300}-\u{1FAFF}]/u.test(rendre(nb, c, { corrige: true, methode }).replace(/<h1[^>]*>.*?<\/h1>/gs, '')), `${nom} : pas d’emoji sur la feuille`);
+    }
+  }
+
+  // Rappel : mots de la leçon
+  {
+    const h = N(rendre(nb, tirer(nb, { taille: '10000' }, 1), { corrige: false }));
+    verifier(['trois-mille-deux-cent-cinquante-huit', '3 milliers + 258 unités', '3 000 + 200 + 50 + 8', '(3 × 1 000) + (2 × 100) + (5 × 10) + (8 × 1)', '32 centaines + 5 dizaines + 8 unités',
+      '3 milliers + 2 centaines + 5 dizaines + 8 unités', '1 millier = 10 centaines = 100 dizaines = 1 000 unités', 'La valeur du chiffre dépend de sa position dans l’écriture du nombre'].every((s) => h.includes(s)), 'nombres : le rappel reprend l’exemple 3 258 et les mots du livret');
+    const h3 = N(rendre(nb, tirer(nb, { taille: '1000' }, 1), { corrige: false }));
+    verifier(h3.includes('1 centaine = 10 dizaines = 100 unités') && h3.includes('huit-cent-soixante-trois') && !h3.includes('millier'), 'nombres : option 1 000 sans millier ni colonne m');
+  }
+
+  // Codes reproductibles, nombres distincts
+  for (const taille of ['1000', '10000']) {
+    const c = tirer(nb, { taille });
+    const r = decoder(c.code);
+    verifier(r && r.fiche === nb && r.options.taille === taille && JSON.stringify(tirer(r.fiche, r.options, r.graine)) === JSON.stringify(c), `nombres : le code ${c.code} redonne la même fiche (${taille})`);
+    const tout = [...c.lire, ...c.ecrire, ...c.decomp.map((d) => d.n), ...c.recomp, ...c.combien, ...c.tableau.map((l) => l.n)];
+    verifier(new Set(tout).size === tout.length && !tout.includes(taille === '1000' ? 863 : 3258), `nombres : nombres tous différents et distincts de l’exemple (${taille})`);
+  }
+  const vus = new Set(); for (let i = 0; i < 200; i++) vus.add(tirer(nb, {}).code);
+  verifier(vus.size > 190, `nombres : codes variés (${vus.size} sur 200)`);
+
+  // Fiches précédentes inchangées : HTML et contenu à graine fixe comparés à l’état avant la fiche.
+  const empreinte = (f, o) => { const c = tirer(f, o, 424242); return JSON.stringify(c) + rendre(f, c, { corrige: true, base: 'http://x/' }); };
+  const somme = (s) => { let h = 5381; for (const ch of s) h = ((h * 33) ^ ch.charCodeAt(0)) >>> 0; return h; };
+  const verif = [['ce2-addition-posee', 'mix'], ['ce2-soustraction-posee', 'mix'], ['ce2-multiplication', '2']].map(([id, v]) => {
+    const f = FICHES.find((x) => x.id === id); return somme(empreinte(f, f.options[0].id === 'taille' ? { taille: v } : { facteur: v }));
+  });
+  verifier(verif.join() === '2857615915,841554819,1341628403', `addition, soustraction, multiplication : rendu inchangé (${verif.join()})`);
 }
 
 process.exit(echecs ? 1 : 0);

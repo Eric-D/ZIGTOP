@@ -828,3 +828,49 @@ svg.visuel {
 @media print {
   .pose td.note { min-width: 9mm; font-size: 8pt; }
 }
+
+/* ---------- fiche nombres : tableau de numération, lignes d'écriture ---------- */
+.rouge { color: #C0392B; font-weight: 700; }
+.pointilles--ligne { flex: 1; min-width: 22mm; height: 1.4em; }
+
+.methode--nombres { flex-wrap: nowrap; align-items: flex-start; }
+.methode__tableau { flex: none; text-align: center; max-width: 62mm; }
+.methode__legende { font-size: .78rem; color: #444; margin-top: 3px; line-height: 1.25; }
+.methode--nombres .methode__droite { flex: 1; min-width: 0; }
+.representations__titre { font-weight: 800; font-size: .88rem; margin-bottom: 3px; }
+.representations { margin: 0; padding-left: 16px; font-size: .86rem; line-height: 1.35; columns: 2; column-gap: 18px; }
+.representations li { break-inside: avoid; }
+.methode__relation { margin-top: 5px; text-align: center; font-weight: 800; font-size: .95rem; background: #fff; border: 1.5px solid #CFC9BC; border-radius: 6px; padding: 2px 6px; }
+
+.tab-num { border-collapse: collapse; font-variant-numeric: tabular-nums; margin: 0 auto; }
+.tab-num td { border: 1.5px solid #333; width: 11mm; height: 10mm; text-align: center; font-size: 1.15rem; font-weight: 700; padding: 0; }
+.tab-num .tab-num__nombre { width: 24mm; }
+.tab-num__entetes td { height: 6mm; font-size: .8rem; font-weight: 800; color: #E84393; background: #FFF0F7; }
+.tab-num .vide { background: #fff; }
+.tab-num--exemple td { width: 12mm; }
+.tableaux { display: flex; gap: 10mm; flex-wrap: wrap; justify-content: space-around; }
+
+.lignes { list-style: none; margin: 0; padding: 0; }
+.lignes li { display: flex; align-items: flex-end; gap: 6px; min-height: 10mm; padding: 2px 0; font-size: .95rem; }
+.lignes--deux { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 6mm; }
+.ligne__texte { white-space: nowrap; }
+.ligne__egal { font-weight: 700; }
+.lignes--corrigees li { min-height: 7mm; }
+
+@media print {
+  .methode__tableau { max-width: 50mm; }
+  .methode__legende { font-size: 7.5pt; }
+  .representations__titre { font-size: 9pt; }
+  .representations { font-size: 8.8pt; line-height: 1.25; }
+  .methode__relation { font-size: 9.5pt; margin-top: 3px; }
+  .tab-num td { width: 10mm; height: 9mm; font-size: 12pt; }
+  .tab-num .tab-num__nombre { width: 22mm; }
+  .tab-num__entetes td { height: 5mm; font-size: 8pt; }
+  .tab-num--exemple td { width: 10mm; height: 8mm; }
+  .tableaux { gap: 8mm; }
+  .lignes li { min-height: 8.6mm; font-size: 10.5pt; padding: 1px 0; gap: 4px; }
+  .lignes--deux li { font-size: 10pt; }
+  .lignes .pointilles--mini { min-width: 8mm; }
+  .lignes--corrigees li { min-height: 7mm; }
+  .pointilles--ligne { height: 1.5em; }
+}

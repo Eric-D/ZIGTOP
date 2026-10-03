@@ -37,6 +37,10 @@ et le **corrigé sur une deuxième page** pour l'adulte.
 
 Fiches disponibles (le plan complet est dans [`programme/ce2/PLAN-FICHES.md`](programme/ce2/PLAN-FICHES.md)) :
 
+- **CE2 — Les nombres : lire, écrire, décomposer** (p. 3–8 du livret) : tableau de
+  numération, le nombre `3 258` (ou `863`) représenté des sept façons du livret, puis nombres
+  en lettres ↔ en chiffres, décompositions et recompositions, dizaines et centaines entières,
+  tableaux à compléter. Option : jusqu'à 999 ou jusqu'à 9 999.
 - **CE2 — Opérations : multiplication** (p. 19–21 du livret) : les deux méthodes en ligne
   du livret (Mila, Enzo), la multiplication posée `427 × 5` puis `14 × 23` avec ses lignes
   partielles ; produits en ligne à décomposer, multiplications posées à un puis deux
