@@ -55,11 +55,24 @@ réviser*, *composer* et *imprimer*, et permet des feuilles qui panachent les no
 | 22 | Carnet local : journal des séries, fiches imprimées et appréciations, export/import, sans compte | [#22](https://github.com/Eric-D/ZIGTOP/issues/22) | ⬜ à faire |
 | 23 | Espace personnel Firebase : enfants à part entière, responsables, invitations, appareils d'enfant, synchronisation du carnet (épique) | [#23](https://github.com/Eric-D/ZIGTOP/issues/23) | ⬜ décisions à prendre (projet Firebase, région européenne) |
 
+## Phase 8 — un support parmi d'autres
+
+| # | Sujet | Issue | État |
+| --- | --- | --- | --- |
+| 24 | Aperçu des fiches à l'échelle sur téléphone | [#24](https://github.com/Eric-D/ZIGTOP/issues/24) | ⬜ à faire |
+| 25 | Ne plus parler de numéros de page dans l'interface ; raccourci « jusqu'à telle notion » | [#25](https://github.com/Eric-D/ZIGTOP/issues/25) | ⬜ à faire |
+| 26 | Séparer la notion de sa formulation : définitions communes, méthodes interchangeables | [#26](https://github.com/Eric-D/ZIGTOP/issues/26) | ⬜ à faire |
+
 ## Règles communes à toutes les fiches
 
-**Fidélité au livret.** Le rappel de méthode reprend les étapes, les exemples et le
-vocabulaire de la leçon transcrite (`programme/ce2/…`), pas une autre façon de faire. Si la
-leçon dit « je retiens 1 dizaine », la fiche dit « je retiens 1 dizaine ».
+**Définitions communes, méthodes interchangeables.** Les *définitions* (ce qu'est un
+polygone, une fraction, 1 km = 1 000 m) sont les mêmes pour tous et suivent le livret
+transcrit. Les *méthodes* (« je casse un millier », les retenues à droite du facteur…) sont
+*une* formulation parmi d'autres : le livret transcrit est un support, les enfants n'ont pas
+tous le même. Les fiches ont été écrites dans la formulation du livret ; l'issue #26 en fait
+une formulation nommée parmi d'autres, choisie à l'affichage, sans toucher aux exercices ni
+aux codes. **Les numéros de page ne sont qu'une référence de transcription** : ils restent
+dans `programme/` et dans ce plan, jamais dans l'interface ni sur les feuilles (#25).
 
 **Format.** Une page A4 élève, le corrigé sur la page suivante. En mode impression, la page
 élève mesure **au plus 1 046 px** de haut dans toutes les combinaisons d'options (mesuré
