@@ -999,3 +999,58 @@ svg.visuel {
   .feuille:has(.figures-lire) .bloc { margin-bottom: 3px; }
   .feuille:has(.figures-lire) .objectif { margin-bottom: 5px; }
 }
+
+/* ---------- fiche fractions : égales et comparaison ---------- */
+.rappel-fc { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 2mm 4mm; font-size: .82rem; line-height: 1.2; }
+.rappel-fc__carte { grid-column: span 2; display: flex; flex-direction: column; gap: 2px; }
+.rappel-fc__carte--large { grid-column: span 3; }
+.rappel-fc__titre { font-weight: 800; }
+.rappel-fc p { margin: 0; }
+.rappel-fc .fraction { font-size: .85em; line-height: 1; margin: 0 1px; }
+.rappel-fc__figs { display: flex; align-items: center; gap: 6px; }
+.rappel-fc__signe { font-weight: 800; font-size: 1.1rem; }
+.entoures { display: flex; align-items: center; justify-content: space-between; gap: 2mm; margin-top: 1mm; }
+.entoures__cible { font-weight: 800; font-size: .9rem; white-space: nowrap; display: inline-flex; align-items: center; gap: 2px; }
+.entoure { display: inline-flex; align-items: center; justify-content: center; width: 12mm; height: 15mm; border: 2px solid transparent; border-radius: 50%; box-sizing: border-box; font-size: 1.1rem; flex: none; }
+.entoure .fraction { margin: 0; }
+.entoure--oui { border-color: #C0392B; }
+.paires-fr { display: grid; gap: 2mm 3mm; }
+.paires-fr--5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.paires-fr--8 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.paires-fr--fig4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.paires-fr--fig6 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.paire-fr { display: flex; align-items: center; justify-content: center; gap: 4px; min-height: 13mm; white-space: nowrap; font-size: 1.05rem; }
+.paire-fr .fraction { margin: 0; }
+.case-symbole--rep { font-size: 1.05rem; }
+.paire-fr-cellule { display: flex; flex-direction: column; align-items: center; gap: 1mm; }
+.appui { display: flex; flex-direction: column; gap: 2mm; align-items: center; }
+.regle { font-size: .72rem; color: #C0392B; font-weight: 600; text-align: center; line-height: 1.15; }
+.regle--rang { margin-left: 4mm; }
+.rangs--fr .rang__nombres { display: flex; align-items: center; gap: 2px; min-height: 12mm; font-size: 1.05rem; }
+.rangs--fr .rang__sep { margin: 0 6px; }
+.rangs--fr .rang__reponse { align-items: center; min-height: 14mm; }
+.rangs--fr .pointilles--rang { height: 11mm; min-width: 14mm; }
+.rangs--fr .rang__reponse--corrige { display: flex; min-height: 14mm; }
+
+@media print {
+  .rappel-fc { font-size: 8.5pt; line-height: 1.18; }
+  .entoure { font-size: 11pt; }
+  .paire-fr { font-size: 11pt; min-height: 11mm; }
+  .regle { font-size: 7.5pt; }
+  .rangs--fr .rang__nombres { font-size: 11pt; min-height: 10mm; }
+  .rangs--fr .rang__reponse { min-height: 12mm; }
+}
+.rappel-fc__titre { display: flex; align-items: center; gap: 3px; min-height: 8mm; }
+.rangs--fr .rang__reponse { align-items: flex-end; }
+.rangs--fr .rang__signe { padding-bottom: 1mm; }
+@media print {
+  .appui { gap: 1mm; }
+  .appui .figure-fraction { height: 30px; width: auto; }
+  .paires-fr--fig .paire-fr { min-height: 10mm; }
+  .paire-fr-cellule { gap: .5mm; }
+  .rangs--fr .rang__nombres { min-height: 9mm; }
+  .rangs--fr .rang__reponse, .rangs--fr .rang__reponse--corrige { min-height: 11mm; }
+  .rangs--fr .rang__reponse--corrige .fraction { font-size: 10pt; }
+  .rangs--fr .pointilles--rang { height: 9mm; }
+  .entoure { height: 13.5mm; }
+}

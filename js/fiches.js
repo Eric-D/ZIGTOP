@@ -1536,6 +1536,193 @@ const miseFractions = {
   },
 };
 
+/* ------------------------------------------------------------------ */
+/* CE2 — fractions : égales et comparaison                              */
+/* ------------------------------------------------------------------ */
+
+const FRACTIONS_DEMI = [[2, 4], [3, 6], [4, 8], [5, 10]];   // la leçon : 2/4, 3/6, 4/8, 5/10 sont égales à 1/2
+// « 3 sixièmes », « 2 demis » : le nom prend un s quand il y en a plusieurs (tiers ne change pas).
+const nomPluriel = (n, d) => `${n} ${NOM_FRACTION[d]}${n > 1 && d !== 3 ? 's' : ''}`;
+
+function genererFractionsComparer() {
+  // Ex. 1 : 10 fractions par liste (8 avec le rappel), 3 ou 4 égales ; les 8 premières en contiennent au moins 2, et au moins 2 non égales.
+  const liste = (egales, autre) => {
+    for (;;) {
+      const eg = shuffle(egales).slice(0, rnd(3, 4)).map(([n, d]) => ({ n, d, egal: true }));
+      const non = [];
+      while (eg.length + non.length < 10) {
+        const f = autre();
+        if (![...eg, ...non].some((x) => x.n === f.n && x.d === f.d)) non.push({ ...f, egal: false });
+      }
+      const t = shuffle([...eg, ...non]);
+      const huit = t.slice(0, 8);
+      if (huit.filter((f) => f.egal).length >= 2 && huit.filter((f) => !f.egal).length >= 2) return t;
+    }
+  };
+  const demi = liste(FRACTIONS_DEMI, () => {
+    for (;;) { const d = rnd(2, 10), n = rnd(1, d - 1); if (n * 2 !== d) return { n, d }; }
+  });
+  const un = liste([2, 3, 4, 5, 6, 7, 8, 9, 10].map((d) => [d, d]), () => { const d = rnd(2, 10); return { n: rnd(1, d - 1), d }; });
+
+  // Ex. 2 : 8 paires de même dénominateur, dénominateurs tous différents (de 3 à 12).
+  const memeDen = shuffle([3, 4, 5, 6, 7, 8, 9, 10, 11, 12]).slice(0, 8).map((d) => {
+    const a = rnd(1, d - 1);
+    let b;
+    do { b = rnd(1, d - 1); } while (b === a);
+    return { d, a, b };
+  });
+
+  // Ex. 3 : 6 paires de même numérateur (1 à 4, jamais deux fois la même paire), deux dénominateurs différents plus grands que lui.
+  const memeNum = [];
+  const vues = new Set();
+  while (memeNum.length < 6) {
+    const n = rnd(1, 4), a = rnd(Math.max(2, n + 1), 10);
+    let b;
+    do { b = rnd(Math.max(2, n + 1), 10); } while (b === a);
+    const cle = `${n}/${Math.min(a, b)}/${Math.max(a, b)}`;
+    if (vues.has(cle)) continue;
+    vues.add(cle);
+    memeNum.push({ n, a, b });
+  }
+
+  // Ex. 4 : 2 rangements de 4 fractions de même dénominateur, présentées dans le désordre.
+  const ranger = shuffle([5, 6, 7, 8, 9, 10, 11, 12]).slice(0, 2).map((d) => {
+    for (;;) {
+      const valeurs = shuffle(Array.from({ length: d - 1 }, (_, i) => i + 1)).slice(0, 4);
+      if (valeurs.join() !== [...valeurs].sort((x, y) => x - y).join()) return { d, valeurs };
+    }
+  });
+
+  return {
+    objectif: 'Je sais reconnaître des fractions égales et comparer des fractions.',
+    demi, un, memeDen, memeNum, ranger,
+  };
+}
+
+const miseFractionsComparer = {
+  signe: '',
+  combien: (contenu, methode) => ({
+    demi: contenu.demi.slice(0, methode ? 8 : 10),
+    un: contenu.un.slice(0, methode ? 8 : 10),
+    memeDen: contenu.memeDen.slice(0, methode ? 5 : 8),
+    memeNum: contenu.memeNum.slice(0, methode ? 4 : 6),
+    ranger: contenu.ranger.slice(0, methode ? 1 : 2),
+  }),
+  noteCorrige: 'les réponses attendues sont en rouge ; dans l’exercice 1, les fractions à entourer sont encerclées. Chaque comparaison rappelle la règle appliquée.',
+  // Rappel : les phrases, les exemples et les figures de la leçon (pages 26 à 29 du livret).
+  rappel() {
+    const paire = (a, b, signe) => `<div class="rappel-fc__figs">${figureFraction({ forme: 'bande', parts: a[0], coloriees: a[1], taille: 104 })}<span class="rappel-fc__signe">${signe}</span>${figureFraction({ forme: 'bande', parts: b[0], coloriees: b[1], taille: 104 })}</div>`;
+    const F = (n, d) => fraction(n, d);
+    return `
+      <div class="rappel-fc">
+        <div class="rappel-fc__carte">
+          <div class="rappel-fc__titre">Des fractions égales</div>
+          ${paire([8, 6], [4, 3], '=')}
+          <p>${F(6, 8)} = ${F(3, 4)}. Six huitièmes du gâteau est égal à <b>trois quarts</b> de ce gâteau.</p>
+        </div>
+        <div class="rappel-fc__carte">
+          <div class="rappel-fc__titre">Égales à ${F(1, 2)}</div>
+          ${paire([2, 1], [6, 3], '=')}
+          <p>Le numérateur est la moitié du dénominateur : ${F(2, 4)} · ${F(3, 6)} · ${F(4, 8)} · ${F(5, 10)} sont égales à ${F(1, 2)}.</p>
+        </div>
+        <div class="rappel-fc__carte">
+          <div class="rappel-fc__titre">Égales à 1</div>
+          ${paire([4, 4], [1, 1], '=')}
+          <p>Quand le numérateur est égal au dénominateur, la fraction est égale à 1 : ${F(4, 4)} = 1.</p>
+        </div>
+        <div class="rappel-fc__carte rappel-fc__carte--large">
+          <div class="rappel-fc__titre">Même dénominateur (le même nombre en bas)</div>
+          ${paire([12, 5], [12, 7], '&lt;')}
+          <p>${F(5, 12)} &lt; ${F(7, 12)} : <b>5 douzièmes &lt; 7 douzièmes</b>.<br>La plus grande fraction est celle qui a le plus grand numérateur.</p>
+        </div>
+        <div class="rappel-fc__carte rappel-fc__carte--large">
+          <div class="rappel-fc__titre">Même numérateur (le même nombre en haut)</div>
+          ${paire([6, 3], [10, 3], '&gt;')}
+          <p>${F(1, 6)} &gt; ${F(1, 10)} : <b>1 sixième</b> est plus grand que <b>1 dixième</b>. Lorsqu’on partage un gâteau en 6 parts égales, on fait moins de parts que lorsqu’on le partage en 10 parts égales, donc chaque part d’un sixième est <b>plus grande</b> que chaque part d’un dixième. ${F(3, 6)} &gt; ${F(3, 10)} : <b>3 sixièmes</b> est plus grand que <b>3 dixièmes</b>.</p>
+        </div>
+      </div>`;
+  },
+  exercices(contenu, methode) {
+    const { demi, un, memeDen, memeNum, ranger } = this.combien(contenu, methode);
+    const ligne = (l, cible) => `<div class="entoures"><span class="entoures__cible">Égales à ${cible} :</span>${l.map((f) => `<span class="entoure">${fraction(f.n, f.d)}</span>`).join('')}</div>`;
+    const cote = (f, d) => `${fraction(f, d)}`;
+    return `
+    <div class="bloc">
+      <h2>Exercice 1 — Entoure les fractions égales à ${fraction(1, 2)}, puis les fractions égales à 1.</h2>
+      ${ligne(demi, fraction(1, 2))}
+      ${ligne(un, '1')}
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 2 — Compare avec &lt; ou &gt;.</h2>
+      <div class="paires-fr paires-fr--${memeDen.length}">
+        ${memeDen.map((p, i) => `<div class="paire-fr"><b>${lettre(i)}.</b>${cote(p.a, p.d)}<span class="case-symbole"></span>${cote(p.b, p.d)}</div>`).join('')}
+      </div>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 3 — Compare avec &lt; ou &gt;. Les figures peuvent t’aider.</h2>
+      <div class="paires-fr paires-fr--fig paires-fr--fig${memeNum.length}">
+        ${memeNum.map((p, i) => `<div class="paire-fr-cellule"><div class="paire-fr"><b>${lettre(i)}.</b>${cote(p.n, p.a)}<span class="case-symbole"></span>${cote(p.n, p.b)}</div>
+          <div class="appui">${figureFraction({ forme: 'bande', parts: p.a, coloriees: p.n, taille: 118 })}${figureFraction({ forme: 'bande', parts: p.b, coloriees: p.n, taille: 118 })}</div></div>`).join('')}
+      </div>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 4 — Range les fractions du plus petit au plus grand.</h2>
+      <div class="rangs rangs--fr">
+        ${ranger.map((r, i) => `<div class="rang">
+          <div class="rang__nombres"><b>${lettre(i)}.</b> ${r.valeurs.map((n) => fraction(n, r.d)).join('<span class="rang__sep">;</span>')}</div>
+          <div class="rang__reponse">${r.valeurs.map(() => '<span class="pointilles pointilles--rang"></span>').join('<span class="rang__signe">&lt;</span>')}</div>
+        </div>`).join('')}
+      </div>
+    </div>
+`;
+  },
+  corriges(contenu, methode) {
+    const { demi, un, memeDen, memeNum, ranger } = this.combien(contenu, methode);
+    const ligne = (l, cible) => `<div class="entoures"><span class="entoures__cible">Égales à ${cible} :</span>${l.map((f) => `<span class="entoure${f.egal ? ' entoure--oui' : ''}"${f.egal ? ' data-egal="oui"' : ''}>${fraction(f.n, f.d)}</span>`).join('')}</div>`;
+    const sym = (a, b) => (a < b ? '&lt;' : '&gt;');
+    return `
+    <div class="bloc">
+      <h2>Exercice 1</h2>
+      ${ligne(demi, fraction(1, 2))}
+      ${ligne(un, '1')}
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 2</h2>
+      <div class="paires-fr paires-fr--${memeDen.length}">
+        ${memeDen.map((p, i) => `<div class="paire-fr-cellule"><div class="paire-fr"><b>${lettre(i)}.</b>${fraction(p.a, p.d)}<span class="case-symbole case-symbole--rep rouge">${sym(p.a, p.b)}</span>${fraction(p.b, p.d)}</div>
+          <div class="regle">même dénominateur : ${p.a} ${sym(p.a, p.b)} ${p.b}</div></div>`).join('')}
+      </div>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 3</h2>
+      <div class="paires-fr paires-fr--fig paires-fr--fig${memeNum.length}">
+        ${memeNum.map((p, i) => `<div class="paire-fr-cellule"><div class="paire-fr"><b>${lettre(i)}.</b>${fraction(p.n, p.a)}<span class="case-symbole case-symbole--rep rouge">${sym(p.b, p.a)}</span>${fraction(p.n, p.b)}</div>
+          <div class="appui">${figureFraction({ forme: 'bande', parts: p.a, coloriees: p.n, taille: 118 })}${figureFraction({ forme: 'bande', parts: p.b, coloriees: p.n, taille: 118 })}</div>
+          <div class="regle">même numérateur : ${nomPluriel(p.n, p.a)} ${sym(p.b, p.a)} ${nomPluriel(p.n, p.b)}</div></div>`).join('')}
+      </div>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 4</h2>
+      <div class="rangs rangs--fr">
+        ${ranger.map((r, i) => {
+          const tri = [...r.valeurs].sort((x, y) => x - y);
+          return `<div class="rang">
+          <div class="rang__nombres"><b>${lettre(i)}.</b> ${r.valeurs.map((n) => fraction(n, r.d)).join('<span class="rang__sep">;</span>')}</div>
+          <div class="rang__reponse rang__reponse--corrige">${tri.map((n) => fractionRouge(n, r.d)).join('<span class="rang__signe">&lt;</span>')}<span class="regle regle--rang">même dénominateur : ${tri.join(' &lt; ')}</span></div>
+        </div>`;
+        }).join('')}
+      </div>
+    </div>
+`;
+  },
+};
+
 function pageExercices(fiche, contenu, { base = '', methode = true, identite = true } = {}) {
   const { signe } = fiche.mise;
   if (fiche.mise.rappel) return pageExercicesLibre(fiche, contenu, { base, methode, identite });
@@ -1698,6 +1885,16 @@ export const FICHES = [
     options: [],
     generer: genererFractions,
     mise: miseFractions,
+  },
+  {
+    id: 'ce2-fractions-comparer',
+    classe: 'ce2',
+    domaine: 'Nombres et calculs',
+    titre: 'Les fractions : égales et comparaison',
+    emoji: '⚖️',
+    options: [],
+    generer: genererFractionsComparer,
+    mise: miseFractionsComparer,
   },
 ];
 

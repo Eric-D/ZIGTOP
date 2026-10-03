@@ -37,6 +37,10 @@ et le **corrigé sur une deuxième page** pour l'adulte.
 
 Fiches disponibles (le plan complet est dans [`programme/ce2/PLAN-FICHES.md`](programme/ce2/PLAN-FICHES.md)) :
 
+- **CE2 — Les fractions : égales et comparaison** (p. 26–29 du livret) : les règles de la
+  leçon (fractions égales, égales à 1/2 et à 1, même dénominateur, même numérateur) avec
+  leurs figures ; fractions à entourer, comparaisons avec < et >, paires de même numérateur
+  avec figures d'appui, rangement.
 - **CE2 — Les fractions : lire, écrire, représenter** (p. 22–25 du livret) : l'unité
   partagée en parts égales, numérateur et dénominateur avec les mots de la leçon, les noms
   (demi, tiers, quart… dixième) ; fractions à lire sur des figures, figures à colorier,
