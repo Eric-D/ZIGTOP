@@ -35,8 +35,13 @@ Depuis l'accueil, **🖨️ Fiches à imprimer** fabrique une fiche A4 prête à
 l'imprimante, régénérée à chaque clic : la leçon rappelée en haut, puis des exercices,
 et le **corrigé sur une deuxième page** pour l'adulte.
 
-L'écran des fiches les regroupe par domaine dans l'ordre du livret, avec pour chacune les
-pages, l'objectif « Je sais… » et un lien vers la leçon transcrite. Dix-sept fiches sont
+L'écran des fiches est un tunnel en trois pas : **que réviser** (les notions, regroupées par
+domaine dans l'ordre du livret, à cocher — une seule donne la fiche complète, plusieurs une
+feuille panachée — avec pour chacune les pages, l'objectif « Je sais… », un lien vers la
+leçon transcrite et ses options), **composer** (rappel, nombre de feuilles, feuilles
+identiques ou qui tournent sur les notions, le code de la composition), puis **imprimer et
+partager**. Le pas courant est dans l'adresse (`?pas=2`), le bouton retour du navigateur
+marche, et un lien ou un QR arrive directement au dernier pas. Dix-sept fiches sont
 disponibles (le plan complet est dans [`programme/ce2/PLAN-FICHES.md`](programme/ce2/PLAN-FICHES.md)) :
 
 - **CE2 — Les tableaux et les diagrammes en barres** (p. 56 du livret) : lire un tableau à
@@ -367,6 +372,7 @@ node tests/fiches.mjs             # corrigé juste, retenues bien placées, code
 node tests/partage.mjs            # liens partagés : corrigé ouvert sans profil, options conservées
 node tests/ecran-fiches.mjs       # écran des fiches : domaines, liens vers les leçons, ordre figé de FICHES
 node tests/panache.mjs            # feuilles panachées : code Z, budget de hauteur, report sur plusieurs feuilles
+node tests/tunnel.mjs             # tunnel : cocher → composer → imprimer, retour, ouverture par lien au pas 3
 
 # vérification approfondie du QR code (dépendances en plus) :
 npm i --no-save playwright jsqr pngjs && npx playwright install chromium

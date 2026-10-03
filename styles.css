@@ -698,7 +698,7 @@ svg.visuel {
 /* Écran des fiches : une ligne par fiche, regroupées par domaine */
 .liste-fiches { display: grid; gap: 8px; }
 .fiche {
-  display: flex; align-items: stretch;
+  display: flex; flex-wrap: wrap; align-items: stretch;
   background: var(--carte);
   border-radius: var(--rayon);
   box-shadow: var(--ombre);
@@ -713,6 +713,16 @@ svg.visuel {
   text-align: left;
   background: transparent; box-shadow: none; border-radius: 0;
 }
+.fiche__case {
+  flex: none; width: 28px; height: 28px; margin: 0;
+  accent-color: var(--violet); cursor: pointer;
+}
+.fiche__case:focus-visible { outline: 4px solid var(--jaune); outline-offset: 3px; }
+.fiche__options {
+  flex: 1 0 100%;
+  display: grid; gap: 12px;
+  padding: 4px 14px 14px 52px;
+}
 .fiche__emoji { font-size: 1.7rem; flex: none; width: 2.2rem; text-align: center; }
 .fiche__texte { display: grid; gap: 2px; min-width: 0; }
 .fiche__titre { font-weight: 800; font-size: 1rem; line-height: 1.25; }
@@ -725,6 +735,46 @@ svg.visuel {
   font-weight: 800; font-size: .9rem;
   color: var(--violet); text-decoration: underline;
 }
+
+/* Le tunnel : fil d'Ariane, bouton retour, barre « Continuer » */
+.tunnel__haut { display: grid; gap: 10px; margin: 6px 0 4px; }
+.tunnel .retour { justify-self: start; min-height: 48px; }
+.ariane ol { display: flex; gap: 6px; list-style: none; margin: 0; padding: 0; }
+.ariane li { flex: 1 1 0; min-width: 0; }
+.ariane__pas {
+  width: 100%; min-height: 48px;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 6px 4px;
+  border-radius: 14px;
+  background: #F2F0EA; color: var(--encre);
+  font-weight: 700; font-size: .88rem; line-height: 1.15; text-align: center;
+  border: 3px solid transparent; box-shadow: none;
+}
+.ariane__pas[aria-current="step"] { background: #F3F0FF; border-color: var(--violet); color: var(--violet); }
+.ariane__pas:disabled { opacity: .55; cursor: default; }
+.ariane__pas:focus-visible { outline: 4px solid var(--jaune); outline-offset: 2px; }
+.ariane__num {
+  flex: none; width: 24px; height: 24px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--violet); color: #fff; font-size: .8rem;
+}
+.barre-pas {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  margin: 18px -4px 12px; padding: 10px 4px;
+  background: var(--fond);
+  border-top: 2px solid #E4E1DA;
+}
+.barre-pas--collante { position: sticky; bottom: 0; z-index: 2; }
+.barre-pas__compte { font-weight: 800; color: var(--encre-douce); }
+.barre-pas .btn { min-height: 48px; min-width: 160px; }
+.barre-pas .btn:disabled { opacity: .5; cursor: default; }
+.code-grand {
+  display: flex; flex-wrap: wrap; gap: 6px 22px; justify-content: center;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-weight: 800; font-size: 1.7rem; letter-spacing: .05em; color: var(--violet);
+  overflow-wrap: anywhere; text-align: center;
+}
+.code-composition { display: grid; gap: 10px; }
 
 .barre-fiche { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
 .recherche-code { display: flex; gap: 10px; flex-wrap: wrap; }

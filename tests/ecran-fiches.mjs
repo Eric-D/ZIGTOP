@@ -57,14 +57,17 @@ for (const l of lignes) {
 }
 verifier(liensOk, 'chaque ligne a un lien « leçon » vers un fichier existant');
 
-const code = () => d.querySelector('.feuille__code').textContent.trim();
-const avant = code();
-const cible = lignes[10];
-clic(cible.querySelector('[data-fiche]'));
-const apres = code();
-verifier(avant !== apres && apres[0] === (10).toString(36).toUpperCase(), `le clic change la fiche (${avant} → ${apres})`);
+// Une case cochée = une notion choisie ; Continuer ×2 mène à la fiche, au pas 3.
+const cocher = (id) => clic(d.querySelector(`[data-fiche="${id}"]`));
+const continuer = () => clic(d.querySelector('.barre-pas [data-pas]:not([disabled])'));
+verifier(d.querySelectorAll('.liste-fiches input[type="checkbox"]').length === 17, 'une case à cocher par ligne');
+verifier(d.querySelector('.barre-pas [data-pas="2"]').disabled, 'Continuer attend qu’on coche une notion');
+cocher(FICHES[10].id);
 const actives = d.querySelectorAll('.fiche--active');
 verifier(actives.length === 1 && actives[0].querySelector('[data-fiche]').dataset.fiche === FICHES[10].id,
-  'la ligne cliquée devient la seule ligne active');
+  'la ligne cochée devient la seule ligne active');
+continuer(); continuer();
+const code = d.querySelector('.feuille__code').textContent.trim();
+verifier(code[0] === (10).toString(36).toUpperCase(), `une seule case : la fiche complète (${code})`);
 
 process.exit(echecs ? 1 : 0);

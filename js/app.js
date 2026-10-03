@@ -8,7 +8,7 @@ import * as Son from './son.js';
 import { zigo, phrase, carte, jardin, LIEUX, DECORS, decorParId } from './univers.js';
 import * as A11y from './accessibilite.js';
 import { FICHES, DOMAINES, fichesDe, ficheParId, optionsParDefaut, tirer, decoder, rendre as rendreFiche } from './fiches.js';
-import { composer, rendrePanache } from './panache.js';
+import { composer, rendrePanache, NOTIONS_MAX } from './panache.js';
 import { visuel } from './visuels.js';
 import { shuffle, pick, leurres } from './utils.js';
 
@@ -234,9 +234,18 @@ function vueJardin() {
 /* Écran : fiches de révision à imprimer                               */
 /* ------------------------------------------------------------------ */
 
+// Le tunnel : 1 Que réviser (cases à cocher) → 2 Composer → 3 Imprimer et partager.
+// L'état vit dans `fiche`, étendu :
+//   id, options, affichage, contenus   la fiche simple (une seule notion cochée)
+//   selection                          les identifiants des notions cochées
+//   optionsNotions                     les options choisies, notion par notion
+//   compo                              { miniRappel, rotation, graines } pour une feuille panachée
+//   valide                             la composition correspond-elle à la sélection ?
+//   arrivee                            ouvert par un lien ou un QR code (le retour remonte au pas 1)
 // `retirer` : faut-il piocher de nouveaux exercices ? Non quand on change simplement
 // l'affichage du corrigé — l'enfant garde exactement la fiche qu'il a sous les yeux.
 const AFFICHAGE_DEFAUT = { corrige: true, methode: true, identite: true, eleve: true, nb: 1 };
+const graineAlea = () => Math.floor(Math.random() * 36 ** 6);
 
 function preparerFiche({ id, options, affichage, retirer = false, graines } = {}) {
   const f = ficheParId(id || (fiche && fiche.id)) || FICHES[0];
@@ -255,7 +264,10 @@ function preparerFiche({ id, options, affichage, retirer = false, graines } = {}
     contenus = fiche.contenus.slice(0, aff.nb);
     while (contenus.length < aff.nb) contenus.push(tirer(f, opts));
   }
-  fiche = { id: f.id, options: opts, affichage: aff, contenus };
+  fiche = {
+    selection: [], optionsNotions: {}, compo: { miniRappel: false, rotation: false, graines: [] }, valide: false, arrivee: false,
+    ...fiche, id: f.id, options: opts, affichage: aff, contenus,
+  };
 }
 
 // Adresse de l'application, pour que le QR code de la fiche y ramène.
@@ -265,7 +277,7 @@ const baseURL = () => window.location.href.replace(/[?#].*$/, '').replace(/[^/]*
 // aucun compte, aucun serveur, rien à stocker — et aucune donnée sur l'enfant.
 function lienFiche({ codes, vue, methode, identite } = {}) {
   const p = new URLSearchParams();
-  const liste = codes || (panache ? [panache.code] : fiche.contenus.map((c) => c.code));
+  const liste = codes || (panache ? panache.codes : fiche.contenus.map((c) => c.code));
   p.set(liste.length > 1 ? 'fiches' : 'fiche', liste.join(','));
   if (vue) p.set('vue', vue);
   const aff = fiche.affichage;
@@ -279,35 +291,253 @@ const ficheHTML = () => (panache
   ? rendrePanache(panache.feuilles, { ...fiche.affichage, base: baseURL() })
   : rendreFiche(ficheParId(fiche.id), fiche.contenus, { ...fiche.affichage, base: baseURL() }));
 
-// Feuille panachée : le code « Z… » redonne la même composition (notions, options, graine, mini-rappel).
-// Les réglages Nom / Date et corrigé sont ceux de la fiche courante.
-function preparerPanache({ notions, graine, miniRappel, affichage }) {
-  preparerFiche({ affichage });
-  panache = composer({ notions, graine, miniRappel });
+const codesAffiches = () => (panache ? panache.codes : fiche.contenus.map((c) => c.code));
+
+/* --- Composition ---------------------------------------------------- */
+
+// Plusieurs feuilles qui « tournent » : chacune prend une fenêtre de la sélection, la suivante
+// commence là où la précédente s'arrête (toutes les notions passent, cinq au plus par feuille).
+function fenetre(ids, k) {
+  const n = ids.length;
+  const t = n > NOTIONS_MAX ? NOTIONS_MAX : Math.min(n, Math.max(2, Math.ceil(n / 2)));
+  return Array.from({ length: t }, (_, i) => ids[(k * t + i) % n]);
+}
+
+// plans : [{ notions: [{ id, options }], graine, miniRappel }]
+function construirePanache(plans) {
+  const compos = plans.map((p) => composer({ notions: p.notions, graine: p.graine, miniRappel: p.miniRappel }));
+  const codes = [...new Set(compos.map((c) => c.code))];
+  const vus = new Map();
+  compos.forEach((c) => c.notions.forEach((n) => vus.set(n.id, n)));
+  const notions = FICHES.filter((f) => vus.has(f.id)).map((f) => vus.get(f.id));
+  panache = { compos, feuilles: compos.flatMap((c) => c.feuilles), codes, code: codes[0], notions, miniRappel: compos[0].miniRappel };
+}
+
+const idsCoches = () => FICHES.map((f) => f.id).filter((id) => fiche.selection.includes(id));
+const optionsDeNotion = (id) => ({ ...optionsParDefaut(ficheParId(id)), ...fiche.optionsNotions[id] });
+
+// Fabrique la fiche ou la feuille panachée qui correspond à la sélection.
+function composerSelection({ retirer = false } = {}) {
+  const ids = idsCoches();
+  if (ids.length === 1) {
+    panache = null;
+    preparerFiche({ id: ids[0], options: optionsDeNotion(ids[0]), retirer });
+  } else {
+    const c = fiche.compo;
+    const nb = fiche.affichage.nb;
+    if (retirer || c.graines.length !== nb) c.graines = Array.from({ length: nb }, graineAlea);
+    construirePanache(c.graines.map((graine, k) => ({
+      graine, miniRappel: c.miniRappel,
+      notions: (c.rotation && nb > 1 ? fenetre(ids, k) : ids).map((id) => ({ id, options: optionsDeNotion(id) })),
+    })));
+  }
+  fiche.valide = true;
+}
+
+// Ouvre ce que décrivent un ou plusieurs codes (QR code, lien, saisie) et en déduit la sélection :
+// « Retour » remonte alors au pas 1 avec les bonnes cases cochées.
+function ouvrirCodes(trouves, affichage) {
+  if (trouves[0].panache) {
+    preparerFiche({ affichage: { ...affichage, nb: trouves.length } });
+    construirePanache(trouves.map((t) => ({ notions: t.notions, graine: t.graine, miniRappel: t.miniRappel })));
+  } else {
+    panache = null;
+    preparerFiche({ id: trouves[0].fiche.id, options: trouves[0].options, graines: trouves.map((t) => t.graine), affichage });
+  }
+  const optionsNotions = {};
+  const ids = new Set();
+  const ensembles = new Set();
+  for (const t of trouves) {
+    const notions = t.panache ? t.notions : [{ id: t.fiche.id, options: t.options }];
+    notions.forEach((n) => { ids.add(n.id); optionsNotions[n.id] = n.options; });
+    ensembles.add(notions.map((n) => n.id).sort().join());
+  }
+  fiche.selection = [...ids];
+  fiche.optionsNotions = optionsNotions;
+  fiche.compo = { miniRappel: !!trouves[0].miniRappel, rotation: ensembles.size > 1, graines: trouves.map((t) => t.graine) };
+  fiche.valide = true;
 }
 
 // Retrouve une fiche déjà imprimée à partir de son code (ou de son QR code).
 function retrouverFiche(code) {
   const trouve = decoder(code);
   if (!trouve) return false;
-  if (trouve.panache) {
-    preparerPanache(trouve);
-    return true;
-  }
-  panache = null;
-  preparerFiche({ id: trouve.fiche.id, options: trouve.options, graines: [trouve.graine] });
+  ouvrirCodes([trouve]);
   return true;
+}
+
+/* --- Pas et adresse -------------------------------------------------- */
+
+// Le pas courant est dans l'adresse (?pas=2) : le bouton retour du navigateur marche.
+const adressePas = (n) => `${window.location.pathname}?pas=${n}`;
+
+// Un pas au-delà du premier n'a de sens qu'avec au moins une notion cochée.
+function pasPossible(n) {
+  return n > 1 && fiche && fiche.selection.length ? Math.min(3, n) : 1;
+}
+
+function afficherPas(n) {
+  const pas = pasPossible(n);
+  if (pas > 1) {
+    if (!fiche.valide) composerSelection({ retirer: true });
+    if (pas === 2) fiche.arrivee = false;
+  }
+  vue = { nom: 'fiches', pas };
+  return pas;
+}
+
+function allerPas(n) {
+  const pas = afficherPas(n);
+  if (window.location.search !== `?pas=${pas}`) window.history.pushState({ pas }, '', adressePas(pas));
+  rendre();
+  window.scrollTo(0, 0);
+}
+
+// Le pas précédent ; depuis un lien ou un QR code, on remonte tout en haut, à la liste des notions.
+const pasPrecedent = () => (vue.pas === 3 && fiche.arrivee ? 1 : vue.pas - 1);
+
+window.addEventListener('popstate', () => {
+  const pas = Number(new URLSearchParams(window.location.search).get('pas'));
+  if (pas) {
+    afficherPas(pas);
+    rendre();
+  } else if (vue.nom === 'fiches') {
+    vue = { nom: 'accueil' };
+    rendre();
+  }
+  window.scrollTo(0, 0);
+});
+
+// Un changement de réglage ne fait pas sauter la page.
+function rafraichir() {
+  const y = window.scrollY;
+  vueFiches();
+  window.scrollTo(0, y);
 }
 
 const URL_DEPOT = 'https://github.com/Eric-D/ZIGTOP/blob/main/';
 
-function vueFiches() {
-  const c = classeCourante();
-  const disponibles = fichesDe(c.id);
-  const liste = disponibles.length ? disponibles : FICHES;
+const ETAPES = ['Que réviser', 'Composer', 'Imprimer'];
 
-  if (!fiche || !liste.some((f) => f.id === fiche.id)) preparerFiche({ id: liste[0].id, retirer: true });
-  const active = ficheParId(fiche.id);
+function ariane(pas) {
+  const permis = fiche && fiche.selection.length > 0;
+  return `
+    <nav class="ariane" aria-label="Les trois pas">
+      <ol>${ETAPES.map((nom, i) => `
+        <li><button class="ariane__pas" data-pas="${i + 1}" ${i + 1 === pas ? 'aria-current="step"' : ''}
+                    ${i > 0 && !permis ? 'disabled' : ''}><span class="ariane__num">${i + 1}</span> ${nom}</button></li>`).join('')}
+      </ol>
+    </nav>`;
+}
+
+const boutonRetour = (pas) => (pas > 1
+  ? `<button class="btn btn--fantome retour" data-pas="${pasPrecedent()}">← Retour</button>`
+  : '<button class="btn btn--fantome retour" data-aller="accueil">← Retour</button>');
+
+const nomsNotions = () => (panache ? panache.notions : [{ id: fiche.id }]).map((n) => ficheParId(n.id).court).join(' · ');
+
+function pasReviser(c, liste, disponibles) {
+  const n = fiche.selection.length;
+  return `
+      ${bulle('Coche ce que tu veux réviser : une leçon, et je fabrique sa fiche ; plusieurs, et je les mélange sur une même feuille. Avec son corrigé !', 'curieux', 78)}
+      ${disponibles.length ? '' : `<p class="note">Pas encore de fiche pour le ${c.nom} — voici celles qui existent aujourd’hui.</p>`}
+      ${DOMAINES.map((dom) => {
+        const lignes = liste.filter((f) => f.domaine === dom);
+        if (!lignes.length) return '';
+        return `
+      <div class="section-titre">${dom}</div>
+      <div class="liste-fiches">
+        ${lignes.map((f) => {
+          const coche = fiche.selection.includes(f.id);
+          return `
+          <div class="fiche ${coche ? 'fiche--active' : ''}">
+            <label class="fiche__choix">
+              <input type="checkbox" class="fiche__case" data-fiche="${f.id}" ${coche ? 'checked' : ''} />
+              <span class="fiche__emoji">${f.emoji}</span>
+              <span class="fiche__texte">
+                <span class="fiche__titre">${f.titre}</span>
+                <span class="fiche__pages">p. ${f.pages}</span>
+                <span class="fiche__objectif">${f.objectif}</span>
+              </span>
+            </label>
+            <a class="fiche__lecon" href="${URL_DEPOT}${f.lecon}" target="_blank" rel="noopener">leçon</a>
+            ${coche && (f.options || []).length ? `
+            <div class="fiche__options">${f.options.map((o) => `
+              <div class="reglage">
+                <div class="reglage__libelle">${o.libelle}</div>
+                <div class="reglage__options">${o.valeurs.map((v) => `
+                  <button class="option" data-fiche-id="${f.id}" data-fiche-option="${o.id}" data-valeur="${v.v}"
+                          aria-pressed="${optionsDeNotion(f.id)[o.id] === v.v}">${v.nom}</button>`).join('')}
+                </div>
+              </div>`).join('')}
+            </div>` : ''}
+          </div>`;
+        }).join('')}
+      </div>`;
+      }).join('')}
+      <div class="barre-pas barre-pas--collante">
+        <div class="barre-pas__compte" id="compte-notions" aria-live="polite">${n
+          ? `${n} notion${n > 1 ? 's' : ''} choisie${n > 1 ? 's' : ''}` : 'Coche une ou plusieurs notions'}</div>
+        <button class="btn btn--vert" data-pas="2" ${n ? '' : 'disabled'}>Continuer →</button>
+      </div>
+      <div class="pied-page"><button class="btn btn--fantome" data-aller="accueil">← Retour à l’île</button></div>`;
+}
+
+function pasComposer() {
+  const aff = fiche.affichage;
+  const n = fiche.selection.length;
+  const c = fiche.compo;
+  const bascule = (attr, id, titre, oui, non, vrai, aide) => `
+    <div class="reglage">
+      <div class="reglage__libelle">${titre}</div>
+      <div class="reglage__options">
+        <button class="option" data-${attr}="${id}" data-valeur="${oui[0]}" aria-pressed="${vrai}">${oui[1]}</button>
+        <button class="option" data-${attr}="${id}" data-valeur="${non[0]}" aria-pressed="${!vrai}">${non[1]}</button>
+      </div>
+      ${aide ? `<div class="reglage__aide">${aide}</div>` : ''}
+    </div>`;
+  const codes = codesAffiches();
+  return `
+      <div class="section-titre">Composer ta feuille</div>
+      <div class="carte reglages">
+        <div class="reglage">
+          <div class="reglage__libelle">${n > 1 ? 'Révision' : 'Fiche'} : ${nomsNotions()}</div>
+          <div class="reglage__aide">${n > 1
+            ? 'Un exercice par notion, pour t’entraîner à reconnaître la bonne méthode.'
+            : 'La fiche complète : le rappel, puis des exercices du plus guidé au plus ouvert.'}</div>
+        </div>
+        ${n > 1
+          ? bascule('compo', 'mini', 'Mini-rappel', ['oui', 'Avec'], ['non', 'Sans'], c.miniRappel,
+            'Une ligne de rappel par exercice, en haut de la feuille.')
+          : bascule('affichage', 'methode', 'Rappel de la méthode', ['oui', 'Avec'], ['non', 'Sans'], aff.methode,
+            'Sans le rappel, la place libérée sert à plus d’exercices.')}
+        <div class="reglage">
+          <div class="reglage__libelle">Nombre de feuilles</div>
+          <div class="reglage__options">
+            ${[1, 2, 4, 6].map((k) => `
+              <button class="option" data-nb-feuilles="${k}" aria-pressed="${aff.nb === k}">${k}</button>`).join('')}
+          </div>
+          <div class="reglage__aide">Chaque feuille a ses propres exercices et son propre code.</div>
+        </div>
+        ${n > 1 && aff.nb > 1 ? bascule('compo', 'rotation', 'Les feuilles', ['memes', 'Reprennent les mêmes notions'], ['tournent', 'Tournent sur les notions'], !c.rotation,
+          '« Tournent » : chaque feuille prend quelques notions de ta sélection, la suivante prend les autres.') : ''}
+      </div>
+
+      <div class="section-titre">${codes.length > 1 ? 'Les codes' : 'Le code'} de ta composition</div>
+      <div class="carte code-composition">
+        <div class="code-grand" id="code-composition">${codes.map((k) => `<span>${k}</span>`).join('')}</div>
+        <div class="reglage__aide">Ce code redonne exactement les mêmes exercices, et leur corrigé : note-le, ou garde-le sur la feuille imprimée.</div>
+      </div>
+      <div class="barre-fiche">
+        <button class="btn btn--jaune" id="regenerer">🎲 Autres exercices</button>
+      </div>
+      <div class="barre-pas">
+        <div class="barre-pas__compte">${panache ? panache.feuilles.length : fiche.contenus.length} feuille${(panache ? panache.feuilles.length : fiche.contenus.length) > 1 ? 's' : ''}</div>
+        <button class="btn btn--vert" data-pas="3">Continuer →</button>
+      </div>`;
+}
+
+function pasImprimer() {
   const aff = fiche.affichage;
   const bascule = (id, titre, oui, non, aide) => `
     <div class="reglage">
@@ -318,72 +548,17 @@ function vueFiches() {
       </div>
       ${aide ? `<div class="reglage__aide">${aide}</div>` : ''}
     </div>`;
-
-  app.innerHTML = `
-    <div class="no-print">
-      ${entete('Une fiche à imprimer, puis un crayon !')}
-      ${bulle('Choisis une leçon : je fabrique une fiche neuve à chaque fois, avec son corrigé. Tu peux la faire sur papier, tranquillement.', 'curieux', 78)}
-      ${disponibles.length ? '' : `<p class="note">Pas encore de fiche pour le ${c.nom} — voici celles qui existent aujourd’hui.</p>`}
-      ${panache ? `
-      <div class="section-titre">Feuille panachée</div>
-      <div class="carte reglages">
-        <div class="reglage">
-          <div class="reglage__libelle">Révision : ${panache.notions.map((n) => ficheParId(n.id).court).join(' · ')}</div>
-          <div class="reglage__aide">Un exercice par notion, pour t’entraîner à reconnaître la bonne méthode.
-            ${panache.feuilles.length > 1 ? `Il y a ${panache.feuilles.length} feuilles : tout ne tient pas sur une page.` : ''}</div>
-          <button class="btn" data-fiche="${fiche.id}">← Revenir aux fiches</button>
-        </div>
-      </div>` : DOMAINES.map((dom) => {
-        const lignes = liste.filter((f) => f.domaine === dom);
-        if (!lignes.length) return '';
-        return `
-      <div class="section-titre">${dom}</div>
-      <div class="liste-fiches">
-        ${lignes.map((f) => `
-          <div class="fiche ${f.id === fiche.id ? 'fiche--active' : ''}">
-            <button class="fiche__choix" data-fiche="${f.id}" aria-pressed="${f.id === fiche.id}">
-              <span class="fiche__emoji">${f.emoji}</span>
-              <span class="fiche__texte">
-                <span class="fiche__titre">${f.titre}</span>
-                <span class="fiche__pages">p. ${f.pages}</span>
-                <span class="fiche__objectif">${f.objectif}</span>
-              </span>
-            </button>
-            <a class="fiche__lecon" href="${URL_DEPOT}${f.lecon}" target="_blank" rel="noopener">leçon</a>
-          </div>`).join('')}
-      </div>`;
-      }).join('')}
-
+  const codes = codesAffiches();
+  const n = (panache ? panache.feuilles.length : fiche.contenus.length) * ((aff.eleve ? 1 : 0) + (aff.corrige || !aff.eleve ? 1 : 0));
+  return `
       <div class="section-titre">Réglages de la fiche</div>
       <div class="carte reglages">
-        ${panache ? '' : (active.options || []).map((o) => `
-          <div class="reglage">
-            <div class="reglage__libelle">${o.libelle}</div>
-            <div class="reglage__options">
-              ${o.valeurs.map((v) => `
-                <button class="option" data-fiche-option="${o.id}" data-valeur="${v.v}"
-                        aria-pressed="${fiche.options[o.id] === v.v}">${v.nom}</button>`).join('')}
-            </div>
-          </div>`).join('')}
-        ${panache ? '' : `<div class="reglage">
-          <div class="reglage__libelle">Nombre de feuilles</div>
-          <div class="reglage__options">
-            ${[1, 2, 4, 6].map((n) => `
-              <button class="option" data-nb-feuilles="${n}" aria-pressed="${aff.nb === n}">${n}</button>`).join('')}
-          </div>
-          <div class="reglage__aide">Chaque feuille a ses propres exercices et son propre code.
-            À l’impression, toutes les pages élève sortent d’abord, les corrigés ensuite.</div>
-        </div>
-        ${bascule('methode', 'Rappel de la méthode', 'Avec', 'Sans',
-          'Sans le rappel, la place libérée sert à quatre additions et une opération à poser de plus.')}`}
         ${bascule('identite', 'Ligne « Nom / Date »', 'Avec', 'Sans', '')}
-        ${bascule('corrige', 'Corrigé', 'Avec', 'Sans',
-          'Les corrigés s’impriment après les pages élève, à garder par l’adulte.')}
+        ${bascule('corrige', 'Corrigé', 'Avec', 'Sans', 'Les corrigés s’impriment après les pages élève, à garder par l’adulte.')}
       </div>
 
       <div class="barre-fiche">
         <button class="btn btn--vert" id="imprimer">🖨️ Imprimer</button>
-        <button class="btn btn--jaune" id="regenerer">🎲 Autres exercices</button>
       </div>
       <div class="section-titre">Partager</div>
       <div class="carte reglages">
@@ -422,25 +597,39 @@ function vueFiches() {
         <div class="reglage">
           <div class="reglage__libelle">Retrouver une fiche déjà imprimée</div>
           <div class="recherche-code">
-            <input class="champ" id="code-fiche" maxlength="40" placeholder="Code : ${panache ? panache.code : fiche.contenus[0].code}"
+            <input class="champ" id="code-fiche" maxlength="40" placeholder="Code : ${codes[0]}"
                    aria-label="Code de la fiche à retrouver" />
             <button class="btn" id="retrouver">Retrouver</button>
           </div>
           <div class="reglage__aide" id="message-code">Chaque fiche imprimée porte un code et un QR code :
             ils redonnent exactement les mêmes exercices, et leur corrigé.
-            ${panache ? `Cette feuille panachée est la <strong>${panache.code}</strong>.` : fiche.contenus.length > 1
-              ? `Ces feuilles-ci : <strong>${fiche.contenus.map((c) => c.code).join('</strong>, <strong>')}</strong>.`
-              : `Cette fiche-ci est la <strong>${fiche.contenus[0].code}</strong>.`}</div>
+            ${codes.length > 1 ? `Ces feuilles-ci : <strong>${codes.join('</strong>, <strong>')}</strong>.`
+              : `${panache ? 'Cette feuille panachée' : 'Cette fiche-ci'} est la <strong>${codes[0]}</strong>.`}</div>
         </div>
       </div>
-      ${(() => {
-        const n = (panache ? panache.feuilles.length : fiche.contenus.length) * ((aff.eleve ? 1 : 0) + (aff.corrige || !aff.eleve ? 1 : 0));
-        return `<p class="note">Aperçu ci-dessous : c’est exactement ce qui sortira de l’imprimante
-          (${n} page${n > 1 ? 's' : ''}).</p>`;
-      })()}
-      <div class="pied-page"><button class="btn btn--fantome" data-aller="accueil">← Retour à l’île</button></div>
+      <p class="note">Aperçu ci-dessous : c’est exactement ce qui sortira de l’imprimante
+        (${n} page${n > 1 ? 's' : ''}).</p>
+      <div class="pied-page"><button class="btn btn--fantome" data-aller="accueil">← Retour à l’île</button></div>`;
+}
+
+function vueFiches() {
+  const c = classeCourante();
+  const disponibles = fichesDe(c.id);
+  const liste = disponibles.length ? disponibles : FICHES;
+  if (!fiche) preparerFiche({ id: liste[0].id });
+  const pas = pasPossible(vue.pas || 1);
+  if (pas > 1 && !fiche.valide) composerSelection({ retirer: true });
+  vue = { nom: 'fiches', pas };
+
+  const corps = [pasReviser.bind(null, c, liste, disponibles), pasComposer, pasImprimer][pas - 1]();
+  app.innerHTML = `
+    <div class="no-print tunnel" data-etape="${pas}">
+      ${entete('Une fiche à imprimer, puis un crayon !')}
+      <div class="tunnel__haut">${boutonRetour(pas)}${ariane(pas)}</div>
+      ${corps}
     </div>
-    <div id="impression">${ficheHTML()}</div>`;
+    ${pas === 3 ? `<div id="impression">${ficheHTML()}</div>` : ''}`;
+  if (pas !== 3) return;
 
   app.querySelector('#imprimer').addEventListener('click', () => window.print());
   app.querySelectorAll('[data-copier]').forEach((b) => b.addEventListener('click', async () => {
@@ -465,17 +654,11 @@ function vueFiches() {
       vueFiches();
     } else {
       app.querySelector('#message-code').innerHTML =
-        `Ce code n’est pas reconnu : vérifie les lettres et les chiffres (par exemple ${panache ? panache.code : fiche.contenus[0].code}).`;
+        `Ce code n’est pas reconnu : vérifie les lettres et les chiffres (par exemple ${codesAffiches()[0]}).`;
     }
   });
   app.querySelector('#code-fiche').addEventListener('keydown', (ev) => {
     if (ev.key === 'Enter') app.querySelector('#retrouver').click();
-  });
-  app.querySelector('#regenerer').addEventListener('click', () => {
-    Son.jouer('clic');
-    if (panache) panache = composer({ notions: panache.notions, graine: Math.floor(Math.random() * 36 ** 6), miniRappel: panache.miniRappel });
-    else preparerFiche({ retirer: true });
-    vueFiches();
   });
 }
 
@@ -750,7 +933,14 @@ function vueProgres() {
 /* ------------------------------------------------------------------ */
 
 function aller(v) {
-  vue = v;
+  if (v.nom === 'fiches') {
+    // On entre dans le tunnel par son premier pas, et le bouton retour du navigateur le quitte.
+    vue = { nom: 'fiches', pas: 1 };
+    if (window.location.search !== '?pas=1') window.history.pushState({ pas: 1 }, '', adressePas(1));
+  } else {
+    vue = v;
+    if (window.location.search.includes('pas=')) window.history.replaceState(null, '', window.location.pathname);
+  }
   rendre();
   window.scrollTo(0, 0);
 }
@@ -782,26 +972,44 @@ function majArdoise() {
 }
 
 app.addEventListener('click', (ev) => {
-  const cible = ev.target.closest('[data-aller],[data-jouer],[data-touche],[data-choix],[data-decor],[data-reglage],[data-fiche],[data-fiche-option],[data-affichage],[data-nb-feuilles],#suivant,#ecouter');
+  const cible = ev.target.closest('[data-aller],[data-jouer],[data-touche],[data-choix],[data-decor],[data-reglage],[data-pas],[data-fiche],[data-fiche-option],[data-affichage],[data-nb-feuilles],[data-compo],#regenerer,#suivant,#ecouter');
   if (!cible) return;
 
+  if (cible.dataset.pas) return allerPas(Number(cible.dataset.pas));
   if (cible.dataset.fiche) {
-    panache = null;
-    preparerFiche({ id: cible.dataset.fiche, retirer: true });
-    return vueFiches();
+    const id = cible.dataset.fiche;
+    fiche.selection = fiche.selection.includes(id) ? fiche.selection.filter((x) => x !== id) : [...fiche.selection, id];
+    fiche.valide = false;
+    rafraichir();
+    const case_ = app.querySelector(`[data-fiche="${id}"]`);
+    if (case_ && document.activeElement !== case_) case_.focus({ preventScroll: true });
+    return;
   }
   if (cible.dataset.ficheOption) {
-    panache = null;
-    preparerFiche({ options: { ...fiche.options, [cible.dataset.ficheOption]: cible.dataset.valeur }, retirer: true });
-    return vueFiches();
+    const id = cible.dataset.ficheId;
+    fiche.optionsNotions[id] = { ...optionsDeNotion(id), [cible.dataset.ficheOption]: cible.dataset.valeur };
+    fiche.valide = false;
+    return rafraichir();
   }
   if (cible.dataset.affichage) {
     preparerFiche({ affichage: { [cible.dataset.affichage]: cible.dataset.valeur === 'oui' } });
-    return vueFiches();
+    return rafraichir();
   }
   if (cible.dataset.nbFeuilles) {
     preparerFiche({ affichage: { nb: Number(cible.dataset.nbFeuilles) } });
-    return vueFiches();
+    composerSelection();
+    return rafraichir();
+  }
+  if (cible.dataset.compo) {
+    if (cible.dataset.compo === 'mini') fiche.compo.miniRappel = cible.dataset.valeur === 'oui';
+    else fiche.compo.rotation = cible.dataset.valeur === 'tournent';
+    composerSelection({ retirer: false });
+    return rafraichir();
+  }
+  if (cible.id === 'regenerer') {
+    Son.jouer('clic');
+    composerSelection({ retirer: true });
+    return rafraichir();
   }
 
   if (cible.dataset.reglage) {
@@ -869,6 +1077,12 @@ window.addEventListener('keydown', (ev) => {
 //   &methode=0 &nom=0             l'affichage exact de la feuille imprimée
 function ouvrirDepuisURL() {
   const p = new URLSearchParams(window.location.search);
+  // ?pas=2 : le tunnel à ce pas (le premier si rien n'est encore coché).
+  if (p.get('pas') && !p.get('fiche') && !p.get('fiches')) {
+    vue = { nom: 'fiches', pas: 1 };
+    window.history.replaceState({ pas: 1 }, '', adressePas(1));
+    return true;
+  }
   const codes = (p.get('fiches') || p.get('fiche') || '').split(',').map((c) => c.trim()).filter(Boolean).slice(0, 12);
   if (!codes.length) return false;
 
@@ -883,19 +1097,11 @@ function ouvrirDepuisURL() {
     corrige: p.get('vue') !== 'eleve',
     eleve: p.get('vue') !== 'corrige',
   };
-  if (trouves[0].panache) {
-    // ?fiche=Z… : une feuille panachée (un seul code, qui redonne toutes ses feuilles)
-    preparerPanache({ ...trouves[0], affichage });
-  } else {
-    preparerFiche({
-      id: trouves[0].fiche.id,
-      options: trouves[0].options,
-      graines: trouves.map((t) => t.graine),
-      affichage,
-    });
-  }
-  vue = { nom: 'fiches' };
-  window.history.replaceState(null, '', window.location.pathname);
+  // Un lien ou un QR code arrive directement au pas 3, avec l'aperçu.
+  ouvrirCodes(trouves, affichage);
+  fiche.arrivee = true;
+  vue = { nom: 'fiches', pas: 3 };
+  window.history.replaceState({ pas: 3 }, '', adressePas(3));
   return true;
 }
 

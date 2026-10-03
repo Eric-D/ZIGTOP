@@ -267,7 +267,10 @@ async function ouvrir(recherche, profil) {
   verifier(d.querySelectorAll('.feuille').length === 1 && d.querySelector('.feuille__code').textContent.trim() === compo.code, 'appli : réglage Corrigé : sans corrigé, même feuille');
   clic('[data-affichage="eleve"][data-valeur="non"]');
   verifier(d.querySelector('.feuille--corrige') && !d.querySelector('.feuille:not(.feuille--corrige)'), 'appli : « Corrigé seul » ne montre que les corrigés');
+  clic('[data-affichage="eleve"][data-valeur="oui"]');
+  clic('.ariane__pas[data-pas="2"]');
   clic('#regenerer');
+  clic('[data-pas="3"]:not(.ariane__pas)');
   verifier(d.querySelector('.feuille__code').textContent.trim() !== compo.code && decoder(d.querySelector('.feuille__code').textContent).panache === true, 'appli : « Autres exercices » refait une feuille panachée (nouvelle graine)');
 
   // Retrouver par la saisie du code, puis revenir aux fiches simples
@@ -277,11 +280,15 @@ async function ouvrir(recherche, profil) {
   const ancien = tirer(FICHES[0], optionsParDefaut(FICHES[0]), 4242).code;
   d.querySelector('#code-fiche').value = ancien;
   clic('#retrouver');
-  verifier(d.querySelector('.feuille__code').textContent.trim() === ancien && !!d.querySelector('[data-fiche-option]'), 'appli : un ancien code retrouve la fiche simple, avec ses réglages');
+  verifier(d.querySelector('.feuille__code').textContent.trim() === ancien && !d.querySelector('.feuille--panache'), 'appli : un ancien code retrouve la fiche simple');
   d.querySelector('#code-fiche').value = compo.code;
   clic('#retrouver');
-  clic('[data-fiche]');
-  verifier(!decoder(d.querySelector('.feuille__code').textContent).panache && !!d.querySelector('[data-nb-feuilles]'), 'appli : « Revenir aux fiches » retrouve la fiche simple');
+  clic('.ariane__pas[data-pas="1"]');
+  const cochees = [...d.querySelectorAll('[data-fiche]:checked')];
+  verifier(cochees.length === 4, 'appli : « Retour » recoche les quatre notions de la feuille panachée');
+  cochees.slice(1).forEach((c) => clic(`[data-fiche="${c.dataset.fiche}"]`));
+  clic('.barre-pas [data-pas]'); clic('[data-pas="3"]:not(.ariane__pas)');
+  verifier(!decoder(d.querySelector('.feuille__code').textContent).panache && !d.querySelector('.feuille--panache'), 'appli : une seule notion cochée redonne la fiche simple');
 
   // Ancien lien toujours valable
   d = await ouvrir(`?fiche=${ancien}&vue=corrige`, null);

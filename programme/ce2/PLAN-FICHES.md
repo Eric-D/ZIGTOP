@@ -45,7 +45,7 @@ réviser*, *composer* et *imprimer*, et permet des feuilles qui panachent les no
 | # | Sujet | Issue | État |
 | --- | --- | --- | --- |
 | 19 | Feuille panachée : un exercice par notion choisie, code `Z…`, tenue sur une A4 par hauteurs mesurées | [#19](https://github.com/Eric-D/ZIGTOP/issues/19) | ✅ en ligne (moteur ; l'interface vient avec #20) |
-| 20 | Tunnel en trois pas : que réviser → composer → imprimer et partager | [#20](https://github.com/Eric-D/ZIGTOP/issues/20) | ⬜ à faire |
+| 20 | Tunnel en trois pas : que réviser → composer → imprimer et partager | [#20](https://github.com/Eric-D/ZIGTOP/issues/20) | ✅ en ligne |
 | 21 | Raccourcis : jusqu'à la page N, un domaine, la révision de la semaine | [#21](https://github.com/Eric-D/ZIGTOP/issues/21) | ⬜ à faire |
 
 ## Règles communes à toutes les fiches

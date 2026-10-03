@@ -32,7 +32,10 @@ const profil = {
 /* 1. On fabrique une fiche et on récupère ses liens ---------------- */
 
 let d = await ouvrir('', profil);
-d.querySelector('[data-aller="fiches"]').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+const clic = (el) => el.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+// Le tunnel : on coche une notion, on continue deux fois, et on arrive au pas 3 (partage).
+const versPas3 = (doc) => { clic(doc.querySelector('[data-aller="fiches"]')); clic(doc.querySelector('[data-fiche]')); clic(doc.querySelector('[data-pas="2"]:not(.ariane__pas)')); clic(doc.querySelector('[data-pas="3"]:not(.ariane__pas)')); };
+versPas3(d);
 const codes = [...d.querySelectorAll('.feuille__code')].map((e) => e.textContent.trim());
 const code = codes[0];
 const lienCorrige = d.querySelector('#lien-corrige').value;
@@ -65,9 +68,11 @@ verifier(d.querySelectorAll('.operations .pose__resultat .reponse').length === 0
 /* 3. Plusieurs feuilles, et les options d'affichage voyagent ------- */
 
 d = await ouvrir('', profil);
-d.querySelector('[data-aller="fiches"]').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
-d.querySelector('[data-nb-feuilles="2"]').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
-d.querySelector('[data-affichage="methode"][data-valeur="non"]').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+versPas3(d);
+clic(d.querySelector('[data-pas="2"].ariane__pas'));
+clic(d.querySelector('[data-nb-feuilles="2"]'));
+clic(d.querySelector('[data-affichage="methode"][data-valeur="non"]'));
+clic(d.querySelector('[data-pas="3"]:not(.ariane__pas)'));
 const lienDeux = d.querySelector('#lien-corrige').value;
 const deuxCodes = [...new Set([...d.querySelectorAll('.feuille__code')].map((e) => e.textContent.trim()))];
 verifier(lienDeux.includes('fiches=') && lienDeux.includes(deuxCodes.join(',')), 'les deux codes sont dans le lien');
