@@ -20,6 +20,15 @@ C'est la règle qui guide toute l'interface :
 - la difficulté s'ajuste toute seule (3 niveaux par thème) pour que l'enfant reste dans la zone
   où il réussit souvent : elle monte au-dessus de 85 % de réussite, et redescend en douceur en dessous de 45 %.
 
+## Le programme : le livret de leçons transcrit
+
+Le dossier [`programme/ce2/`](programme/ce2/README.md) contient la transcription en Markdown
+du livret de leçons de mathématiques de CE2 (nombres et calculs, grandeurs et mesures,
+géométrie, gestion de données), une leçon par fichier, avec un index qui liste les pages
+couvertes, celles qui manquent et les passages à vérifier. C'est la **source des fiches de
+révision** : chaque fiche à venir s'appuie sur la leçon correspondante, dans les mêmes
+termes que ceux que l'enfant a vus en classe.
+
 ## Fiches de révision à imprimer
 
 Depuis l'accueil, **🖨️ Fiches à imprimer** fabrique une fiche A4 prête à sortir de
@@ -257,6 +266,8 @@ js/progression.js         étoiles, niveaux adaptatifs, badges, série de jours 
 js/utils.js               aléatoire, mélange, nombres en toutes lettres
 icons/                    icônes de l'application
 tests/                    tests de parcours (jsdom)
+programme/ce2/            le livret de leçons transcrit, une leçon par fichier (+ index)
+programme/outils/         assembler.py : regénère les leçons depuis les transcriptions brutes
 ```
 
 ⚠️ Après modification d'un fichier, incrémenter `VERSION` dans `sw.js` pour que les
