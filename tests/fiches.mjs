@@ -514,7 +514,7 @@ for (const opt of optionsMult) {
 {
   const nb = FICHES.find((f) => f.id === 'ce2-nombres-lire-ecrire');
   console.log('— Nombres : lire, écrire, décomposer');
-  verifier(FICHES.indexOf(nb) === FICHES.length - 1 && FICHES.length === 4, 'nombres : fiche ajoutée en fin de FICHES');
+  verifier(FICHES.indexOf(nb) === 3 && FICHES.length === 5, 'nombres : fiche à son rang dans FICHES (index 3)');
   verifier(nb.options[0].valeurs.map((v) => v.v).join() === '1000,10000' && nb.options[0].defaut === '10000', 'nombres : option taille 1000 / 10000, défaut 10000');
 
   // Écriture en lettres recalculée par une autre méthode que enLettres (nombres sans 0).
@@ -647,6 +647,161 @@ for (const opt of optionsMult) {
     const f = FICHES.find((x) => x.id === id); return somme(empreinte(f, f.options[0].id === 'taille' ? { taille: v } : { facteur: v }));
   });
   verifier(verif.join() === '2857615915,841554819,1341628403', `addition, soustraction, multiplication : rendu inchangé (${verif.join()})`);
+}
+
+/* Nombres : comparer, ranger, encadrer ------------------------------- */
+{
+  const cp = FICHES.find((f) => f.id === 'ce2-nombres-comparer');
+  const nbl = FICHES.find((f) => f.id === 'ce2-nombres-lire-ecrire');
+  console.log('— Nombres : comparer, ranger, encadrer');
+  verifier(FICHES.indexOf(cp) === FICHES.length - 1 && FICHES.length === 5, 'comparer : fiche ajoutée en fin de FICHES');
+  verifier(cp.titre === 'Les nombres : comparer, ranger, encadrer' && cp.emoji === '⚖️', 'comparer : titre et emoji');
+  verifier(cp.options[0].id === 'taille' && cp.options[0].valeurs.map((v) => v.v).join() === '1000,10000' && cp.options[0].defaut === '10000'
+    && cp.options[0].valeurs[0].nom === 'Jusqu’à 999' && cp.options[0].valeurs[1].nom === 'Jusqu’à 9 999', 'comparer : option taille 1000 / 10000, défaut 10000');
+
+  const num = (t) => parseInt(String(t).replace(/\s/g, ''), 10);
+  const txt = (el) => el.textContent.replace(/\s+/g, ' ').trim();
+  const nums = (el) => [...el.querySelectorAll('.n')].map((e) => num(e.textContent));
+  // Bornes recalculées par division : multiples de 10, 100, 1 000 immédiatement inférieur et supérieur.
+  const unite = { dizaine: 10, centaine: 100, millier: 1000 };
+  const inf = (n, u) => n - (n % u), sup = (n, u) => n - (n % u) + u;
+  const doc = (c, o) => new JSDOM(`<div>${rendre(cp, c, o)}</div>`).window.document;
+
+  for (const taille of ['1000', '10000']) {
+    const [min, max] = taille === '1000' ? [100, 999] : [100, 9999];
+    for (const methode of [true, false]) {
+      const nom = `comparer ${taille} ${methode ? 'avec' : 'sans'} méthode`;
+      const k = methode ? { paires: 6, rang: 5, enc: 3, inter: 2, pts: 4 } : { paires: 8, rang: 6, enc: 4, inter: 3, pts: 6 };
+      const c = tirer(cp, { taille }, 987654);
+      const d = doc(c, { corrige: true, methode });
+      const [pe, pc] = d.querySelectorAll('.feuille');
+
+      // Comptes identiques élève / corrigé
+      verifier(pe.querySelectorAll('.paire').length === k.paires && pc.querySelectorAll('.paire').length === k.paires, `${nom} : ${k.paires} paires (élève et corrigé)`);
+      verifier(pe.querySelectorAll('.rang').length === 2 && pc.querySelectorAll('.rang').length === 2
+        && pe.querySelectorAll('.rang')[0].querySelectorAll('.n').length === k.rang, `${nom} : 2 rangements de ${k.rang} nombres`);
+      verifier(pe.querySelectorAll('.encadrement').length === k.enc && pc.querySelectorAll('.encadrement').length === k.enc
+        && pe.querySelectorAll('.intercalation').length === k.inter && pc.querySelectorAll('.intercalation').length === k.inter, `${nom} : ${k.enc} encadrements et ${k.inter} intercalations`);
+      verifier(pe.querySelectorAll('svg.demi-droite').length === 1 && pc.querySelectorAll('svg.demi-droite').length === 1
+        && pc.querySelectorAll('.fleche').length === k.pts && pe.querySelectorAll('.fleche').length === 0, `${nom} : ${k.pts} flèches au corrigé, aucune sur la page élève`);
+      verifier(pe.querySelectorAll('.bloc:not(.bloc--methode)').length === 4 && pc.querySelectorAll('.bloc').length === 4, `${nom} : 4 exercices (élève et corrigé)`);
+
+      // Exercice 1 : symboles recalculés
+      const paires = [...pc.querySelectorAll('.paire')].map((p) => ({ a: num(p.querySelector('.paire__a').textContent), b: num(p.querySelector('.paire__b').textContent), s: p.querySelector('.paire__symbole').textContent.trim() }));
+      verifier(paires.every(({ a, b, s }) => s === (a < b ? '<' : a > b ? '>' : '=')), `${nom} : symboles du corrigé exacts`);
+      verifier(paires.filter((p) => p.a === p.b).length === 1, `${nom} : une seule paire de nombres égaux`);
+      verifier(paires.some(({ a, b }) => Math.abs(a - b) === 1), `${nom} : un piège sur le dernier chiffre`);
+      verifier(paires.some(({ a, b }) => a !== b && String(a)[1] === '0' && String(b)[1] === '0') && paires.some(({ a, b }) => (String(a)[1] === '0') !== (String(b)[1] === '0')), `${nom} : pièges avec des zéros intercalés`);
+      verifier(paires.every(({ a, b }) => a >= min && a <= max && b >= min && b <= max) && (taille === '1000' || paires.some(({ a, b }) => String(a).length !== String(b).length)), `${nom} : nombres dans les bornes ${min}–${max}`);
+      const elevePaires = [...pe.querySelectorAll('.paire')];
+      verifier(elevePaires.every((p) => p.querySelector('.case-symbole') && p.querySelector('.case-symbole').textContent.trim() === '' && !/[<>=]/.test(p.textContent)), `${nom} : cases de symboles vides sur la page élève`);
+
+      // Exercice 2 : listes rangées, recalculées
+      const eleveListes = [...pe.querySelectorAll('.rang')].map(nums);
+      const corrListes = [...pc.querySelectorAll('.rang')].map(nums);
+      const trie = (l, s) => l.map((n) => n).sort((x, y) => s * (x - y));
+      verifier(JSON.stringify(corrListes[0]) === JSON.stringify(trie(eleveListes[0], 1)) && JSON.stringify(corrListes[1]) === JSON.stringify(trie(eleveListes[1], -1)), `${nom} : listes rangées (croissant, décroissant) exactes`);
+      verifier(eleveListes.every((l) => new Set(l).size === l.length && JSON.stringify(l) !== JSON.stringify(trie(l, 1)) && JSON.stringify(l) !== JSON.stringify(trie(l, -1))), `${nom} : listes données dans le désordre`);
+      const symbCorr = [...pc.querySelectorAll('.rang__reponse')].map((r) => [...r.querySelectorAll('.rang__signe')].map((e) => e.textContent.trim()).join(''));
+      verifier(symbCorr[0] === '<<<<<'.slice(0, k.rang - 1) && symbCorr[1] === '>>>>>'.slice(0, k.rang - 1), `${nom} : symboles < puis > dans le corrigé`);
+
+      // Exercice 3 : encadrements et nombres intercalés
+      const encEleve = [...pe.querySelectorAll('.encadrement')].map((e) => nums(e));
+      const encCorr = [...pc.querySelectorAll('.encadrement')];
+      let encOk = true, ordreUnites = [];
+      encCorr.forEach((li, i) => {
+        const n = nums(li)[0];
+        const u = li.querySelector('.ligne__texte').textContent.includes('dizaine') ? 10 : li.querySelector('.ligne__texte').textContent.includes('centaine') ? 100 : 1000;
+        ordreUnites.push(u);
+        const [b1, b2] = [...li.querySelectorAll('.borne')].map((e) => num(e.textContent));
+        if (n !== encEleve[i][0] || b1 !== inf(n, u) || b2 !== sup(n, u) || !(b1 < n && n < b2) || n % u === 0) encOk = false;
+      });
+      verifier(encOk, `${nom} : encadrements justes (bornes = multiples voisins)`);
+      const attendUnites = taille === '1000' ? [10, 100, 100, 10] : [10, 100, 1000, 100];
+      verifier(JSON.stringify(ordreUnites) === JSON.stringify(attendUnites.slice(0, k.enc)), `${nom} : dizaine, centaine, ${taille === '1000' ? 'centaine' : 'millier'}${k.enc === 4 ? ' et un 4e' : ''} (${ordreUnites})`);
+      verifier(encEleve.every((l) => l.length === 1) && [...pe.querySelectorAll('.encadrement .trou-borne')].length === 2 * k.enc, `${nom} : bornes à écrire laissées vides`);
+      const interEleve = [...pe.querySelectorAll('.intercalation')].map(nums);
+      let interOk = true;
+      [...pc.querySelectorAll('.intercalation')].forEach((li, i) => {
+        const [a, b] = nums(li);
+        const v = num(li.querySelector('.borne').textContent);
+        if (a !== interEleve[i][0] || b !== interEleve[i][1] || !(a < v && v < b)) interOk = false;
+      });
+      verifier(interOk, `${nom} : nombres intercalés strictement entre les bornes`);
+
+      // Exercice 4 : positions proportionnelles
+      const svg = pc.querySelector('svg.demi-droite');
+      const x0 = +svg.dataset.x0, larg = +svg.dataset.largeur, vmax = +svg.dataset.max;
+      verifier(vmax === (taille === '1000' ? 1000 : 10000), `${nom} : demi-droite jusqu’à ${vmax}`);
+      const reperes = [...svg.querySelectorAll('.repere')].map((e) => ({ v: +e.dataset.valeur, x: +e.getAttribute('x') }));
+      verifier(reperes.length === 11 && reperes.every(({ v, x }) => Math.abs(x - (x0 + larg * v / vmax)) < 0.01 && v % (vmax / 10) === 0), `${nom} : 11 repères étiquetés, x proportionnels aux valeurs`);
+      const petits = [...svg.querySelectorAll('.graduation')];
+      verifier(petits.length === 101, `${nom} : 101 graduations (petits traits tous les ${vmax / 100})`);
+      const etiquettes = [...svg.querySelectorAll('.fleche__etiquette')].map((e) => ({ v: num(e.textContent), x: +e.getAttribute('x') }));
+      verifier(etiquettes.length === k.pts && etiquettes.every(({ v, x }) => Math.abs(x - (x0 + larg * v / vmax)) < 0.01), `${nom} : x des étiquettes proportionnels aux valeurs`);
+      const flechesX = [...svg.querySelectorAll('.fleche')].map((g) => +g.querySelector('path').getAttribute('d').match(/^M([\d.]+)/)[1]);
+      verifier(flechesX.every((x, i) => Math.abs(x - etiquettes[i].x) < 0.01), `${nom} : chaque flèche est sous son étiquette`);
+      const xs = etiquettes.map((e) => e.x).sort((a, b) => a - b);
+      verifier(xs.every((x, i) => i === 0 || x - xs[i - 1] >= 50), `${nom} : étiquettes du corrigé espacées d’au moins 50 unités (pas de chevauchement)`);
+      verifier(etiquettes.every(({ v }) => v % (vmax / 100) === 0 && v % (vmax / 10) !== 0 && v > 0 && v < vmax), `${nom} : nombres sur un petit trait, pas sur une grande graduation`);
+      // la page élève liste les mêmes nombres à placer (même ensemble)
+      const aPlacer = [...pe.querySelector('.consigne-droite').querySelectorAll('.n')].map((e) => num(e.textContent));
+      verifier(JSON.stringify([...aPlacer].sort((a, b) => a - b)) === JSON.stringify(etiquettes.map((e) => e.v).sort((a, b) => a - b)), `${nom} : nombres à placer = nombres du corrigé`);
+
+      // aucune réponse sur la page élève (hors rappel)
+      const eleveTexte = txt(pe.querySelector('.feuille') || pe);
+      const sansRappel = [...pe.querySelectorAll('.bloc:not(.bloc--methode)')].map(txt).join(' ');
+      verifier(!pe.querySelector('.rouge') && !pe.querySelector('.fleche__etiquette') && !pe.querySelector('.paire__symbole'), `${nom} : aucune réponse en rouge sur la page élève`);
+      const bonneListe = trie(eleveListes[0], 1).map(fmt).join(' < ');
+      verifier(!sansRappel.includes(bonneListe) && !sansRappel.replace(/\s/g, '').includes(trie(eleveListes[1], -1).join('>')), `${nom} : les listes rangées ne sont pas écrites sur la page élève`);
+      verifier(!pe.querySelector('svg.demi-droite').outerHTML.includes('stroke="#C0392B"'), `${nom} : demi-droite élève sans flèche`);
+
+      // rappel présent / masqué ; ton ; emoji
+      verifier(methode ? txt(pe).includes('Je me souviens de la méthode') : !txt(pe).includes('Je me souviens'), `${nom} : rappel présent / masqué`);
+      verifier(!/\b(faux|erreur|raté|nul|négatif)\b/.test(d.body.textContent.toLowerCase()) && !/[✘❌✖]/.test(d.body.textContent), `${nom} : aucun mot négatif`);
+      verifier(!/[\u{1F300}-\u{1FAFF}⚖]/u.test(rendre(cp, c, { corrige: true, methode }).replace(/<h1[^>]*>.*?<\/h1>/gs, '')), `${nom} : pas d’emoji sur la feuille`);
+    }
+  }
+
+  // Rappel : les phrases de la leçon (pages 10 à 13)
+  {
+    const h = rendre(cp, tirer(cp, { taille: '10000' }, 1), { corrige: false }).replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/\s+/g, ' ');
+    verifier(['Comparer deux nombres, c’est chercher quel nombre est le plus grand et quel nombre est le plus petit.',
+      'on regarde le nombre de milliers ; si c’est le même, on regarde le nombre de centaines ; si c’est le même, on regarde le nombre de dizaines…',
+      'On s’arrête dès que deux chiffres de même rang sont différents.', '506 < 2 302', '7 532 > 6 985', '1 238 < 1 239',
+      'les écrire du plus petit au plus grand : 5 254 < 5 285 < 5 308 < 5 347', 'les écrire du plus grand au plus petit : 5 470 > 5 108 > 3 285 > 752',
+      'Encadrer un nombre entier, c’est le situer entre deux autres nombres entiers.', 'Intercaler un nombre entre deux nombres, c’est trouver un nombre compris entre ces deux nombres', '5 800 < 5 823 < 5 900',
+      'il faut connaître la valeur de l’écart entre deux graduations'].every((s) => h.includes(s)), 'comparer : le rappel reprend les phrases et exemples du livret');
+    const h3 = rendre(cp, tirer(cp, { taille: '1000' }, 1), { corrige: false });
+    verifier(!h3.includes('milliers') && h3.includes('on regarde le nombre de centaines'), 'comparer : option 1 000 sans milliers dans le rappel');
+    const g = (t) => { const d = new JSDOM(`<div>${rendre(cp, tirer(cp, { taille: t }, 7), { corrige: false })}</div>`).window.document; return d.querySelector('.consigne-droite').textContent.replace(/\s+/g, ' '); };
+    verifier(g('10000').includes('graduée de 1 000 en 1 000') && g('1000').includes('graduée de 100 en 100'), 'comparer : graduation adaptée à l’option');
+  }
+
+  // Codes reproductibles
+  for (const taille of ['1000', '10000']) {
+    const c = tirer(cp, { taille });
+    const r = decoder(c.code);
+    verifier(r && r.fiche === cp && r.options.taille === taille && JSON.stringify(tirer(r.fiche, r.options, r.graine)) === JSON.stringify(c), `comparer : le code ${c.code} redonne la même fiche (${taille})`);
+  }
+  const vus = new Set(); for (let i = 0; i < 200; i++) vus.add(tirer(cp, {}).code);
+  verifier(vus.size > 190, `comparer : codes variés (${vus.size} sur 200)`);
+
+  // Robustesse : 300 tirages par option, contraintes tenues
+  let casse = 0;
+  for (const taille of ['1000', '10000']) for (let i = 0; i < 150; i++) {
+    const c = tirer(cp, { taille }, 1000 + i);
+    const pts = c.droite.points, u = c.droite.petit;
+    if (c.paires.filter((p) => p.a === p.b).length !== 1 || c.encadrer.some((e) => e.n % unite[e.unite] === 0)
+      || c.intercaler.some((e) => !(e.a < e.v && e.v < e.b)) || pts.some((v, j) => j && v - pts[j - 1] < 8 * u) || pts.some((v) => v % c.droite.grand === 0)) casse++;
+  }
+  verifier(casse === 0, 'comparer : contraintes tenues sur 300 tirages');
+
+  // Fiches précédentes inchangées (empreinte du HTML à graine fixe, mesurée avant l’ajout de cette fiche)
+  const empreinte = (f, o) => { const c = tirer(f, o, 424242); return JSON.stringify(c) + rendre(f, c, { corrige: true, base: 'http://x/' }); };
+  const somme = (s) => { let h = 5381; for (const ch of s) h = ((h * 33) ^ ch.charCodeAt(0)) >>> 0; return h; };
+  const h4 = ['1000', '10000'].map((t) => somme(empreinte(nbl, { taille: t })));
+  verifier(h4.join() === '3247079376,2467628440', `nombres (lire, écrire) : rendu inchangé (${h4.join()})`);
 }
 
 process.exit(echecs ? 1 : 0);

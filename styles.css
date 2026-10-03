@@ -874,3 +874,37 @@ svg.visuel {
   .lignes--corrigees li { min-height: 7mm; }
   .pointilles--ligne { height: 1.5em; }
 }
+
+/* ---------- fiche nombres : comparer, ranger, encadrer, demi-droite ---------- */
+.rappel-comp { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; font-size: .82rem; line-height: 1.3; }
+.rappel-comp p { margin: 0 0 3px; }
+.rappel-comp__titre { font-weight: 800; margin-bottom: 2px; }
+.rappel-comp__exemples { margin: 0 0 3px; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 1px 12px; font-weight: 700; }
+.n { white-space: nowrap; font-weight: 700; font-variant-numeric: tabular-nums; }
+.paires { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2mm 3mm; }
+.paire { display: flex; align-items: center; gap: 4px; min-height: 10mm; font-size: 1rem; white-space: nowrap; }
+.case-symbole, .paire__symbole { display: inline-block; width: 9mm; height: 8mm; border: 1.5px solid #333; border-radius: 3px; text-align: center; line-height: 8mm; font-weight: 800; background: #fff; }
+.paire__symbole { border-color: transparent; background: none; }
+.rangs { display: flex; flex-direction: column; gap: 2mm; }
+.rang__nombres { font-size: 1rem; min-height: 6mm; }
+.rang__reponse { display: flex; align-items: flex-end; gap: 4px; min-height: 9mm; }
+.rang__reponse--corrige { display: block; min-height: 7mm; font-size: 1rem; }
+.rang__signe { font-weight: 800; padding: 0 3px; }
+.pointilles--rang { flex: 1; min-width: 12mm; height: 1.5em; }
+.encadrements { display: grid; grid-template-columns: 1.15fr 1fr; gap: 0 6mm; }
+.encadrement, .intercalation { white-space: nowrap; }
+.trou-borne { display: inline-block; flex: none; width: 17mm; height: 1.5em; border-bottom: 1.5px dotted #777; }
+.borne { display: inline-block; min-width: 17mm; text-align: center; }
+.consigne-droite { margin: 0 0 2px; font-size: .92rem; }
+.demi-droite { display: block; width: 100%; height: auto; max-height: 27mm; }
+
+@media print {
+  .rappel-comp { font-size: 8.3pt; line-height: 1.22; gap: 4mm; }
+  .rappel-comp p { margin-bottom: 2px; }
+  .paire { min-height: 9mm; font-size: 10.5pt; }
+  .case-symbole, .paire__symbole { width: 8mm; height: 8mm; line-height: 8mm; }
+  .rang__nombres { font-size: 10.5pt; min-height: 5mm; }
+  .rang__reponse { min-height: 8.6mm; }
+  .rangs { gap: 2.5mm; }
+  .consigne-droite { font-size: 9.5pt; }
+}

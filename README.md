@@ -37,6 +37,11 @@ et le **corrigé sur une deuxième page** pour l'adulte.
 
 Fiches disponibles (le plan complet est dans [`programme/ce2/PLAN-FICHES.md`](programme/ce2/PLAN-FICHES.md)) :
 
+- **CE2 — Les nombres : comparer, ranger, encadrer** (p. 9–13 du livret) : la méthode de
+  comparaison du livret (nombre de chiffres, puis chiffre à chiffre en partant de la gauche),
+  <, > et =, rangements croissant et décroissant, encadrements à la dizaine, à la centaine et
+  au millier, nombres à intercaler, et une demi-droite graduée où placer des nombres.
+  Option : jusqu'à 999 ou jusqu'à 9 999.
 - **CE2 — Les nombres : lire, écrire, décomposer** (p. 3–8 du livret) : tableau de
   numération, le nombre `3 258` (ou `863`) représenté des sept façons du livret, puis nombres
   en lettres ↔ en chiffres, décompositions et recompositions, dizaines et centaines entières,

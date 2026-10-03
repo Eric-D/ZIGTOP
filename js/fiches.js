@@ -4,6 +4,7 @@
 
 import { rnd, pick, shuffle, fmt, enLettres, setAlea, generateurAleatoire } from './utils.js';
 import { qrSVG } from './qr.js';
+import { demiDroite } from './visuels.js';
 
 /* ------------------------------------------------------------------ */
 /* Outils de mise en page                                              */
@@ -1068,6 +1069,252 @@ const miseNombres = {
   },
 };
 
+/* ------------------------------------------------------------------ */
+/* CE2 — nombres : comparer, ranger, encadrer, demi-droite graduée      */
+/* ------------------------------------------------------------------ */
+
+const chiffresListe = (n) => String(n).split('').map(Number);
+const deChiffres = (t) => t.reduce((n, c) => n * 10 + c, 0);
+const symboleDe = (a, b) => (a < b ? '<' : a > b ? '>' : '=');
+const VALEUR_UNITE = { dizaine: 10, centaine: 100, millier: 1000 };
+const bornesDe = (n, unite) => { const u = VALEUR_UNITE[unite]; const inf = Math.floor(n / u) * u; return [inf, inf + u]; };
+
+// Une paire à comparer. Les « genres » sont les pièges de la leçon : nombre de chiffres différent,
+// même début, dernier chiffre seul qui change, zéro intercalé, nombres égaux.
+function paireDe(genre, chif) {
+  let a, b;
+  if (genre === 'chiffres') { a = rnd(100, 999); b = rnd(1000, 9999); }
+  else if (genre === 'egal') { a = nombreDe(chif); b = a; }
+  else if (genre === 'dernier') { a = nombreDe(chif); while (a % 10 === 9) a = nombreDe(chif); b = a + 1; }
+  else if (genre === 'premier') { do { a = nombreDe(chif); b = nombreDe(chif); } while (String(a)[0] === String(b)[0]); }
+  else if (genre === 'milieu') {
+    const x = chiffresListe(nombreDe(chif));
+    const k = rnd(1, chif - 2);
+    const y = x.map((c, i) => (i < k ? c : rnd(0, 9)));
+    y[k] = (x[k] + rnd(1, 9)) % 10;
+    a = deChiffres(x); b = deChiffres(y);
+  } else if (genre === 'zero') {          // un zéro intercalé d'un seul côté : 4 075 et 4 705
+    const x = chiffresListe(nombreDe(chif)); x[1] = 0;
+    const y = x.map((c, i) => (i === 1 ? rnd(1, 9) : i > 1 ? rnd(0, 9) : c));
+    a = deChiffres(x); b = deChiffres(y);
+  } else {                                // 'zero2' : le même zéro des deux côtés, c'est le chiffre suivant qui décide
+    const x = chiffresListe(nombreDe(chif)); x[1] = 0;
+    const y = x.map((c, i) => (i === 2 ? (x[2] + rnd(1, 9)) % 10 : i > 2 ? rnd(0, 9) : c));
+    a = deChiffres(x); b = deChiffres(y);
+  }
+  return rnd(0, 1) && a !== b ? { a: b, b: a } : { a, b };
+}
+
+// k nombres à ranger, mélangés ; deux d'entre eux commencent par le même chiffre.
+function listeARanger(chif, k) {
+  for (let essai = 0; essai < 500; essai++) {
+    const t = [];
+    const premier = nombreDe(chif);
+    t.push(premier, rnd(Number(String(premier)[0]) * 10 ** (chif - 1), Number(String(premier)[0]) * 10 ** (chif - 1) + 10 ** (chif - 1) - 1));
+    while (t.length < k) t.push(nombreDe(chif));
+    if (new Set(t).size < k) continue;
+    const m = shuffle(t);
+    const trie = (l, sens) => [...l].sort((x, y) => sens * (x - y)).join() === l.join();
+    const ok = [m, m.slice(0, k - 1)].every((l) => !trie(l, 1) && !trie(l, -1));
+    if (ok) return m;
+  }
+  return shuffle([1234, 1243, 4321, 2134, 3412, 4123]).slice(0, k);
+}
+
+function genererNombresComparer(options) {
+  const quatre = options.taille !== '1000';
+  const chif = quatre ? 4 : 3;
+  const [lo, hi] = quatre ? [1001, 8999] : [101, 899];
+
+  // Les 6 premières paires servent avec le rappel de méthode, les 2 dernières s'ajoutent sans lui.
+  const genresDebut = shuffle([quatre ? 'chiffres' : 'premier', 'zero', 'egal', 'dernier', 'milieu', 'zero2']);
+  const genres = [...genresDebut, ...shuffle(['premier', 'milieu'])];
+  const vues = new Set();
+  const paires = genres.map((g) => {
+    for (let essai = 0; essai < 200; essai++) {
+      const p = paireDe(g, chif);
+      const cle = [p.a, p.b].sort().join('/');
+      if (!vues.has(cle)) { vues.add(cle); return p; }
+    }
+    return paireDe(g, chif);
+  });
+
+  const croissant = listeARanger(chif, 6);
+  const decroissant = listeARanger(chif, 6);
+
+  // Encadrer : la dizaine, la centaine, puis le millier (ou une 2e centaine avec 3 chiffres).
+  const unites = quatre ? ['dizaine', 'centaine', 'millier', 'centaine'] : ['dizaine', 'centaine', 'centaine', 'dizaine'];
+  const dejaVus = new Set();
+  const encadrer = unites.map((unite) => {
+    for (;;) {
+      const n = rnd(lo, hi);
+      if (n % VALEUR_UNITE[unite] !== 0 && !dejaVus.has(n)) { dejaVus.add(n); return { n, unite }; }
+    }
+  });
+
+  // Intercaler : entre deux centaines consécutives, entre deux nombres plus proches, entre deux dizaines.
+  const intercaler = ['centaine', 'quelconque', 'dizaine'].map((genre) => {
+    let a, b;
+    if (genre === 'centaine') { a = 100 * rnd(Math.ceil(lo / 100), Math.floor(hi / 100) - 1); b = a + 100; }
+    else if (genre === 'dizaine') { a = 10 * rnd(Math.ceil(lo / 10), Math.floor(hi / 10) - 1); b = a + 10; }
+    else { do { a = rnd(lo, hi - 100); } while (a % 10 === 0); b = a + rnd(12, 60); }
+    return { a, b, v: rnd(a + 1, b - 1) };
+  });
+
+  // Demi-droite : une graduation de 100 en 100 (jusqu'à 1 000) ou de 1 000 en 1 000 (jusqu'à 10 000), petits traits
+  // au dixième. 6 nombres rangés dans 6 tranches : deux nombres sont toujours éloignés d'au moins 8 petits traits.
+  const petit = quatre ? 100 : 10;
+  const points = Array.from({ length: 6 }, (_, i) => {
+    const candidats = [];
+    for (let u = 5 + 15 * i + 4; u <= 5 + 15 * (i + 1) - 4; u++) if (u % 10 !== 0) candidats.push(u);
+    return pick(candidats) * petit;
+  });
+  const ordre = (() => { let o; do { o = shuffle([0, 1, 2, 3, 4, 5]); } while (o.every((v, i) => v === i)); return o; })();
+
+  return {
+    quatre, chif,
+    objectif: 'Je sais comparer, ranger et encadrer des nombres entiers, et les placer sur une demi-droite graduée.',
+    paires, croissant, decroissant, encadrer, intercaler,
+    droite: { max: petit * 100, grand: petit * 10, petit, points, ordre },
+  };
+}
+
+const NOM_UNITE = { dizaine: 'à la dizaine', centaine: 'à la centaine', millier: 'au millier' };
+const nb = (n) => `<span class="n">${fmt(n)}</span>`;
+const trouBorne = '<span class="trou-borne"></span>';
+
+const miseComparer = {
+  signe: '',
+  combien: (contenu, methode) => ({
+    paires: contenu.paires.slice(0, methode ? 6 : 8),
+    croissant: contenu.croissant.slice(0, methode ? 5 : 6),
+    decroissant: contenu.decroissant.slice(0, methode ? 5 : 6),
+    encadrer: contenu.encadrer.slice(0, methode ? 3 : 4),
+    intercaler: contenu.intercaler.slice(0, methode ? 2 : 3),
+  }),
+  // Les nombres de la demi-droite : 4 (ou 6 sans le rappel), présentés dans le désordre.
+  droite(contenu, methode) {
+    const indices = methode ? [0, 2, 3, 5] : [0, 1, 2, 3, 4, 5];
+    const { points, ordre } = contenu.droite;
+    return { ...contenu.droite, valeurs: indices.map((i) => points[i]), aPlacer: ordre.filter((i) => indices.includes(i)).map((i) => points[i]) };
+  },
+  noteCorrige: 'les réponses attendues sont en rouge. Pour intercaler, plusieurs nombres conviennent : un seul est donné. Sur la demi-droite, chaque flèche pointe la graduation du nombre.',
+  // Rappel : les phrases et les exemples de la leçon (pages 10 à 13 du livret).
+  rappel(contenu) {
+    const quatre = contenu.quatre;
+    const sym = (t) => t.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const suite = (t) => `<span class="n">${sym(t)}</span>`;   // les symboles ne doivent jamais ouvrir une balise
+    const exemples = (quatre
+      ? ['506 < 2 302', '7 532 > 6 985', '6 427 < 6 500', '9 483 > 9 468', '1 238 < 1 239']
+      : ['427 < 500', '532 > 498', '483 > 468', '238 < 239']).map(sym);
+    const rang = quatre
+      ? 'on regarde le nombre de milliers ; si c’est le même, on regarde le nombre de centaines ; si c’est le même, on regarde le nombre de dizaines…'
+      : 'on regarde le nombre de centaines ; si c’est le même, on regarde le nombre de dizaines ; si c’est le même, on regarde le nombre d’unités.';
+    const croiss = suite(quatre ? '5 254 < 5 285 < 5 308 < 5 347' : '254 < 285 < 308 < 347');
+    const decroiss = suite(quatre ? '5 470 > 5 108 > 3 285 > 752' : '470 > 308 > 285 > 108');
+    const enc = suite(quatre ? '5 800 < 5 823 < 5 900' : '800 < 823 < 900');
+    return `
+      <div class="rappel-comp">
+        <div class="rappel-comp__col">
+          <div class="rappel-comp__titre">Comparer deux nombres</div>
+          <p>Comparer deux nombres, c’est chercher quel nombre est le plus grand et quel nombre est le plus petit.</p>
+          <p>Pour trouver, ${rang} On s’arrête dès que deux chiffres de même rang sont différents.</p>
+          <ul class="rappel-comp__exemples">${exemples.map((e) => `<li>${e}</li>`).join('')}</ul>
+          <p>Les symboles : <b>&lt;</b> plus petit que, <b>&gt;</b> plus grand que, <b>=</b> égal à.</p>
+        </div>
+        <div class="rappel-comp__col">
+          <p><b>Ranger</b> des nombres dans l’ordre croissant, c’est les écrire du plus petit au plus grand : ${croiss}.<br>
+          Dans l’ordre décroissant, c’est les écrire du plus grand au plus petit : ${decroiss}.</p>
+          <p><b>Encadrer</b> un nombre entier, c’est le situer entre deux autres nombres entiers. <b>Intercaler</b> un nombre entre deux nombres, c’est trouver un nombre compris entre ces deux nombres : ${enc}.</p>
+          <p>Pour placer des nombres sur une demi-droite graduée, il faut connaître la valeur de l’écart entre deux graduations.</p>
+        </div>
+      </div>`;
+  },
+  exercices(contenu, methode) {
+    const { paires, croissant, decroissant, encadrer, intercaler } = this.combien(contenu, methode);
+    const d = this.droite(contenu, methode);
+    const ligneRang = (l, i, sens) => `
+        <div class="rang">
+          <div class="rang__nombres"><b>${lettre(i)}.</b> ${l.map(nb).join('&nbsp;; ')}</div>
+          <div class="rang__reponse">${l.map(() => '<span class="pointilles pointilles--rang"></span>').join(`<span class="rang__signe">${sens}</span>`)}</div>
+        </div>`;
+    return `
+    <div class="bloc">
+      <h2>Exercice 1 — Compare avec &lt;, &gt; ou =.</h2>
+      <div class="paires">
+        ${paires.map((p, i) => `<div class="paire"><b>${lettre(i)}.</b> <span class="paire__a">${nb(p.a)}</span><span class="case-symbole"></span><span class="paire__b">${nb(p.b)}</span></div>`).join('')}
+      </div>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 2 — Range ces nombres, du plus petit au plus grand, puis du plus grand au plus petit.</h2>
+      <div class="rangs">
+        ${ligneRang(croissant, 0, '&lt;')}
+        ${ligneRang(decroissant, 1, '&gt;')}
+      </div>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 3 — Encadre chaque nombre, puis intercale un nombre entre les deux nombres donnés.</h2>
+      <div class="encadrements">
+        <ul class="lignes">
+          ${encadrer.map(({ n, unite }, i) => `<li class="encadrement"><span class="ligne__texte"><b>${lettre(i)}.</b> ${NOM_UNITE[unite]} :</span>${trouBorne}<span class="rang__signe">&lt;</span>${nb(n)}<span class="rang__signe">&lt;</span>${trouBorne}</li>`).join('')}
+        </ul>
+        <ul class="lignes">
+          ${intercaler.map(({ a, b }, i) => `<li class="intercalation"><span class="ligne__texte"><b>${lettre(encadrer.length + i)}.</b></span>${nb(a)}<span class="rang__signe">&lt;</span>${trouBorne}<span class="rang__signe">&lt;</span>${nb(b)}</li>`).join('')}
+        </ul>
+      </div>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 4 — Place chaque nombre sur la demi-droite graduée : trace une flèche.</h2>
+      <p class="consigne-droite">Cette demi-droite est graduée de ${fmt(d.grand)} en ${fmt(d.grand)} ; chaque petit trait vaut ${fmt(d.petit)}.
+        Nombres à placer : ${d.aPlacer.map(nb).join('&nbsp;; ')}</p>
+      ${demiDroite({ max: d.max, grand: d.grand, petit: d.petit })}
+    </div>
+`;
+  },
+  corriges(contenu, methode) {
+    const { paires, croissant, decroissant, encadrer, intercaler } = this.combien(contenu, methode);
+    const d = this.droite(contenu, methode);
+    const croissants = [...croissant].sort((x, y) => x - y), decroissants = [...decroissant].sort((x, y) => y - x);
+    const sequence = (l, s) => l.map((n) => rouge(nb(n))).join(` <span class="rang__signe">${s}</span> `);
+    return `
+    <div class="bloc">
+      <h2>Exercice 1</h2>
+      <div class="paires paires--corrigees">
+        ${paires.map((p, i) => `<div class="paire"><b>${lettre(i)}.</b> <span class="paire__a">${nb(p.a)}</span><span class="paire__symbole rouge">${symboleDe(p.a, p.b)}</span><span class="paire__b">${nb(p.b)}</span></div>`).join('')}
+      </div>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 2</h2>
+      <div class="rangs rangs--corriges">
+        <div class="rang"><div class="rang__reponse rang__reponse--corrige" data-sens="croissant"><b>a.</b> ${sequence(croissants, '&lt;')}</div></div>
+        <div class="rang"><div class="rang__reponse rang__reponse--corrige" data-sens="decroissant"><b>b.</b> ${sequence(decroissants, '&gt;')}</div></div>
+      </div>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 3</h2>
+      <div class="encadrements encadrements--corriges">
+        <ul class="lignes lignes--corrigees">
+          ${encadrer.map(({ n, unite }, i) => { const [inf, sup] = bornesDe(n, unite); return `<li class="encadrement"><span class="ligne__texte"><b>${lettre(i)}.</b> ${NOM_UNITE[unite]} :</span><span class="borne">${rouge(fmt(inf))}</span><span class="rang__signe">&lt;</span>${nb(n)}<span class="rang__signe">&lt;</span><span class="borne">${rouge(fmt(sup))}</span></li>`; }).join('')}
+        </ul>
+        <ul class="lignes lignes--corrigees">
+          ${intercaler.map(({ a, b, v }, i) => `<li class="intercalation"><span class="ligne__texte"><b>${lettre(encadrer.length + i)}.</b></span>${nb(a)}<span class="rang__signe">&lt;</span><span class="borne">${rouge(fmt(v))}</span><span class="rang__signe">&lt;</span>${nb(b)}</li>`).join('')}
+        </ul>
+      </div>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 4</h2>
+      ${demiDroite({ max: d.max, grand: d.grand, petit: d.petit, points: d.valeurs, corrige: true })}
+    </div>
+`;
+  },
+};
+
 function pageExercices(fiche, contenu, { base = '', methode = true, identite = true } = {}) {
   const { signe } = fiche.mise;
   if (fiche.mise.rappel) return pageExercicesLibre(fiche, contenu, { base, methode, identite });
@@ -1201,6 +1448,25 @@ export const FICHES = [
     ],
     generer: genererNombres,
     mise: miseNombres,
+  },
+  {
+    id: 'ce2-nombres-comparer',
+    classe: 'ce2',
+    domaine: 'Nombres et calculs',
+    titre: 'Les nombres : comparer, ranger, encadrer',
+    emoji: '⚖️',
+    options: [
+      {
+        id: 'taille', libelle: 'Nombres utilisés',
+        valeurs: [
+          { v: '1000', nom: 'Jusqu’à 999' },
+          { v: '10000', nom: 'Jusqu’à 9 999' },
+        ],
+        defaut: '10000',
+      },
+    ],
+    generer: genererNombresComparer,
+    mise: miseComparer,
   },
 ];
 

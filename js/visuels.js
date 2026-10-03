@@ -126,3 +126,37 @@ export function visuel(spec) {
     return '';
   }
 }
+
+// Demi-droite graduée pour les fiches imprimables : l'origine 0 à gauche, une flèche à droite,
+// de grandes graduations étiquetées (tous les `grand`) et de petits traits (tous les `petit`).
+// Les x sont proportionnels aux valeurs. Sans `corrige`, seuls les repères sont dessinés ;
+// avec `corrige`, une flèche et une étiquette marquent chaque nombre de `points`.
+// Noir et blanc lisible : traits foncés, flèches épaisses.
+const DROITE = { x0: 26, largeur: 640, y: 62 };
+export const abscisseDroite = (v, max) => DROITE.x0 + (v / max) * DROITE.largeur;
+
+export function demiDroite({ max, grand, petit, points = [], corrige = false }) {
+  const { x0, y } = DROITE;
+  const px = (v) => abscisseDroite(v, max);
+  const espace = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  let traits = '';
+  for (let v = 0; v <= max; v += petit) {
+    const long = v % grand === 0, demi = v % (grand / 2) === 0;
+    const h = long ? 10 : demi ? 7.5 : 5;
+    traits += `<line class="graduation" data-valeur="${v}" x1="${px(v)}" y1="${y - h}" x2="${px(v)}" y2="${y + h}" stroke="#222" stroke-width="${long ? 2.6 : demi ? 2 : 1.5}"/>`;
+    if (long) traits += `<text class="repere" data-valeur="${v}" x="${px(v)}" y="${y + 30}" font-size="14" font-weight="700" fill="#222" text-anchor="middle">${espace(v)}</text>`;
+  }
+  const marques = corrige ? points.map((v) => `
+    <g class="fleche" data-valeur="${v}">
+      <path d="M${px(v)} 26 V${y - 4}" stroke="#C0392B" stroke-width="3" fill="none"/>
+      <path d="M${px(v) - 6} ${y - 14} L${px(v)} ${y - 3} L${px(v) + 6} ${y - 14}" stroke="#C0392B" stroke-width="3" fill="none" stroke-linejoin="round"/>
+      <text class="fleche__etiquette" data-valeur="${v}" x="${px(v)}" y="17" font-size="16" font-weight="800" fill="#C0392B" text-anchor="middle">${espace(v)}</text>
+    </g>`).join('') : '';
+  return `
+  <svg class="demi-droite" viewBox="0 0 720 98" data-max="${max}" data-x0="${x0}" data-largeur="${DROITE.largeur}" role="img"
+       aria-label="Demi-droite graduée de ${espace(grand)} en ${espace(grand)}">
+    <line x1="${x0}" y1="${y}" x2="708" y2="${y}" stroke="#222" stroke-width="2.6"/>
+    <path d="M697 ${y - 8} L710 ${y} L697 ${y + 8}" stroke="#222" stroke-width="2.6" fill="none" stroke-linejoin="round"/>
+    ${traits}${marques}
+  </svg>`;
+}
