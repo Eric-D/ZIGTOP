@@ -4,7 +4,7 @@
 
 import { rnd, pick, shuffle, fmt, enLettres, setAlea, generateurAleatoire } from './utils.js';
 import { qrSVG } from './qr.js';
-import { demiDroite, figureFraction, regleFractions, monnaie, PIECES_EURO, BILLETS_EURO } from './visuels.js';
+import { demiDroite, figureFraction, regleFractions, monnaie, polygoneCote, PIECES_EURO, BILLETS_EURO } from './visuels.js';
 
 /* ------------------------------------------------------------------ */
 /* Outils de mise en page                                              */
@@ -2196,6 +2196,254 @@ const miseMonnaie = {
 };
 const nomPrix = (a) => `Achat de ${eur(a.prix)}, payé avec ${eur(a.billet * 100)}. `;
 
+/* ------------------------------------------------------------------ */
+/* CE2 — longueurs : unités, conversions, périmètre                     */
+/* ------------------------------------------------------------------ */
+
+// Toutes les longueurs sont des entiers ; chaque unité vaut tant de millimètres.
+const MM_PAR = { mm: 1, cm: 10, dm: 100, m: 1000, km: 1000000 };
+const lg = (n, u) => `${fmt(n)}${NBSP}${u}`;
+
+// Conversions simples : [valeur de départ, unité de départ, unité d'arrivée].
+const CONVERSIONS_LG = {
+  'm>cm': () => [rnd(2, 9), 'm', 'cm'], 'mm>cm': () => [10 * rnd(2, 9), 'mm', 'cm'], 'dm>cm': () => [rnd(2, 9), 'dm', 'cm'],
+  'cm>m': () => [100 * rnd(2, 9), 'cm', 'm'], 'km>m': () => [rnd(2, 9), 'km', 'm'], 'm>km': () => [1000 * rnd(2, 9), 'm', 'km'],
+  'm>dm': () => [rnd(2, 9), 'm', 'dm'], 'cm>mm': () => [rnd(2, 9), 'cm', 'mm'], 'dm>m': () => [10 * rnd(2, 9), 'dm', 'm'],
+  'cm>dm': () => [10 * rnd(3, 9), 'cm', 'dm'],
+};
+
+// Écritures mixtes : « 3 700 m = … km … m » (sens 'mixte') ou « 2 km 450 m = … m » (sens 'simple').
+// grande/petite : les deux unités ; hi/lo : les deux parties ; `rapport` : combien de petites dans une grande.
+const MIXTES_LG = {
+  'm>km m': (k) => ({ sens: 'mixte', grande: 'km', petite: 'm', rapport: 1000, hi: rnd(1, 9), lo: 10 * rnd(10, 99) }),
+  'km m>m': () => ({ sens: 'simple', grande: 'km', petite: 'm', rapport: 1000, hi: rnd(1, 9), lo: 10 * rnd(10, 99) }),
+  'cm>m cm': () => ({ sens: 'mixte', grande: 'm', petite: 'cm', rapport: 100, hi: rnd(1, 4), lo: 5 * rnd(2, 19) }),
+  'm cm>cm': (k) => ({ sens: 'simple', grande: 'm', petite: 'cm', rapport: 100, hi: rnd(1, 5), lo: k ? 5 * rnd(2, 19) : rnd(2, 9) }),
+  'mm>cm mm': () => ({ sens: 'mixte', grande: 'cm', petite: 'mm', rapport: 10, hi: rnd(2, 9), lo: rnd(1, 9) }),
+  'cm mm>mm': () => ({ sens: 'simple', grande: 'cm', petite: 'mm', rapport: 10, hi: rnd(2, 9), lo: rnd(1, 9) }),
+};
+const totalMixte = (e) => e.hi * e.rapport + e.lo;
+
+// Une paire à comparer : l'unité `ua` est la plus grande ; `genre` 'egal' ou 'inegal'.
+function paireLongueurs(ua, ub, genre) {
+  const r = MM_PAR[ua] / MM_PAR[ub];
+  const base = rnd(2, 9) * r;
+  const ecart = (r / 10) * rnd(1, 9);
+  const nbB = genre === 'egal' ? base : base + (rnd(0, 1) ? ecart : -ecart);
+  const a = { n: base / r, u: ua }, b = { n: nbB, u: ub };
+  return rnd(0, 1) ? { a, b } : { a: b, b: a };
+}
+const mmDe = (x) => x.n * MM_PAR[x.u];
+
+// Quatre longueurs d'unités différentes, mélangées. Avec le km : des km et des m (autour d'un à cinq km) ;
+// sans : des m, dm, cm et mm (autour d'un mètre à quatre mètres). Jamais déjà dans l'ordre.
+function listeLongueurs(km) {
+  for (let essai = 0; essai < 2000; essai++) {
+    let liste;
+    if (km) {
+      const vals = shuffle([500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500]).slice(0, 4);
+      liste = vals.map((v) => (v % 1000 === 0 && rnd(0, 1) ? { n: v / 1000, u: 'km' } : { n: v, u: 'm' }));
+      if (!liste.some((x) => x.u === 'km') || !liste.some((x) => x.u === 'm')) continue;
+    } else {
+      const choix = { m: () => rnd(1, 4), dm: () => rnd(4, 40), cm: () => 5 * rnd(6, 80), mm: () => 50 * rnd(6, 80) };
+      liste = shuffle(['m', 'dm', 'cm', 'mm']).map((u) => ({ n: choix[u](), u }));
+    }
+    const v = liste.map(mmDe).sort((a, b) => a - b);
+    if (v.some((x, i) => i && x - v[i - 1] < (km ? 400000 : 150))) continue;
+    const m = liste.map(mmDe);
+    if (m.every((x, i) => !i || x > m[i - 1]) || m.every((x, i) => !i || x < m[i - 1])) continue;
+    return liste;
+  }
+  return km ? [{ n: 2, u: 'km' }, { n: 1500, u: 'm' }, { n: 1, u: 'km' }, { n: 2500, u: 'm' }] : [{ n: 2, u: 'm' }, { n: 150, u: 'cm' }, { n: 18, u: 'dm' }, { n: 1900, u: 'mm' }];
+}
+
+// Les figures : un carré, un rectangle, puis un triangle et un pentagone (dans un ordre tiré).
+function figuresLongueurs() {
+  const carre = { forme: 'carre', cotes: [rnd(4, 9)] };
+  const L = rnd(7, 12);
+  const rectangle = { forme: 'rectangle', cotes: [L, rnd(3, L - 2)] };
+  let triangle;
+  for (;;) {
+    const t = [rnd(5, 14), rnd(5, 14), rnd(5, 14)];
+    const [p, q, s] = [...t].sort((x, y) => x - y);
+    if (new Set(t).size > 1 && s < p + q - 2) { triangle = { forme: 'triangle', cotes: t }; break; }
+  }
+  let pentagone;
+  for (;;) {
+    const t = Array.from({ length: 5 }, () => rnd(4, 20));
+    if (new Set(t).size > 2 && t.reduce((s, x) => s + x, 0) < 100) { pentagone = { forme: 'pentagone', cotes: t }; break; }
+  }
+  return [carre, rectangle, ...shuffle([triangle, pentagone])];
+}
+const perimetreLg = (f) => (f.forme === 'carre' ? 4 * f.cotes[0] : f.forme === 'rectangle' ? 2 * (f.cotes[0] + f.cotes[1]) : f.cotes.reduce((s, x) => s + x, 0));
+const cotesTour = (f) => (f.forme === 'carre' ? Array(4).fill(f.cotes[0]) : f.forme === 'rectangle' ? [f.cotes[0], f.cotes[1], f.cotes[0], f.cotes[1]] : f.cotes);
+
+function genererLongueurs(options) {
+  const km = options.km !== 'non';
+
+  // Ex. 1 : six conversions (huit sans le rappel), dans les deux sens.
+  const clesConv = km
+    ? [...shuffle(['m>cm', 'mm>cm', 'dm>cm', 'cm>m', 'km>m', 'm>km']), ...shuffle(['dm>m', 'cm>mm'])]
+    : [...shuffle(['m>cm', 'mm>cm', 'dm>cm', 'cm>m', 'm>dm', 'cm>mm']), ...shuffle(['dm>m', 'cm>dm'])];
+  const conversions = clesConv.map((cle) => { const [n, de, vers] = CONVERSIONS_LG[cle](); return { n, de, vers }; });
+
+  // Ex. 2 : quatre écritures mixtes (six sans le rappel).
+  const clesMixtes = km
+    ? [...shuffle(['m>km m', 'km m>m', 'cm>m cm', 'm cm>cm']), ...shuffle(['m>km m', 'km m>m'])]
+    : [...shuffle(['cm>m cm', 'm cm>cm', 'mm>cm mm', 'cm mm>mm']), ...shuffle(['cm>m cm', 'm cm>cm'])];
+  const ecritures = clesMixtes.map((cle, i) => MIXTES_LG[cle](i >= 4));
+
+  // Ex. 3 : quatre comparaisons (six sans le rappel), dont une égalité parmi les quatre premières, puis un rangement.
+  const unites = km
+    ? [...shuffle([['m', 'cm'], ['km', 'm'], ['dm', 'cm'], ['cm', 'mm']]), ['m', 'dm'], ['km', 'm']]
+    : [...shuffle([['m', 'cm'], ['dm', 'cm'], ['cm', 'mm'], ['m', 'dm']]), ['m', 'cm'], ['dm', 'mm']];
+  const egale = rnd(0, 3);
+  const vues = new Set();
+  const comparaisons = unites.map(([ua, ub], i) => {
+    for (let essai = 0; essai < 100; essai++) {
+      const p = paireLongueurs(ua, ub, i === egale ? 'egal' : 'inegal');
+      const cle = `${lg(p.a.n, p.a.u)}/${lg(p.b.n, p.b.u)}`;
+      if (!vues.has(cle)) { vues.add(cle); return p; }
+    }
+    return paireLongueurs(ua, ub, 'inegal');
+  });
+  const rangement = listeLongueurs(km);
+
+  return {
+    km,
+    objectif: km
+      ? 'Je connais les relations entre mm, cm, dm, m et km, et je sais calculer le périmètre d’une figure.'
+      : 'Je connais les relations entre mm, cm, dm et m, et je sais calculer le périmètre d’une figure.',
+    methode: { exemple: { forme: 'pentagone', cotes: [18, 12, 30, 7, 20] } },
+    conversions, ecritures, comparaisons, rangement, figures: figuresLongueurs(),
+  };
+}
+
+const lgn = (n, u) => `<span class="n">${lg(n, u)}</span>`;
+const sommeLg = (f) => `${cotesTour(f).map((c) => lg(c, 'cm')).join(' + ')} = ${lg(perimetreLg(f), 'cm')}`;
+
+const miseLongueurs = {
+  signe: '',
+  combien: (contenu, methode) => ({
+    conversions: contenu.conversions.slice(0, methode ? 6 : 8),
+    ecritures: contenu.ecritures.slice(0, methode ? 4 : 6),
+    comparaisons: contenu.comparaisons.slice(0, methode ? 4 : 6),
+    figures: contenu.figures.slice(0, methode ? 3 : 4),
+  }),
+  noteCorrige: 'les réponses attendues sont en rouge ; pour chaque périmètre, on additionne les longueurs de tous les côtés de la figure, comme dans la leçon.',
+  // Rappel : les phrases et l'exemple de la leçon (pages 33 à 36 du livret).
+  rappel(contenu) {
+    const km = contenu.km;
+    return `
+      <div class="rappel-lg">
+        <div class="rappel-lg__relations">
+          <p>Le centimètre est une unité de longueur dix fois plus grande que le millimètre. <b>1${NBSP}cm = 10${NBSP}mm</b></p>
+          <p>Le mètre est une unité de longueur cent fois plus grande que le centimètre. <b>1${NBSP}m = 100${NBSP}cm</b></p>
+          <p>Le mètre est une unité de longueur dix fois plus grande que le décimètre. <b>1${NBSP}m = 10${NBSP}dm</b></p>
+          <p>Le décimètre est une unité de longueur dix fois plus grande que le centimètre. <b>1${NBSP}dm = 10${NBSP}cm</b></p>
+          ${km ? `<p>Le kilomètre est une unité de longueur 1${NBSP}000 fois plus grande que le mètre. <b>1${NBSP}km = 1${NBSP}000${NBSP}m</b></p>
+          <p>On peut exprimer une longueur de différentes façons : <b>5${NBSP}km, c’est 5${NBSP}000${NBSP}m.</b> <b>3${NBSP}700${NBSP}m, c’est 3${NBSP}km 700${NBSP}m.</b></p>` : ''}
+        </div>
+        <div class="rappel-lg__perimetre">
+          <p><b>Le périmètre d’une figure est la longueur du tour de cette figure.</b></p>
+          <div class="rappel-lg__exemple">
+            ${polygoneCote({ ...contenu.methode.exemple, taille: 150 })}
+            <p>On calcule le périmètre d’une figure en additionnant les longueurs de tous les côtés de la figure.<br>
+            <b>30${NBSP}cm + 12${NBSP}cm + 18${NBSP}cm + 20${NBSP}cm + 7${NBSP}cm = 87${NBSP}cm</b><br>
+            Le périmètre de cette figure mesure 87${NBSP}cm.</p>
+          </div>
+        </div>
+      </div>`;
+  },
+  exercices(contenu, methode) {
+    const { conversions, ecritures, comparaisons, figures } = this.combien(contenu, methode);
+    const pts = '<span class="pointilles pointilles--mini"></span>';
+    const k = comparaisons.length;
+    return `
+    <div class="bloc">
+      <h2>Exercice 1 — Convertis.</h2>
+      <div class="conversions conversions--3">
+        ${conversions.map((c, i) => `<div class="conversion"><b>${lettre(i)}.</b><span>${lg(c.n, c.de)} =</span>${pts}<span>${c.vers}</span></div>`).join('')}
+      </div>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 2 — Écris la longueur autrement.</h2>
+      <div class="conversions">
+        ${ecritures.map((e, i) => `<div class="conversion"><b>${lettre(i)}.</b>${e.sens === 'mixte'
+    ? `<span>${lg(totalMixte(e), e.petite)} =</span>${pts}<span>${e.grande}</span>${pts}<span>${e.petite}</span>`
+    : `<span>${lg(e.hi, e.grande)} ${lg(e.lo, e.petite)} =</span>${pts}<span>${e.petite}</span>`}</div>`).join('')}
+      </div>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 3 — Compare avec &lt;, &gt; ou =, puis range les longueurs du plus petit au plus grand.</h2>
+      <div class="paires paires--lg${k === 4 ? ' paires--lg4' : ''}">
+        ${comparaisons.map((p, i) => `<div class="paire"><b>${lettre(i)}.</b> <span class="paire__a">${lgn(p.a.n, p.a.u)}</span><span class="case-symbole"></span><span class="paire__b">${lgn(p.b.n, p.b.u)}</span></div>`).join('')}
+      </div>
+      <div class="rangs rangs--lg">
+        <div class="rang">
+          <div class="rang__nombres"><b>${lettre(k)}.</b> ${contenu.rangement.map((x) => lgn(x.n, x.u)).join('&nbsp;; ')}</div>
+          <div class="rang__reponse">${contenu.rangement.map(() => '<span class="pointilles pointilles--rang"></span>').join('<span class="rang__signe">&lt;</span>')}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 4 — Calcule le périmètre de chaque figure.</h2>
+      <div class="figures-lg figures-lg--${figures.length}">
+        ${figures.map((f, i) => `<div class="figure-lg">
+          <div class="figure-lg__dessin"><b>${lettre(i)}.</b>${polygoneCote({ ...f, taille: 150 })}</div>
+          <div class="calcul-lg"><span class="calcul-lg__debut">Calcul :</span><span class="pointilles pointilles--ligne"></span><span class="calcul-lg__fin"><span>=</span><span class="pointilles pointilles--mini"></span><span>cm</span></span></div>
+        </div>`).join('')}
+      </div>
+    </div>
+`;
+  },
+  corriges(contenu, methode) {
+    const { conversions, ecritures, comparaisons, figures } = this.combien(contenu, methode);
+    const k = comparaisons.length;
+    const croissant = [...contenu.rangement].sort((x, y) => mmDe(x) - mmDe(y));
+    return `
+    <div class="bloc">
+      <h2>Exercice 1</h2>
+      <div class="conversions conversions--3 conversions--corrigees">
+        ${conversions.map((c, i) => `<div class="conversion"><b>${lettre(i)}.</b><span>${lg(c.n, c.de)} = ${rouge(lg(c.n * MM_PAR[c.de] / MM_PAR[c.vers], c.vers))}</span></div>`).join('')}
+      </div>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 2</h2>
+      <div class="conversions conversions--corrigees">
+        ${ecritures.map((e, i) => `<div class="conversion"><b>${lettre(i)}.</b>${e.sens === 'mixte'
+    ? `<span>${lg(totalMixte(e), e.petite)} = ${rouge(`${lg(e.hi, e.grande)} ${lg(e.lo, e.petite)}`)}</span>`
+    : `<span>${lg(e.hi, e.grande)} ${lg(e.lo, e.petite)} = ${rouge(lg(totalMixte(e), e.petite))}</span>`}</div>`).join('')}
+      </div>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 3</h2>
+      <div class="paires paires--lg paires--corrigees${k === 4 ? ' paires--lg4' : ''}">
+        ${comparaisons.map((p, i) => `<div class="paire"><b>${lettre(i)}.</b> <span class="paire__a">${lgn(p.a.n, p.a.u)}</span><span class="paire__symbole rouge">${symboleDe(mmDe(p.a), mmDe(p.b))}</span><span class="paire__b">${lgn(p.b.n, p.b.u)}</span></div>`).join('')}
+      </div>
+      <div class="rangs rangs--corriges rangs--lg">
+        <div class="rang"><div class="rang__reponse rang__reponse--corrige" data-sens="croissant"><b>${lettre(k)}.</b> ${croissant.map((x) => rouge(lgn(x.n, x.u))).join(' <span class="rang__signe">&lt;</span> ')}</div></div>
+      </div>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 4</h2>
+      <div class="figures-lg figures-lg--corrigees figures-lg--${figures.length}">
+        ${figures.map((f, i) => `<div class="figure-lg">
+          <div class="figure-lg__dessin"><b>${lettre(i)}.</b>${polygoneCote({ ...f, taille: 130 })}</div>
+          <div class="calcul-lg calcul-lg--corrige"><span class="calcul-lg__debut">Calcul :</span> ${rouge(sommeLg(f))}</div>
+        </div>`).join('')}
+      </div>
+    </div>
+`;
+  },
+};
+
 function pageExercices(fiche, contenu, { base = '', methode = true, identite = true } = {}) {
   const { signe } = fiche.mise;
   if (fiche.mise.rappel) return pageExercicesLibre(fiche, contenu, { base, methode, identite });
@@ -2406,6 +2654,25 @@ export const FICHES = [
     ],
     generer: genererMonnaie,
     mise: miseMonnaie,
+  },
+  {
+    id: 'ce2-longueurs',
+    classe: 'ce2',
+    domaine: 'Grandeurs et mesures',
+    titre: 'Les longueurs : unités, conversions, périmètre',
+    emoji: '📏',
+    options: [
+      {
+        id: 'km', libelle: 'Unités utilisées',
+        valeurs: [
+          { v: 'non', nom: 'mm, cm, dm, m' },
+          { v: 'oui', nom: 'Avec le kilomètre' },
+        ],
+        defaut: 'oui',
+      },
+    ],
+    generer: genererLongueurs,
+    mise: miseLongueurs,
   },
 ];
 

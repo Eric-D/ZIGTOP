@@ -282,3 +282,67 @@ export function monnaie(valeurs, { taille } = {}) {
   return `<svg class="monnaie" data-valeurs="${valeurs.join(',')}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${largeur} ${hauteur}"${dim}
     role="img" aria-label="${valeurs.map((v) => (v >= 500 ? 'billet' : 'pièce') + ' de ' + etiquetteMonnaie(v).replace(NBSP, ' ')).join(', ')}">${dessins.join('')}</svg>`;
 }
+
+// Polygone dont chaque côté porte sa longueur (en cm), écrite à côté de lui : on lit le dessin en noir et
+// blanc, sans couleur. `forme` : 'carre' (cotes : [c] ou 4 valeurs), 'rectangle' ([L, l] ou 4 valeurs, dans
+// l'ordre du tour), 'triangle' (3 valeurs) ou 'pentagone' (5 valeurs, dans l'ordre du tour). Carré, rectangle
+// et triangle sont à l'échelle ; le pentagone est une figure à peu près proportionnée, pas exacte.
+// Chaque côté est un `<text class="cote">` (avec `data-cm`), placé hors de la figure, du côté extérieur.
+export function polygoneCote({ cotes, forme, taille = 150 } = {}) {
+  const NB = '\u00a0';
+  let c = cotes.map(Number);
+  if (forme === 'carre' && c.length === 1) c = [c[0], c[0], c[0], c[0]];
+  if (forme === 'rectangle' && c.length === 2) c = [c[0], c[1], c[0], c[1]];
+  const attendu = { carre: 4, rectangle: 4, triangle: 3, pentagone: 5 }[forme];
+  if (!attendu || c.length !== attendu) throw new Error(`polygoneCote : ${forme} demande ${attendu} côtés`);
+
+  // Sommets dans un repère quelconque (l'axe y vers le haut), puis mis à l'échelle dans la boîte du dessin.
+  let pts;
+  if (forme === 'carre' || forme === 'rectangle') {
+    pts = [[0, 0], [c[0], 0], [c[0], c[1]], [0, c[1]]];
+  } else if (forme === 'triangle') {
+    const [a, b, d] = c;                        // AB = a, BC = b, CA = d
+    const x = (a * a + d * d - b * b) / (2 * a);
+    pts = [[0, 0], [a, 0], [x, Math.sqrt(Math.max(d * d - x * x, 0))]];
+  } else {
+    // Pentagone : cinq sommets sur un cercle, rayon un peu variable selon la longueur du côté qui suit ; le premier côté est en bas.
+    const m = c.reduce((s, v) => s + v, 0) / 5;
+    pts = c.map((v, k) => {
+      const ang = (-126 * Math.PI) / 180 + (2 * Math.PI * k) / 5, r = 1 + 0.16 * Math.max(-1, Math.min(1, (v - m) / m));
+      return [Math.cos(ang) * r, Math.sin(ang) * r];
+    });
+  }
+
+  const W = 220, H = 138, boiteL = 124, boiteH = 74, cx = W / 2, cy = H / 2;
+  const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+  const ech = Math.min(boiteL / (x1 - x0 || 1), boiteH / (y1 - y0 || 1));
+  const P = pts.map(([x, y]) => [cx + (x - (x0 + x1) / 2) * ech, cy - (y - (y0 + y1) / 2) * ech]);
+  const g = [P.reduce((s, p) => s + p[0], 0) / P.length, P.reduce((s, p) => s + p[1], 0) / P.length];
+
+  const etiquettes = P.map((p, k) => {
+    const q = P[(k + 1) % P.length];
+    const mx = (p[0] + q[0]) / 2, my = (p[1] + q[1]) / 2;
+    let nx = -(q[1] - p[1]), ny = q[0] - p[0];
+    const l = Math.hypot(nx, ny) || 1; nx /= l; ny /= l;
+    if (nx * (mx - g[0]) + ny * (my - g[1]) < 0) { nx = -nx; ny = -ny; }   // normale tournée vers l'extérieur
+    const texte = `${c[k]}${NB}cm`;
+    const dist = 5 + Math.abs(nx) * (texte.length * 3.9 + 2) + Math.abs(ny) * 6;
+    return `<text class="cote" data-cm="${c[k]}" x="${(mx + nx * dist).toFixed(1)}" y="${(my + ny * dist + 4.2).toFixed(1)}" font-size="13" font-weight="700" fill="#222" text-anchor="middle">${texte}</text>`;
+  });
+
+  // Petits angles droits pour le carré et le rectangle.
+  const droits = (forme === 'carre' || forme === 'rectangle') ? P.map((p, k) => {
+    const a = P[(k + 3) % 4], b = P[(k + 1) % 4], t = 7;
+    const u = [(a[0] - p[0]) / Math.hypot(a[0] - p[0], a[1] - p[1]), (a[1] - p[1]) / Math.hypot(a[0] - p[0], a[1] - p[1])];
+    const v = [(b[0] - p[0]) / Math.hypot(b[0] - p[0], b[1] - p[1]), (b[1] - p[1]) / Math.hypot(b[0] - p[0], b[1] - p[1])];
+    return `<path d="M${(p[0] + u[0] * t).toFixed(1)} ${(p[1] + u[1] * t).toFixed(1)} L${(p[0] + (u[0] + v[0]) * t).toFixed(1)} ${(p[1] + (u[1] + v[1]) * t).toFixed(1)} L${(p[0] + v[0] * t).toFixed(1)} ${(p[1] + v[1] * t).toFixed(1)}" fill="none" stroke="#222" stroke-width="1.4"/>`;
+  }).join('') : '';
+
+  const nom = { carre: 'Carré', rectangle: 'Rectangle', triangle: 'Triangle', pentagone: 'Pentagone' }[forme];
+  return `<svg class="polygone-cote" data-forme="${forme}" data-cotes="${c.join(',')}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}"
+    width="${taille}" height="${Math.round((taille * H) / W)}" role="img" aria-label="${nom} dont les côtés mesurent ${c.map((v) => `${v} cm`).join(', ')}">
+    <polygon points="${P.map((p) => `${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ')}" fill="#fff" stroke="#222" stroke-width="2.4" stroke-linejoin="round"/>
+    ${droits}${etiquettes.join('')}
+  </svg>`;
+}

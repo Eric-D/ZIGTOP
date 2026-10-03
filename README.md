@@ -37,6 +37,11 @@ et le **corrigé sur une deuxième page** pour l'adulte.
 
 Fiches disponibles (le plan complet est dans [`programme/ce2/PLAN-FICHES.md`](programme/ce2/PLAN-FICHES.md)) :
 
+- **CE2 — Les longueurs : unités, conversions, périmètre** (p. 33–36 du livret) : les
+  relations de la leçon (1 cm = 10 mm, 1 m = 10 dm = 100 cm, 1 km = 1 000 m), les écritures
+  mixtes (« 3 700 m, c'est 3 km 700 m »), la définition du périmètre et son exemple ;
+  conversions, comparaisons, rangement, périmètres de figures cotées. Option : sans ou avec
+  le kilomètre.
 - **CE2 — La monnaie : composer une somme, rendre la monnaie** (p. 32 du livret) : les
   billets et les pièces, 1 € = 100 c, la méthode du livret pour rendre la monnaie (compléter
   à l'euro suivant, puis au billet) ; sommes à composer, conversions, monnaie à rendre,

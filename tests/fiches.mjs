@@ -4,7 +4,7 @@ import { JSDOM } from 'jsdom';
 import { FICHES, tirer, rendre, decoder, codeDe, optionsParDefaut } from '../js/fiches.js';
 import { matrice } from '../js/qr.js';
 import { fmt } from '../js/utils.js';
-import { figureFraction, monnaie } from '../js/visuels.js';
+import { figureFraction, monnaie, polygoneCote } from '../js/visuels.js';
 
 let echecs = 0;
 const verifier = (ok, message) => { if (!ok) echecs++; console.log(`${ok ? '✔' : '✘'} ${message}`); };
@@ -1362,7 +1362,7 @@ for (const opt of optionsMult) {
 {
   const fm = FICHES.find((f) => f.id === 'ce2-monnaie');
   console.log('— Monnaie : composer une somme, rendre la monnaie');
-  verifier(FICHES.indexOf(fm) === FICHES.length - 1 && FICHES.indexOf(fm) === 8, 'monnaie : fiche ajoutée en fin de FICHES (index 8)');
+  verifier(FICHES.indexOf(fm) === 8, 'monnaie : fiche à l’index 8 de FICHES (jamais déplacée)');
   verifier(fm.titre === 'La monnaie : composer une somme, rendre la monnaie' && fm.emoji === '🪙'
     && fm.options.length === 1 && fm.options[0].id === 'centimes' && fm.options[0].defaut === 'oui'
     && JSON.stringify(fm.options[0].valeurs) === JSON.stringify([{ v: 'non', nom: 'Euros entiers' }, { v: 'oui', nom: 'Avec les centimes' }]),
@@ -1535,6 +1535,206 @@ for (const opt of optionsMult) {
     .map(([id, o]) => somme(empreinte(FICHES.find((x) => x.id === id), o)));
   verifier(h.join() === '2857615915,841554819,1341628403,3247079376,2467628440,3671073380,178792032,2718432813,1534335352,750168435,1150851747', `monnaie : les huit fiches précédentes sont inchangées (${h.join()})`);
   verifier(FICHES.slice(0, 8).map((f) => f.id).join() === 'ce2-addition-posee,ce2-soustraction-posee,ce2-multiplication,ce2-nombres-lire-ecrire,ce2-nombres-comparer,ce2-fractions-lire,ce2-fractions-comparer,ce2-fractions-calculer', 'monnaie : ordre des huit premières fiches inchangé');
+}
+
+/* Longueurs : unités, conversions, périmètre ---------------------------- */
+{
+  const fl = FICHES.find((f) => f.id === 'ce2-longueurs');
+  console.log('— Longueurs : unités, conversions, périmètre');
+  verifier(FICHES.indexOf(fl) === FICHES.length - 1 && FICHES.indexOf(fl) === 9, 'longueurs : fiche ajoutée en fin de FICHES (index 9)');
+  verifier(fl.titre === 'Les longueurs : unités, conversions, périmètre' && fl.emoji === '📏'
+    && fl.options.length === 1 && fl.options[0].id === 'km' && fl.options[0].defaut === 'oui'
+    && JSON.stringify(fl.options[0].valeurs) === JSON.stringify([{ v: 'non', nom: 'mm, cm, dm, m' }, { v: 'oui', nom: 'Avec le kilomètre' }]),
+    'longueurs : titre, emoji, option km (non puis oui, défaut oui)');
+
+  const doc = (c, o) => new JSDOM(`<div>${rendre(fl, c, o)}</div>`).window.document;
+  const blocs = (page) => [...page.querySelectorAll('.bloc:not(.bloc--methode)')];
+  const txt = (el) => el.textContent.replace(/[ \t\n\r]+/g, ' ');
+  // Valeurs en millimètres, recalculées ici sans rien emprunter au générateur.
+  const MM = { mm: 1, cm: 10, dm: 100, m: 1000, km: 1000000 };
+  const mesures = (t) => [...String(t).matchAll(/([\d ]+) (mm|cm|dm|km|m)(?![\p{L}])/gu)].map((m) => ({ n: parseInt(m[1].replace(/ /g, ''), 10), u: m[2] }));
+  const enMm = (l) => l.reduce((s, x) => s + x.n * MM[x.u], 0);
+
+  // La figure dessinée : un dessin par côté, l'étiquette la plus proche de son côté, lisible dans le cadre.
+  const lireFigure = (svg) => ({
+    forme: svg.dataset.forme,
+    cotes: [...svg.querySelectorAll('text.cote')].map((t) => +t.dataset.cm),
+    textes: [...svg.querySelectorAll('text.cote')].map((t) => t.textContent),
+    sommets: svg.querySelector('polygon').getAttribute('points').split(' ').map((p) => p.split(',').map(Number)),
+    etiquettes: [...svg.querySelectorAll('text.cote')].map((t) => [+t.getAttribute('x'), +t.getAttribute('y') - 4]),
+  });
+  const distSegment = (p, a, b) => {
+    const [dx, dy] = [b[0] - a[0], b[1] - a[1]];
+    const t = Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / (dx * dx + dy * dy)));
+    return Math.hypot(p[0] - a[0] - t * dx, p[1] - a[1] - t * dy);
+  };
+  const figureOk = (f, nbCotes) => {
+    if (f.cotes.length !== nbCotes || f.sommets.length !== nbCotes) return false;
+    // chaque étiquette est plus proche de son côté que de tous les autres, à moins de 32 unités, dans le cadre (220 × 138)
+    return f.etiquettes.every((e, k) => {
+      const d = f.sommets.map((a, i) => distSegment(e, a, f.sommets[(i + 1) % nbCotes]));
+      return d[k] <= 32 && d.every((x, i) => i === k || d[k] <= x) && e[0] > 12 && e[0] < 208 && e[1] > 6 && e[1] < 134;
+    }) && f.textes.every((t, k) => t === `${f.cotes[k]} cm`);
+  };
+
+  // La fonction de dessin elle-même
+  {
+    const essais = [['carre', [5], 4], ['carre', [5, 5, 5, 5], 4], ['rectangle', [8, 3], 4], ['rectangle', [8, 3, 8, 3], 4], ['triangle', [6, 7, 8], 3], ['triangle', [3, 4, 5], 3], ['pentagone', [18, 12, 30, 7, 20], 5], ['pentagone', [5, 5, 5, 5, 5], 5]];
+    const ok = essais.every(([forme, cotes, n]) => {
+      const svg = new JSDOM(`<div>${polygoneCote({ forme, cotes })}</div>`).window.document.querySelector('svg');
+      return svg.classList.contains('polygone-cote') && figureOk(lireFigure(svg), n);
+    });
+    verifier(ok, 'polygoneCote : carré, rectangle, triangle et pentagone, une étiquette près de chaque côté, dans le cadre');
+    const tri = new JSDOM(`<div>${polygoneCote({ forme: 'triangle', cotes: [3, 4, 5] })}</div>`).window.document.querySelector('svg');
+    const pts = lireFigure(tri).sommets;
+    const long = (i) => Math.hypot(pts[i][0] - pts[(i + 1) % 3][0], pts[i][1] - pts[(i + 1) % 3][1]);
+    verifier(Math.abs(long(0) / long(1) - 3 / 4) < 0.02 && Math.abs(long(2) / long(1) - 5 / 4) < 0.02, 'polygoneCote : le triangle est à l’échelle');
+    const rect = lireFigure(new JSDOM(`<div>${polygoneCote({ forme: 'rectangle', cotes: [8, 3] })}</div>`).window.document.querySelector('svg')).sommets;
+    verifier(Math.abs((rect[1][0] - rect[0][0]) / (rect[2][1] - rect[1][1]) - 8 / 3) < 0.02 || Math.abs((rect[1][0] - rect[0][0]) / (rect[1][1] - rect[2][1]) - 8 / 3) < 0.02, 'polygoneCote : le rectangle est à l’échelle');
+    let leve = false; try { polygoneCote({ forme: 'triangle', cotes: [1, 2] }); } catch { leve = true; }
+    verifier(leve, 'polygoneCote : un nombre de côtés incohérent est refusé');
+  }
+
+  for (const km of ['non', 'oui']) for (const methode of [true, false]) {
+    const k = methode ? { c: 6, e: 4, p: 4, f: 3 } : { c: 8, e: 6, p: 6, f: 4 };
+    const nom = `longueurs ${km === 'oui' ? 'avec' : 'sans'} km, ${methode ? 'avec' : 'sans'} méthode`;
+    let comptes = 0, conv = 0, mixtes = 0, comp = 0, rang = 0, fig = 0, fuite = 0, mots = 0, bornes = 0, egal = 0;
+    for (let graine = 1; graine <= 60; graine++) {
+      const c = tirer(fl, { km }, graine * 7919);
+      const d = doc(c, { corrige: true, methode });
+      const [pe, pc] = d.querySelectorAll('.feuille');
+      const [e1, e2, e3, e4] = blocs(pe), [c1, c2, c3, c4] = blocs(pc);
+      const cmpt = (el, sel) => el.querySelectorAll(sel).length;
+      if (!(cmpt(e1, '.conversion') === k.c && cmpt(c1, '.conversion') === k.c && cmpt(e2, '.conversion') === k.e && cmpt(c2, '.conversion') === k.e
+        && cmpt(e3, '.paire') === k.p && cmpt(c3, '.paire') === k.p && cmpt(e3, '.rang') === 1 && cmpt(c3, '.rang') === 1
+        && cmpt(e4, '.figure-lg') === k.f && cmpt(c4, '.figure-lg') === k.f && cmpt(e4, 'svg.polygone-cote') === k.f)) comptes++;
+
+      // Ex. 1 : « 40 mm = … cm » → « 40 mm = 4 cm »
+      const unitesVues = new Set();
+      [...c1.querySelectorAll('.conversion')].forEach((el, i) => {
+        const [g, dr] = txt(el).replace(/^[a-z]\.\s*/, '').split(' = ');
+        const a = mesures(g)[0], b = mesures(dr)[0];
+        const depart = mesures(txt(e1.querySelectorAll('.conversion')[i]).split('=')[0])[0];
+        if (!a || !b || a.u === b.u || !depart || depart.n !== a.n || depart.u !== a.u || a.n * MM[a.u] !== b.n * MM[b.u]) conv++;
+        else { unitesVues.add(a.u); unitesVues.add(b.u); }
+        if (!txt(e1.querySelectorAll('.conversion')[i]).trim().endsWith(`=${b.u}`)) conv++;   // l'unité d'arrivée est écrite sur la feuille
+      });
+      // Ex. 2 : écritures mixtes, un côté à deux parties
+      [...c2.querySelectorAll('.conversion')].forEach((el) => {
+        const [g, dr] = txt(el).replace(/^[a-z]\.\s*/, '').split(' = ');
+        const a = mesures(g), b = mesures(dr);
+        const [mixte, simple] = a.length === 2 ? [a, b] : [b, a];
+        const okForme = (a.length === 1 && b.length === 2) || (a.length === 2 && b.length === 1);
+        const ordre = okForme && mixte[0].u !== mixte[1].u && MM[mixte[0].u] / MM[mixte[1].u] >= 10 && mixte[1].n < MM[mixte[0].u] / MM[mixte[1].u] && mixte[1].n > 0 && simple[0].u === mixte[1].u;
+        if (!ordre || enMm(a) !== enMm(b)) mixtes++;
+        a.concat(b).forEach((x) => unitesVues.add(x.u));
+      });
+      // Ex. 3 : symboles
+      let egalites = 0;
+      [...c3.querySelectorAll('.paire')].forEach((el) => {
+        const a = mesures(el.querySelector('.paire__a').textContent), b = mesures(el.querySelector('.paire__b').textContent);
+        const s = el.querySelector('.paire__symbole').textContent;
+        if (a.length !== 1 || b.length !== 1 || a[0].u === b[0].u || s !== (enMm(a) < enMm(b) ? '<' : enMm(a) > enMm(b) ? '>' : '=')) comp++;
+        if (s === '=') egalites++;
+        a.concat(b).forEach((x) => unitesVues.add(x.u));
+      });
+      if (egalites !== 1) egal++;
+      // Rangement : 4 longueurs d'unités différentes, mélangées, rangées du plus petit au plus grand
+      const donnees = mesures(e3.querySelector('.rang__nombres').textContent);
+      const rangees = mesures(c3.querySelector('.rang__reponse--corrige').textContent);
+      const tri = [...donnees].sort((x, y) => enMm([x]) - enMm([y]));
+      const ordreDonne = donnees.every((x, i) => !i || enMm([x]) > enMm([donnees[i - 1]])) || donnees.every((x, i) => !i || enMm([x]) < enMm([donnees[i - 1]]));
+      if (donnees.length !== 4 || rangees.length !== 4 || JSON.stringify(rangees) !== JSON.stringify(tri) || ordreDonne || new Set(donnees.map((x) => enMm([x]))).size !== 4
+        || new Set(donnees.map((x) => x.u)).size < (km === 'oui' ? 2 : 4) || cmpt(e3, '.rang .pointilles') !== 4) rang++;
+      donnees.forEach((x) => unitesVues.add(x.u));
+      // Ex. 4 : périmètres
+      const figs = [...e4.querySelectorAll('svg.polygone-cote')].map(lireFigure);
+      const formes = figs.map((f) => f.forme).join();
+      const attendu = methode ? [/^carre,rectangle,(triangle|pentagone)$/] : [/^carre,rectangle,(triangle,pentagone|pentagone,triangle)$/];
+      const nbCotes = { carre: 4, rectangle: 4, triangle: 3, pentagone: 5 };
+      let figOk = attendu[0].test(formes) && figs.every((f) => figureOk(f, nbCotes[f.forme]));
+      [...c4.querySelectorAll('.figure-lg')].forEach((el, i) => {
+        const f = lireFigure(el.querySelector('svg.polygone-cote'));
+        if (f.forme !== figs[i].forme || f.cotes.join() !== figs[i].cotes.join()) figOk = false;
+        const [g, dr] = txt(el.querySelector('.calcul-lg')).replace(/^\s*Calcul : /, '').split(' = ');
+        const termes = mesures(g), total = mesures(dr);
+        const somme = f.cotes.reduce((s, x) => s + x, 0);
+        if (termes.length !== nbCotes[f.forme] || termes.some((t) => t.u !== 'cm') || termes.map((t) => t.n).join() !== f.cotes.join()
+          || total.length !== 1 || total[0].u !== 'cm' || total[0].n !== somme || !/^(\d+ cm \+ )+\d+ cm$/.test(g)) figOk = false;
+        if (f.forme === 'carre' && new Set(f.cotes).size !== 1) figOk = false;
+        if (f.forme === 'rectangle' && !(f.cotes[0] === f.cotes[2] && f.cotes[1] === f.cotes[3] && f.cotes[0] !== f.cotes[1])) figOk = false;
+        if (f.forme === 'triangle' && Math.max(...f.cotes) * 2 >= somme) figOk = false;
+      });
+      if (!figOk) fig++;
+
+      // Unités dans les bornes de l'option
+      const tout = pe.textContent + pc.textContent;
+      if (km === 'non' && (unitesVues.has('km') || /\bkm\b|kilomètre/.test(tout))) bornes++;
+      if (km === 'oui' && !(unitesVues.has('km') && cmpt(e1, '.conversion') === k.c && /km/.test(txt(e1)) && /km/.test(txt(e2)))) bornes++;
+      ['mm', 'cm', 'dm', 'm'].forEach((u) => { if (km === 'non' && !unitesVues.has(u)) bornes++; });
+
+      // Page élève : aucune réponse (hors exemple du rappel)
+      if (pe.querySelectorAll('.rouge, .calcul-lg--corrige, .paire__symbole').length) fuite++;
+      if (/=\s*\d/.test(txt(e1) + txt(e2) + txt(e4))) fuite++;
+      if ([...e3.querySelectorAll('.case-symbole')].some((x) => x.textContent.trim())) fuite++;
+      if ([...e4.querySelectorAll('.pointilles')].some((x) => x.textContent.trim())) fuite++;
+      // Ton, emoji, typographie des unités (espace insécable)
+      if (/faux|erreur|raté|✗|✘|❌|[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(tout)) mots++;
+      if (/\d (mm|cm|dm|km|m)(?![\p{L}])/u.test(tout)) mots++;
+    }
+    verifier(comptes === 0, `${nom} : mêmes comptes élève / corrigé (${k.c} conversions, ${k.e} écritures, ${k.p} comparaisons + 1 rangement, ${k.f} figures), 60 tirages`);
+    verifier(conv === 0, `${nom} : conversions exactes (recalculées en mm)`);
+    verifier(mixtes === 0, `${nom} : écritures mixtes exactes`);
+    verifier(comp === 0 && egal === 0, `${nom} : symboles exacts (recalculés en mm), une égalité par feuille, unités différentes de chaque côté`);
+    verifier(rang === 0, `${nom} : rangement de 4 longueurs d’unités différentes, exact et jamais déjà rangé`);
+    verifier(fig === 0, `${nom} : figures (étiquettes près de chaque côté), additions écrites et périmètres exacts`);
+    verifier(bornes === 0, `${nom} : unités dans les bornes de l’option`);
+    verifier(fuite === 0, `${nom} : aucune réponse sur la page élève`);
+    verifier(mots === 0, `${nom} : aucun mot négatif ni emoji, espace insécable avant chaque unité`);
+    const d0 = doc(tirer(fl, { km }, 99), { corrige: true, methode });
+    const [pe0, pc0] = d0.querySelectorAll('.feuille');
+    verifier(pe0.querySelectorAll('.bloc--methode').length === (methode ? 1 : 0) && !pc0.querySelector('.bloc--methode') && !pc0.textContent.includes('Nom :'), `${nom} : rappel seulement avec la méthode, jamais dans le corrigé ni la ligne Nom / Date`);
+  }
+
+  // Le rappel : phrases et exemple de la leçon
+  for (const km of ['non', 'oui']) {
+    const m = doc(tirer(fl, { km }, 11), { corrige: false, methode: true }).querySelector('.bloc--methode');
+    const t = txt(m).replace(/[\u00a0\u202f]/g, ' ');
+    const communes = ['Le centimètre est une unité de longueur dix fois plus grande que le millimètre.', '1 cm = 10 mm',
+      'Le mètre est une unité de longueur cent fois plus grande que le centimètre.', '1 m = 100 cm',
+      'Le mètre est une unité de longueur dix fois plus grande que le décimètre.', '1 m = 10 dm',
+      'Le décimètre est une unité de longueur dix fois plus grande que le centimètre.', '1 dm = 10 cm',
+      'Le périmètre d’une figure est la longueur du tour de cette figure.',
+      'On calcule le périmètre d’une figure en additionnant les longueurs de tous les côtés de la figure.',
+      '30 cm + 12 cm + 18 cm + 20 cm + 7 cm = 87 cm', 'Le périmètre de cette figure mesure 87 cm.'];
+    const kmPhrases = ['Le kilomètre est une unité de longueur 1 000 fois plus grande que le mètre.', '1 km = 1 000 m', '5 km, c’est 5 000 m.', '3 700 m, c’est 3 km 700 m.'];
+    verifier(communes.every((p) => t.includes(p)), `longueurs ${km} : le rappel reprend les phrases de la leçon (mm, cm, dm, m, périmètre)`);
+    verifier(kmPhrases.every((p) => t.includes(p)) === (km === 'oui') && (km === 'oui' || !/km|kilomètre/.test(t)), `longueurs ${km} : le rappel ${km === 'oui' ? 'reprend les phrases du kilomètre' : 'ne parle pas du kilomètre'}`);
+    const f = lireFigure(m.querySelector('svg.polygone-cote'));
+    verifier(f.forme === 'pentagone' && f.cotes.join() === '18,12,30,7,20' && figureOk(f, 5) && f.cotes.reduce((s, x) => s + x, 0) === 87, `longueurs ${km} : l’exemple de la leçon dessiné (pentagone 18, 12, 30, 7, 20 cm : 87 cm)`);
+    verifier(!m.querySelector('table') && m.querySelectorAll('svg').length === 1, `longueurs ${km} : pas de tableau de conversion (la leçon n’en montre pas)`);
+  }
+
+  // Codes reproductibles et options
+  for (const km of ['non', 'oui']) {
+    const c = tirer(fl, { km });
+    const r = decoder(c.code);
+    verifier(r && r.fiche === fl && r.options.km === km && JSON.stringify(tirer(r.fiche, r.options, r.graine)) === JSON.stringify(c), `longueurs ${km} : le code ${c.code} redonne la même fiche`);
+    verifier(rendre(fl, tirer(fl, { km }, 77), { corrige: true }) === rendre(fl, tirer(fl, { km }, 77), { corrige: true }), `longueurs ${km} : même graine, même HTML`);
+    const vus = new Set(); for (let i = 0; i < 200; i++) vus.add(tirer(fl, { km }).code);
+    verifier(vus.size > 190, `longueurs ${km} : codes variés (${vus.size} sur 200)`);
+  }
+  verifier(codeDe(fl, { km: 'non' }, 5) !== codeDe(fl, { km: 'oui' }, 5), 'longueurs : l’option change le code');
+
+  // Les neuf fiches précédentes inchangées : empreinte du HTML à graine fixe, mesurée avant l’ajout
+  const empreinte = (f, o) => { const t = tirer(f, o, 424242); return JSON.stringify(t) + rendre(f, t, { corrige: true, base: 'http://x/' }); };
+  const somme = (s) => { let h = 5381; for (const ch of s) h = ((h * 33) ^ ch.charCodeAt(0)) >>> 0; return h; };
+  const h = [['ce2-addition-posee', { taille: 'mix' }], ['ce2-soustraction-posee', { taille: 'mix' }], ['ce2-multiplication', { facteur: '2' }], ['ce2-nombres-lire-ecrire', { taille: '1000' }], ['ce2-nombres-lire-ecrire', { taille: '10000' }],
+    ['ce2-nombres-comparer', { taille: '1000' }], ['ce2-nombres-comparer', { taille: '10000' }], ['ce2-fractions-lire', {}], ['ce2-fractions-comparer', {}], ['ce2-fractions-calculer', { denominateur: '4' }], ['ce2-fractions-calculer', { denominateur: '10' }],
+    ['ce2-monnaie', { centimes: 'non' }], ['ce2-monnaie', { centimes: 'oui' }]]
+    .map(([id, o]) => somme(empreinte(FICHES.find((x) => x.id === id), o)));
+  verifier(h.join() === '2857615915,841554819,1341628403,3247079376,2467628440,3671073380,178792032,2718432813,1534335352,750168435,1150851747,649082766,1335819493', `longueurs : les neuf fiches précédentes sont inchangées (${h.join()})`);
+  verifier(FICHES.slice(0, 9).map((f) => f.id).join() === 'ce2-addition-posee,ce2-soustraction-posee,ce2-multiplication,ce2-nombres-lire-ecrire,ce2-nombres-comparer,ce2-fractions-lire,ce2-fractions-comparer,ce2-fractions-calculer,ce2-monnaie', 'longueurs : ordre des neuf premières fiches inchangé');
 }
 
 process.exit(echecs ? 1 : 0);

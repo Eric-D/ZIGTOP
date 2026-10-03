@@ -25,7 +25,7 @@ l'enfant a vus en classe.
 | 6 | Fractions : égales et comparaison | [06-fractions.md](01-nombres-et-calculs/06-fractions.md) (26–29) | [#6](https://github.com/Eric-D/ZIGTOP/issues/6) | ✅ en ligne |
 | 7 | Fractions : mesurer, additionner, soustraire | [06-fractions.md](01-nombres-et-calculs/06-fractions.md) (30–31) | [#7](https://github.com/Eric-D/ZIGTOP/issues/7) | ✅ en ligne |
 | 8 | Monnaie : composer une somme, rendre la monnaie | [01-monnaie.md](02-grandeurs-et-mesures/01-monnaie.md) (32) | [#8](https://github.com/Eric-D/ZIGTOP/issues/8) | ✅ en ligne |
-| 9 | Longueurs : unités, conversions, périmètre | [02-longueurs.md](02-grandeurs-et-mesures/02-longueurs.md) (33–36) | [#9](https://github.com/Eric-D/ZIGTOP/issues/9) | ⬜ à faire |
+| 9 | Longueurs : unités, conversions, périmètre | [02-longueurs.md](02-grandeurs-et-mesures/02-longueurs.md) (33–36) | [#9](https://github.com/Eric-D/ZIGTOP/issues/9) | ✅ en ligne |
 | 10 | Heures : lire l’heure sur une horloge à aiguilles | [03-heures.md](02-grandeurs-et-mesures/03-heures.md) (37–38) | [#10](https://github.com/Eric-D/ZIGTOP/issues/10) | ⬜ à faire |
 | 11 | Masses et contenances : unités et conversions | [04-masses.md](02-grandeurs-et-mesures/04-masses.md) (39–42) | [#11](https://github.com/Eric-D/ZIGTOP/issues/11) | ⬜ à faire |
 | 12 | Durées : relations et calculs | [06-durees.md](02-grandeurs-et-mesures/06-durees.md) (43–44) | [#12](https://github.com/Eric-D/ZIGTOP/issues/12) | ⬜ à faire |
