@@ -21,13 +21,13 @@ Les photos elles-mêmes ne sont pas dans le dépôt. Les transcriptions brutes, 
 | Grandeurs et mesures | Contenances | 40–42 | [`02-grandeurs-et-mesures/05-contenances.md`](02-grandeurs-et-mesures/05-contenances.md) | ok |
 | Grandeurs et mesures | Durées | 43–44 | [`02-grandeurs-et-mesures/06-durees.md`](02-grandeurs-et-mesures/06-durees.md) | ok |
 | Géométrie | Solides | 45–47 | [`03-geometrie/01-solides.md`](03-geometrie/01-solides.md) | 1 passage(s) `[illisible]` |
-| Géométrie | Polygones | 48–50? | [`03-geometrie/02-polygones.md`](03-geometrie/02-polygones.md) | numéro de page incertain |
+| Géométrie | Polygones | 48–54 | [`03-geometrie/02-polygones.md`](03-geometrie/02-polygones.md) | ok |
 | Géométrie | Symétrie | 55 | [`03-geometrie/03-symetrie.md`](03-geometrie/03-symetrie.md) | ok |
 | Gestion de données | Gestion de données | 56 | [`04-gestion-de-donnees/01-gestion-de-donnees.md`](04-gestion-de-donnees/01-gestion-de-donnees.md) | 1 photo(s) peu nette(s) |
 
 ## Pages manquantes
 
-Pages du livret dont aucune photo n'a été fournie (à photographier pour compléter) : 50, 51, 52, 53, 54.
+Pages du livret dont aucune photo n'a été fournie (à photographier pour compléter) : 50, 51, 52, 53.
 
 ## À vérifier sur les photos
 

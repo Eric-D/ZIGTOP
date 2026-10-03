@@ -2,7 +2,7 @@
 classe: CE2
 domaine: Géométrie
 lecon: Polygones
-pages: 48, 49, 50?
+pages: 48, 49, 54
 photos: IMG20260927134640, IMG20260927134644, IMG20260927134655
 a_verifier: non
 ---
@@ -24,7 +24,7 @@ Un triangle est un polygone qui a trois côtés et trois sommets.
 
 Un quadrilatère est un polygone qui a quatre côtés et quatre sommets.
 
-<!-- page 50? · photo IMG20260927134655 · lisibilité bonne -->
+<!-- page 54 · photo IMG20260927134655 · lisibilité bonne -->
 
 > Je sais construire un cercle, avec un compas, à partir du centre et du diamètre ou du rayon.
 
