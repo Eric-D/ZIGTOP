@@ -3964,11 +3964,20 @@ const miseDonnees = {
 
 /* ------------------------------------------------------------------ */
 
+// Les quatre domaines du livret, dans l'ordre.
+export const DOMAINES = ['Nombres et calculs', 'Grandeurs et mesures', 'Géométrie', 'Gestion de données'];
+
+// RÈGLE : on ajoute toujours une fiche à la FIN de FICHES. On ne déplace ni ne
+// supprime jamais une entrée, ni une valeur d'option : le code imprimé sur les
+// fiches encode l'index de la fiche et l'index de chaque valeur d'option.
 export const FICHES = [
   {
     id: 'ce2-addition-posee',
     classe: 'ce2',
     domaine: 'Nombres et calculs',
+    lecon: 'programme/ce2/01-nombres-et-calculs/03-addition-posee.md',
+    pages: '14–15',
+    objectif: 'Je sais poser et calculer des additions avec des nombres inférieurs à 10 000.',
     titre: 'Opérations — addition posée',
     emoji: '➕',
     options: [
@@ -3989,6 +3998,9 @@ export const FICHES = [
     id: 'ce2-soustraction-posee',
     classe: 'ce2',
     domaine: 'Nombres et calculs',
+    lecon: 'programme/ce2/01-nombres-et-calculs/04-soustraction-posee.md',
+    pages: '16–18',
+    objectif: 'Je sais poser et calculer une soustraction avec des nombres à 4 chiffres.',
     titre: 'Opérations — soustraction posée',
     emoji: '➖',
     options: [
@@ -4009,6 +4021,9 @@ export const FICHES = [
     id: 'ce2-multiplication',
     classe: 'ce2',
     domaine: 'Nombres et calculs',
+    lecon: 'programme/ce2/01-nombres-et-calculs/05-multiplication.md',
+    pages: '19–21',
+    objectif: 'Je sais calculer en ligne des produits, et poser et calculer une multiplication par un nombre à 1 chiffre.',
     titre: 'Opérations — multiplication',
     emoji: '✖️',
     options: [
@@ -4028,6 +4043,9 @@ export const FICHES = [
     id: 'ce2-nombres-lire-ecrire',
     classe: 'ce2',
     domaine: 'Nombres et calculs',
+    lecon: 'programme/ce2/01-nombres-et-calculs/02-nombres-jusqu-a-10000.md',
+    pages: '3–8',
+    objectif: 'Je sais qu’une centaine, c’est aussi dix dizaines et cent unités, et je sais représenter un nombre de différentes façons.',
     titre: 'Les nombres : lire, écrire, décomposer',
     emoji: '🔢',
     options: [
@@ -4047,6 +4065,9 @@ export const FICHES = [
     id: 'ce2-nombres-comparer',
     classe: 'ce2',
     domaine: 'Nombres et calculs',
+    lecon: 'programme/ce2/01-nombres-et-calculs/02-nombres-jusqu-a-10000.md',
+    pages: '9–13',
+    objectif: 'Je sais comparer, ranger et encadrer des nombres entiers, et les placer sur une demi-droite graduée.',
     titre: 'Les nombres : comparer, ranger, encadrer',
     emoji: '⚖️',
     options: [
@@ -4066,6 +4087,9 @@ export const FICHES = [
     id: 'ce2-fractions-lire',
     classe: 'ce2',
     domaine: 'Nombres et calculs',
+    lecon: 'programme/ce2/01-nombres-et-calculs/06-fractions.md',
+    pages: '22–25',
+    objectif: 'Je sais lire et écrire une fraction.',
     titre: 'Les fractions : lire, écrire, représenter',
     emoji: '🍰',
     options: [],
@@ -4076,6 +4100,9 @@ export const FICHES = [
     id: 'ce2-fractions-comparer',
     classe: 'ce2',
     domaine: 'Nombres et calculs',
+    lecon: 'programme/ce2/01-nombres-et-calculs/06-fractions.md',
+    pages: '26–29',
+    objectif: 'Je sais reconnaître des fractions égales et comparer des fractions.',
     titre: 'Les fractions : égales et comparaison',
     emoji: '⚖️',
     options: [],
@@ -4086,6 +4113,9 @@ export const FICHES = [
     id: 'ce2-fractions-calculer',
     classe: 'ce2',
     domaine: 'Nombres et calculs',
+    lecon: 'programme/ce2/01-nombres-et-calculs/06-fractions.md',
+    pages: '30–31',
+    objectif: 'Je sais mesurer des longueurs de bandes avec une règle graduée en fractions d’unité, et additionner ou soustraire des fractions de même dénominateur.',
     titre: 'Les fractions : mesurer, additionner, soustraire',
     emoji: '➕',
     options: [
@@ -4105,6 +4135,9 @@ export const FICHES = [
     id: 'ce2-monnaie',
     classe: 'ce2',
     domaine: 'Grandeurs et mesures',
+    lecon: 'programme/ce2/02-grandeurs-et-mesures/01-monnaie.md',
+    pages: '32',
+    objectif: 'Je sais composer une somme avec des pièces et des billets, et je sais rendre la monnaie.',
     titre: 'La monnaie : composer une somme, rendre la monnaie',
     emoji: '🪙',
     options: [
@@ -4124,6 +4157,9 @@ export const FICHES = [
     id: 'ce2-longueurs',
     classe: 'ce2',
     domaine: 'Grandeurs et mesures',
+    lecon: 'programme/ce2/02-grandeurs-et-mesures/02-longueurs.md',
+    pages: '33–36',
+    objectif: 'Je connais les relations entre mm, cm, dm et m, et je sais calculer le périmètre d’une figure.',
     titre: 'Les longueurs : unités, conversions, périmètre',
     emoji: '📏',
     options: [
@@ -4143,6 +4179,9 @@ export const FICHES = [
     id: 'ce2-heures',
     classe: 'ce2',
     domaine: 'Grandeurs et mesures',
+    lecon: 'programme/ce2/02-grandeurs-et-mesures/03-heures.md',
+    pages: '37–38',
+    objectif: 'Je sais lire l’heure sur une horloge à aiguilles et les horaires comme 8 heures moins 10.',
     titre: 'Les heures : lire l’heure sur une horloge',
     emoji: '🕒',
     options: [
@@ -4162,6 +4201,9 @@ export const FICHES = [
     id: 'ce2-masses-contenances',
     classe: 'ce2',
     domaine: 'Grandeurs et mesures',
+    lecon: 'programme/ce2/02-grandeurs-et-mesures/04-masses.md',
+    pages: '39–42',
+    objectif: 'Je connais les relations entre g, kg et t, et les unités de contenance (cL, dL, L).',
     titre: 'Les masses et les contenances',
     emoji: '⚖️',
     options: [
@@ -4182,6 +4224,9 @@ export const FICHES = [
     id: 'ce2-durees',
     classe: 'ce2',
     domaine: 'Grandeurs et mesures',
+    lecon: 'programme/ce2/02-grandeurs-et-mesures/06-durees.md',
+    pages: '43–44',
+    objectif: 'Je connais les relations entre minutes, heures, demi-heure, quart d’heure, siècle et millénaire, et je calcule des durées.',
     titre: 'Les durées : relations et calculs',
     emoji: '⏱️',
     options: [
@@ -4201,6 +4246,9 @@ export const FICHES = [
     id: 'ce2-solides',
     classe: 'ce2',
     domaine: 'Géométrie',
+    lecon: 'programme/ce2/03-geometrie/01-solides.md',
+    pages: '45–47',
+    objectif: 'Je sais reconnaître les solides : un cube, un pavé, une pyramide, une boule, un cylindre, un cône.',
     titre: 'Les solides : reconnaître, décrire, patrons du cube',
     emoji: '🧊',
     options: [],
@@ -4211,6 +4259,9 @@ export const FICHES = [
     id: 'ce2-polygones',
     classe: 'ce2',
     domaine: 'Géométrie',
+    lecon: 'programme/ce2/03-geometrie/02-polygones.md',
+    pages: '48–50',
+    objectif: 'Je sais reconnaître un polygone et construire un cercle avec un compas.',
     titre: 'Les polygones et le cercle',
     emoji: '🔷',
     options: [],
@@ -4221,6 +4272,9 @@ export const FICHES = [
     id: 'ce2-symetrie',
     classe: 'ce2',
     domaine: 'Géométrie',
+    lecon: 'programme/ce2/03-geometrie/03-symetrie.md',
+    pages: '55',
+    objectif: 'Je reconnais si une figure présente un axe de symétrie.',
     titre: 'La symétrie : axes et figures symétriques',
     emoji: '🪞',
     options: [
@@ -4240,6 +4294,9 @@ export const FICHES = [
     id: 'ce2-donnees',
     classe: 'ce2',
     domaine: 'Gestion de données',
+    lecon: 'programme/ce2/04-gestion-de-donnees/01-gestion-de-donnees.md',
+    pages: '56',
+    objectif: 'Je sais lire et interpréter des données d’un tableau à double entrée ou d’un diagramme en barres.',
     titre: 'Les tableaux et les diagrammes en barres',
     emoji: '📊',
     options: [

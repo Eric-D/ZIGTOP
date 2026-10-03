@@ -34,6 +34,8 @@ l'enfant a vus en classe.
 | 15 | Symétrie : axes et figures symétriques | [03-symetrie.md](03-geometrie/03-symetrie.md) (55) | [#15](https://github.com/Eric-D/ZIGTOP/issues/15) | ✅ en ligne |
 | 16 | Gestion de données : tableaux et diagrammes en barres | [01-gestion-de-donnees.md](04-gestion-de-donnees/01-gestion-de-donnees.md) (56) | [#16](https://github.com/Eric-D/ZIGTOP/issues/16) | ✅ en ligne |
 
+Transverse : [#17](https://github.com/Eric-D/ZIGTOP/issues/17) écran des fiches regroupé par domaine, lié aux leçons, ordre de `FICHES` figé par un test — ✅ en ligne.
+
 ## Règles communes à toutes les fiches
 
 **Fidélité au livret.** Le rappel de méthode reprend les étapes, les exemples et le

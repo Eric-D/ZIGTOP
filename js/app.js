@@ -7,7 +7,7 @@ import * as P from './progression.js';
 import * as Son from './son.js';
 import { zigo, phrase, carte, jardin, LIEUX, DECORS, decorParId } from './univers.js';
 import * as A11y from './accessibilite.js';
-import { FICHES, fichesDe, ficheParId, optionsParDefaut, tirer, decoder, rendre as rendreFiche } from './fiches.js';
+import { FICHES, DOMAINES, fichesDe, ficheParId, optionsParDefaut, tirer, decoder, rendre as rendreFiche } from './fiches.js';
 import { visuel } from './visuels.js';
 import { shuffle, pick, leurres } from './utils.js';
 
@@ -284,6 +284,8 @@ function retrouverFiche(code) {
   return true;
 }
 
+const URL_DEPOT = 'https://github.com/Eric-D/ZIGTOP/blob/main/';
+
 function vueFiches() {
   const c = classeCourante();
   const disponibles = fichesDe(c.id);
@@ -307,14 +309,26 @@ function vueFiches() {
       ${entete('Une fiche à imprimer, puis un crayon !')}
       ${bulle('Choisis une leçon : je fabrique une fiche neuve à chaque fois, avec son corrigé. Tu peux la faire sur papier, tranquillement.', 'curieux', 78)}
       ${disponibles.length ? '' : `<p class="note">Pas encore de fiche pour le ${c.nom} — voici celles qui existent aujourd’hui.</p>`}
-      <div class="grille">
-        ${liste.map((f) => `
-          <button class="module ${f.id === fiche.id ? 'module--actif' : ''}" style="--couleur:#E84393" data-fiche="${f.id}">
-            <div class="module__emoji">${f.emoji}</div>
-            <div class="module__titre">${f.titre}</div>
-            <div class="module__pied"><span>${f.classe.toUpperCase()}</span><span>${f.domaine}</span></div>
-          </button>`).join('')}
-      </div>
+      ${DOMAINES.map((dom) => {
+        const lignes = liste.filter((f) => f.domaine === dom);
+        if (!lignes.length) return '';
+        return `
+      <div class="section-titre">${dom}</div>
+      <div class="liste-fiches">
+        ${lignes.map((f) => `
+          <div class="fiche ${f.id === fiche.id ? 'fiche--active' : ''}">
+            <button class="fiche__choix" data-fiche="${f.id}" aria-pressed="${f.id === fiche.id}">
+              <span class="fiche__emoji">${f.emoji}</span>
+              <span class="fiche__texte">
+                <span class="fiche__titre">${f.titre}</span>
+                <span class="fiche__pages">p. ${f.pages}</span>
+                <span class="fiche__objectif">${f.objectif}</span>
+              </span>
+            </button>
+            <a class="fiche__lecon" href="${URL_DEPOT}${f.lecon}" target="_blank" rel="noopener">leçon</a>
+          </div>`).join('')}
+      </div>`;
+      }).join('')}
 
       <div class="section-titre">Réglages de la fiche</div>
       <div class="carte reglages">

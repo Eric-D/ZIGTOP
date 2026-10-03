@@ -35,7 +35,9 @@ Depuis l'accueil, **🖨️ Fiches à imprimer** fabrique une fiche A4 prête à
 l'imprimante, régénérée à chaque clic : la leçon rappelée en haut, puis des exercices,
 et le **corrigé sur une deuxième page** pour l'adulte.
 
-Fiches disponibles (le plan complet est dans [`programme/ce2/PLAN-FICHES.md`](programme/ce2/PLAN-FICHES.md)) :
+L'écran des fiches les regroupe par domaine dans l'ordre du livret, avec pour chacune les
+pages, l'objectif « Je sais… » et un lien vers la leçon transcrite. Dix-sept fiches sont
+disponibles (le plan complet est dans [`programme/ce2/PLAN-FICHES.md`](programme/ce2/PLAN-FICHES.md)) :
 
 - **CE2 — Les tableaux et les diagrammes en barres** (p. 56 du livret) : lire un tableau à
   double entrée et un diagramme en barres dans les mots de la leçon ; tableau à compléter
@@ -352,6 +354,7 @@ node tests/jardin.mjs             # boutique, plantations, et encouragement quan
 node tests/accessibilite.mjs      # réglages appliqués, séries courtes, réponses à choisir, dessins d'aide
 node tests/fiches.mjs             # corrigé juste, retenues bien placées, codes de fiche reproductibles
 node tests/partage.mjs            # liens partagés : corrigé ouvert sans profil, options conservées
+node tests/ecran-fiches.mjs       # écran des fiches : domaines, liens vers les leçons, ordre figé de FICHES
 
 # vérification approfondie du QR code (dépendances en plus) :
 npm i --no-save playwright jsqr pngjs && npx playwright install chromium
