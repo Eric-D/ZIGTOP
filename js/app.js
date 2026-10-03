@@ -739,6 +739,37 @@ function pasImprimer() {
       <div class="pied-page"><button class="btn btn--fantome" data-aller="accueil">← Retour à l’île</button></div>`;
 }
 
+/* L'aperçu : les feuilles sont rendues à une largeur de référence fixe (703 px, voir
+   styles.css) puis réduites à la largeur disponible. Sans effet à l'impression. */
+const LARGEUR_FEUILLE = 703;
+function ajusterApercu() {
+  const imp = document.getElementById('impression');
+  if (!imp) return;
+  const parent = imp.parentElement;
+  const cs = parent && window.getComputedStyle ? window.getComputedStyle(parent) : null;
+  const marges = cs ? (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0) : 0;
+  const dispo = parent && parent.clientWidth ? parent.clientWidth - marges : LARGEUR_FEUILLE;
+  const echelle = Math.min(1, dispo / LARGEUR_FEUILLE);
+  const zoomOk = !!(window.CSS && CSS.supports && CSS.supports('zoom', '1'));
+  if (zoomOk || echelle === 1) {
+    imp.style.zoom = String(echelle);
+    imp.style.transform = '';
+    imp.style.height = '';
+    return;
+  }
+  // Repli sans zoom : réduction par transform, hauteur du conteneur ajustée.
+  imp.style.zoom = String(echelle);
+  imp.style.transformOrigin = 'top left';
+  imp.style.transform = `scale(${echelle})`;
+  imp.style.height = '';
+  imp.style.height = `${imp.scrollHeight * echelle}px`;
+}
+let delaiApercu = 0;
+window.addEventListener('resize', () => {
+  clearTimeout(delaiApercu);
+  delaiApercu = setTimeout(() => { if (vue.nom === 'fiches' && vue.pas === 3) ajusterApercu(); }, 120);
+});
+
 function vueFiches() {
   const c = classeCourante();
   const disponibles = fichesDe(c.id);
@@ -757,6 +788,7 @@ function vueFiches() {
     </div>
     ${pas === 3 ? `<div id="impression">${ficheHTML()}</div>` : ''}`;
   if (pas !== 3) return;
+  ajusterApercu();
 
   app.querySelector('#imprimer').addEventListener('click', () => {
     // Un événement par code imprimé, avec les notions de la feuille.

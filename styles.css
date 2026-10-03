@@ -547,6 +547,10 @@ svg.visuel {
   font-family: "Trebuchet MS", "Segoe UI", Verdana, sans-serif;
   line-height: 1.45;
 }
+/* Aperçu à l'écran : largeur de référence fixe, réduite par js (zoom sur #impression). */
+@media screen {
+  #impression .feuille { width: 703px; }
+}
 
 .feuille__entete {
   border-bottom: 3px solid #E84393;
@@ -737,11 +741,12 @@ svg.visuel {
 
 /* Le tunnel : fil d'Ariane, bouton retour, barre « Continuer » */
 .tunnel__haut { display: grid; gap: 10px; margin: 6px 0 4px; }
+.tunnel__haut > * { min-width: 0; }
 .tunnel .retour { justify-self: start; min-height: 48px; }
 .ariane ol { display: flex; gap: 6px; list-style: none; margin: 0; padding: 0; }
 .ariane li { flex: 1 1 0; min-width: 0; }
 .ariane__pas {
-  width: 100%; min-height: 48px;
+  width: 100%; min-width: 0; min-height: 48px; overflow-wrap: anywhere;
   display: flex; align-items: center; justify-content: center; gap: 6px;
   padding: 6px 4px;
   border-radius: 14px;
@@ -802,6 +807,7 @@ svg.visuel {
 @page { size: A4 portrait; margin: 11mm 12mm; }
 
 @media print {
+  #impression { zoom: 1 !important; transform: none !important; height: auto !important; }
   .no-print { display: none !important; }
   html, body {
     background: #fff !important;

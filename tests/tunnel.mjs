@@ -55,6 +55,18 @@ const titres = [...d.querySelectorAll('#impression .feuille:not(.feuille--corrig
 verifier(['Exercice 1', 'Exercice 2', 'Exercice 3'].every((t) => titres.includes(t)) && titres.length === 3, `l’aperçu a trois exercices (${titres.join(', ')})`);
 verifier(d.querySelectorAll('#impression .feuille--corrige').length === 1, 'et un corrigé');
 const html1 = d.querySelector('#impression').innerHTML;
+
+/* aperçu à l'échelle : #impression reçoit un zoom ≤ 1, recalculé au redimensionnement */
+const imp = d.querySelector('#impression');
+verifier(imp.style.zoom !== '' && Number(imp.style.zoom) <= 1, `au pas 3, #impression a un zoom ≤ 1 (${imp.style.zoom})`);
+Object.defineProperty(imp.parentElement, 'clientWidth', { value: 400, configurable: true });
+w.dispatchEvent(new w.Event('resize'));
+await new Promise((r) => setTimeout(r, 250));
+verifier(Math.abs(Number(imp.style.zoom) - 400 / 703) < 0.01, `avec 400 px disponibles, le zoom vaut ≈ 400/703 (${imp.style.zoom})`);
+Object.defineProperty(imp.parentElement, 'clientWidth', { value: 900, configurable: true });
+w.dispatchEvent(new w.Event('resize'));
+await new Promise((r) => setTimeout(r, 250));
+verifier(Number(imp.style.zoom) === 1, 'et jamais au-delà de 1 sur un grand écran');
 const champ = d.querySelector('#code-fiche');
 champ.value = codeZ;
 clic(d.querySelector('#retrouver'));
