@@ -156,6 +156,18 @@ les mêmes dans les deux. Conversion en cours, fiche par fiche (#26).
 
 `js/items.js` tire, à partir du **même contenu que la fiche** (`tirer(fiche, options, graine)`), des exercices structurés : `items(ficheId, { options, graine, difficulte, formulation })` rend une liste `{ notion, difficulte (1–5), type: 'nombre' | 'choix', enonce, reponse, aide, visuel? }`, la réponse étant toujours un entier ou une chaîne courte comparable avec `normalise()` ; une fiche imprimée et ses items portent donc exactement les mêmes nombres, et l'aide reprend la formulation choisie (`commune` par défaut). Dix notions qui se tapent au clavier sont couvertes (opérations posées, nombres, longueurs, masses et contenances, monnaie, durées, fractions à calculer), `notionsAvecItems()` en donne la liste, et la règle de difficulté de chacune est documentée en tête du fichier. Cette banque servira à répondre dans l'application à ce que demande une fiche (#28) et à mesurer ce qui est acquis (#29) ; `tests/items.mjs` recalcule les réponses et vérifie la correspondance avec les fiches (#27).
 
+### Faire la fiche dans l'application, et ce que voit le parent
+
+Au pas « Composer », **Faire sur l'application** pose les exercices de la composition —
+les mêmes nombres que la feuille de même code — avec l'expérience de l'île : gros boutons,
+lecture à voix haute, astuce et deuxième chance, étoiles, jamais « faux », pas de
+chronomètre. Chaque réponse devient un événement `item` du carnet, et la difficulté des
+exercices suit l'enfant : par notion, `js/maitrise.js` tient un classement à la Elo (K
+décroissant pour absorber les erreurs de départ, incertitude qui remonte avec le temps sans
+pratique, seuils découverte / en cours / acquis / à consolider), rejouable à tout moment à
+partir du carnet. Le parent voit, dans *Mes progrès*, l'état de chaque notion et une courbe
+sans chiffre ; l'enfant, lui, ne voit jamais que ses étoiles et des encouragements.
+
 ### La feuille panachée
 
 Réviser notion par notion est la forme la plus faible de l'entraînement : ce qui fait tenir

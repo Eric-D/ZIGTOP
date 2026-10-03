@@ -10,7 +10,10 @@
 // - `operandes` : les nombres de l'item tels qu'ils sont imprimés sur la fiche de même code (chaînes), pour
 //   vérifier que la feuille et l'application portent les mêmes nombres ;
 // - `aide` reprend la formulation (`commune` par défaut, ou `livret`), comme le rappel de la fiche ;
-// - `id` : « code de fiche # rang » (stable pour une fiche donnée, quelle que soit la formulation).
+// - `id` : « code de fiche # rang » (stable pour une fiche donnée, quelle que soit la formulation) ;
+// - `exercice1` : vrai pour les items qui reprennent l'exercice 1 de la page élève (celui qu'une feuille
+//   panachée garde, voir js/panache.js). Faux pour tous les items de la fiche monnaie et de la fiche des
+//   fractions : leur exercice 1 (composer une somme en pièces, mesurer une bande) reste sur papier.
 // Même graine et mêmes options : mêmes items, dans le même ordre. L'ordre est celui de la fiche (exercice 1,
 // puis 2…) ; `difficulte` (un nombre, ou { min, max }) ne garde que les items de cette difficulté.
 //
@@ -497,6 +500,18 @@ const GENERATEURS = {
   'ce2-fractions-calculer': itemsFractions,
 };
 
+// Combien d'items (les premiers de la liste) reprennent l'exercice 1 de la fiche imprimée.
+const PREMIER_EXERCICE = {
+  'ce2-addition-posee': (c) => c.posees.length,
+  'ce2-soustraction-posee': (c) => c.posees.length,
+  'ce2-multiplication': (c) => c.enligne.length,
+  'ce2-nombres-lire-ecrire': (c) => c.lire.length,
+  'ce2-nombres-comparer': (c) => c.paires.length,
+  'ce2-longueurs': (c) => c.conversions.length,
+  'ce2-masses-contenances': (c) => c.objets.length,
+  'ce2-durees': (c) => c.egalites.reduce((s, e) => s + (e.reponses.length === 1 ? 1 : e.reponses.length), 0),
+};
+
 // Les notions qui ont des items, dans l'ordre des fiches.
 export const notionsAvecItems = () => Object.keys(GENERATEURS);
 
@@ -510,10 +525,12 @@ export function items(ficheId, { options = {}, graine, difficulte, formulation: 
   const tire = tirer(fiche, opts, graine);
   const contenu = fiche.mise.combien ? { ...tire, ...fiche.mise.combien(tire, false) } : tire;
   const fm = formulation(fiche, nom);
+  const n1 = PREMIER_EXERCICE[ficheId] ? PREMIER_EXERCICE[ficheId](contenu) : 0;
   const liste = generateur(contenu, fm, opts).map((it, i) => ({
     id: `${contenu.code}#${i}`,
     notion: ficheId,
     ...it,
+    exercice1: i < n1,
     formulation: fm.nom,
   }));
   if (difficulte === undefined || difficulte === null) return liste;

@@ -11,6 +11,9 @@ import * as A11y from './accessibilite.js';
 import { FICHES, DOMAINES, fichesDe, ficheParId, optionsParDefaut, tirer, decoder, rendre as rendreFiche } from './fiches.js';
 import { composer, rendrePanache, NOTIONS_MAX } from './panache.js';
 import { visuel } from './visuels.js';
+import { notionsAvecItems } from './items.js';
+import { classer, notionsAReviser } from './maitrise.js';
+import * as Interactif from './interactif.js';
 import { shuffle, pick, leurres } from './utils.js';
 
 const app = document.getElementById('app');
@@ -70,7 +73,7 @@ function lire(texte) {
   if (!('speechSynthesis' in window)) return;
   try {
     speechSynthesis.cancel();
-    const voix = new SpeechSynthesisUtterance(texte.replace(/\?$/, ' ?').replace(/×/g, ' fois ').replace(/−/g, ' moins ').replace(/\+/g, ' plus ').replace(/÷/g, ' divisé par '));
+    const voix = new SpeechSynthesisUtterance(texte.replace(/\?$/, ' ?').replace(/×/g, ' fois ').replace(/−/g, ' moins ').replace(/\+/g, ' plus ').replace(/÷/g, ' divisé par ').replace(/…/g, ', '));
     voix.lang = 'fr-FR';
     voix.rate = 0.9;
     speechSynthesis.speak(voix);
@@ -521,11 +524,21 @@ function tirerSemaine() {
   if (!permis.length) permis = visibles;
   const compteurs = P.tirages();
   const carnet = Carnet.resume();
+  const classement = classementDuCarnet();
+  const ordreMaitrise = notionsAReviser(classement);
   const rang = (id) => compteurs[id] || 0;
-  const aRevoir = (id) => (carnet[id]?.derniereAppreciation?.valeur === 'a revoir' ? 0 : 1);
+  // À revoir (appréciation) ou à consolider (maîtrise) d'abord, puis les notions en cours ; les notions acquises
+  // passent après celles qu'on n'a pas encore mesurées.
+  const urgence = (id) => {
+    const etat = classement[id]?.etat;
+    if (carnet[id]?.derniereAppreciation?.valeur === 'a revoir' || etat === 'a-consolider') return 0;
+    if (etat === 'en-cours') return 1;
+    return etat === 'acquis' ? 3 : 2;
+  };
+  const rangMaitrise = (id) => { const i = ordreMaitrise.indexOf(id); return i < 0 ? 0 : i; };
   const vuLe = (id) => carnet[id]?.derniereRevision || '';
   const choisies = shuffle(permis)
-    .sort((x, y) => aRevoir(x) - aRevoir(y) || (vuLe(x) < vuLe(y) ? -1 : vuLe(x) > vuLe(y) ? 1 : 0) || rang(x) - rang(y))
+    .sort((x, y) => urgence(x) - urgence(y) || rangMaitrise(x) - rangMaitrise(y) || (vuLe(x) < vuLe(y) ? -1 : vuLe(x) > vuLe(y) ? 1 : 0) || rang(x) - rang(y))
     .slice(0, NB_SEMAINE);
   const suite = { ...compteurs };
   choisies.forEach((id) => { suite[id] = rang(id) + 1; });
@@ -679,6 +692,7 @@ function pasComposer() {
       </div>
       <div class="barre-pas">
         <div class="barre-pas__compte">${panache ? panache.feuilles.length : fiche.contenus.length} feuille${(panache ? panache.feuilles.length : fiche.contenus.length) > 1 ? 's' : ''}</div>
+        ${peutFaireSurApplication() ? '<button class="btn btn--jaune" id="faire-app">📱 Faire sur l’application</button>' : ''}
         <button class="btn btn--vert" data-pas="3">Continuer →</button>
       </div>`;
 }
@@ -705,6 +719,7 @@ function pasImprimer() {
 
       <div class="barre-fiche">
         <button class="btn btn--vert" id="imprimer">🖨️ Imprimer</button>
+        ${peutFaireSurApplication() ? '<button class="btn btn--jaune" id="faire-app">📱 Faire sur l’application</button>' : ''}
       </div>
       <div class="section-titre">Partager</div>
       <div class="carte reglages">
@@ -885,11 +900,79 @@ function vueReglages() {
 /* Écran : session d'exercices                                         */
 /* ------------------------------------------------------------------ */
 
+// Une session a une SOURCE : d'où viennent ses exercices et ce qu'on écrit dans le carnet.
+// Ses exercices sont des objets { enonce, reponse, aide, type?, choix?, visuel? } ; le reste de la session
+// (énoncé, lecture, clavier ou choix, astuce et deuxième chance, étoiles, bilan) est le même pour toutes.
+//   etiquette(s, ex)         la ligne au-dessus de l'énoncé
+//   reponse(s, ex, r)        appelée une fois par exercice, à la réponse finale : r = { reussi, essais }
+//   cloture(s)               en fin de session : ce qui va au carnet
+//   retour                   où mène « ← Retour »
+//   boutonsBilan(s)          les boutons du bilan
+const SOURCES = {
+  // Les séries de l'île : les modules de js/niveaux/.
+  ile: {
+    retour: 'accueil',
+    etiquette(s, ex) {
+      const mod = moduleParId(s.classeId, ex.moduleId);
+      return `${mod.emoji} ${nomLieu(ex.moduleId, mod.titre)}`;
+    },
+    reponse(s, ex, { reussi, essais }) {
+      const premierCoup = reussi && essais === 1;
+      if (premierCoup) s.parModule[ex.moduleId] = (s.parModule[ex.moduleId] || 0) + 1;
+      P.enregistrerReponse(cle(s.classeId, ex.moduleId), premierCoup);
+    },
+    cloture(s) {
+      // Le carnet garde une trace de la série : un événement par thème travaillé.
+      const questions = {};
+      s.exercices.forEach((ex) => { questions[ex.moduleId] = (questions[ex.moduleId] || 0) + 1; });
+      for (const [moduleId, n] of Object.entries(questions)) {
+        Carnet.ajouter('serie', cle(s.classeId, moduleId), { etoiles: (s.parModule || {})[moduleId] || 0, questions: n });
+      }
+    },
+    boutonsBilan: (s) => `
+      <button class="btn btn--large btn--vert" data-jouer="${s.ids.length === 1 ? s.ids[0] : 'melange'}">Encore une série ! 🔁</button>
+      <button class="btn btn--large btn--jaune" data-aller="accueil">Choisir un autre thème</button>
+      <button class="btn btn--fantome" data-aller="progres">Voir mes progrès</button>`,
+  },
+  // Les items d'une fiche ou d'une feuille panachée (js/interactif.js).
+  items: {
+    retour: 'fiches',
+    etiquette(s, ex) {
+      const f = ficheParId(ex.notion);
+      return `${f.emoji} ${f.court}`;
+    },
+    reponse(s, ex, { reussi, essais }) {
+      if (reussi && essais === 1) {
+        P.get().etoiles += 1;
+        P.sauvegarder();
+        s.parNotion[ex.notion] = (s.parNotion[ex.notion] || 0) + 1;
+      }
+      // La durée est pour le carnet seulement : elle n'est jamais affichée.
+      const duree = Math.max(0, Math.round((Date.now() - (s.debutQuestion || Date.now())) / 1000));
+      Carnet.ajouter('item', ex.notion, { difficulte: ex.difficulte, reussi, essais, duree, item: ex.id });
+    },
+    cloture(s) {
+      const questions = {};
+      s.exercices.forEach((ex) => { questions[ex.notion] = (questions[ex.notion] || 0) + 1; });
+      for (const [notion, n] of Object.entries(questions)) {
+        Carnet.ajouter('serie', notion, { etoiles: s.parNotion[notion] || 0, questions: n });
+      }
+    },
+    boutonsBilan: () => `
+      <button class="btn btn--large btn--vert" data-aller="fiches">Faire une autre fiche</button>
+      <button class="btn btn--large btn--jaune" data-aller="accueil">Retour à l’île</button>
+      <button class="btn btn--fantome" data-aller="progres">Voir mes progrès</button>`,
+  },
+};
+
+const sourceDe = (s) => SOURCES[s.source || 'ile'];
+
 function demarrerSession(choix) {
   const c = classeCourante();
   const tous = modulesDe(c.id).map((m) => m.id);
   const ids = choix === 'melange' ? shuffle(tous).slice(0, 5) : [choix];
   session = {
+    source: 'ile',
     classeId: c.id,
     ids,
     exercices: serie(c.id, ids, nbQuestions(), (moduleId) => P.difficulte(cle(c.id, moduleId))),
@@ -904,15 +987,100 @@ function demarrerSession(choix) {
   aller({ nom: 'session' });
 }
 
+/* --- Faire une fiche sur l'application ------------------------------------ */
+
+// La composition qu'on allait imprimer : même graine, mêmes nombres que la feuille.
+const compositionCourante = () => (panache
+  ? Interactif.compositionPanachee(panache.feuilles)
+  : Interactif.compositionSimple(fiche.id, fiche.options, fiche.contenus));
+
+const classementDuCarnet = () => classer(Carnet.evenements({ type: 'item' }));
+
+// Au moins une notion de la composition a des items ?
+const peutFaireSurApplication = () => {
+  const avec = new Set(notionsAvecItems());
+  return (panache ? panache.notions.map((n) => n.id) : [fiche.id]).some((id) => avec.has(id));
+};
+
+function demarrerItems() {
+  const { exercices, papierFin } = Interactif.construire(compositionCourante(), {
+    formulation: A11y.formulationDe(reglages), classement: classementDuCarnet(),
+  });
+  if (!exercices.length) return;
+  session = {
+    source: 'items',
+    classeId: classeCourante().id,
+    ids: [],
+    exercices,
+    papierFin,
+    palier: Interactif.PALIER,
+    pause: false,
+    index: 0,
+    etoiles: 0,
+    parNotion: {},        // id de fiche -> étoiles gagnées (pour le carnet)
+    essaisSurQuestion: 0,
+    saisie: '',
+    retour: null,
+  };
+  P.marquerJour();
+  aller({ nom: 'session' });
+}
+
+const lignePapier = (id) => `<p class="intro-bloc">${echappe(libelleNotion(ficheParId(id)))} : celle-ci se fait sur papier.</p>`;
+
+// La fenêtre de questions affichées : toute la série à l'île, dix par dix pour les items.
+function fenetreSession(s) {
+  const p = s.palier || s.exercices.length;
+  const debut = Math.floor(s.index / p) * p;
+  return { debut, fin: Math.min(s.exercices.length, debut + p) };
+}
+
+function vuePause() {
+  const s = session;
+  app.innerHTML = `
+    <header class="entete">
+      <button class="btn btn--fantome" data-aller="${sourceDe(s).retour}">← Retour</button>
+      <div class="entete__texte" style="text-align:right">
+        <div class="entete__bonjour">⭐ ${s.etoiles}</div>
+      </div>
+    </header>
+    <div class="carte bilan pause">
+      ${zigo('joie', 84)}
+      <div class="bilan__phrase">Bravo, tu as déjà fait ${s.index} questions !</div>
+      <div class="bilan__detail">Tu veux continuer, ou t’arrêter là ?</div>
+    </div>
+    <div style="display:grid;gap:12px;margin-top:20px">
+      <button class="btn btn--large btn--vert" id="continuer-items">Je continue 💪</button>
+      <button class="btn btn--large btn--jaune" id="arreter-items">Je m’arrête là</button>
+    </div>`;
+}
+
+function continuerApresPause() {
+  session.pause = false;
+  vueSession();
+}
+
+function arreterApresPause() {
+  const s = session;
+  s.exercices = s.exercices.slice(0, s.index);
+  s.pause = false;
+  aller({ nom: 'bilan' });
+}
+
 function vueSession() {
   const s = session;
   if (!s || s.index >= s.exercices.length) return vueBilan();
+  if (s.pause) return vuePause();
 
   const ex = s.exercices[s.index];
-  const mod = moduleParId(s.classeId, ex.moduleId);
+  const source = sourceDe(s);
+  if (!s.retour && !s.debutQuestion) s.debutQuestion = Date.now();   // pour le carnet, jamais montré
 
-  const points = s.exercices.map((_, i) =>
-    `<i class="${i < s.index ? 'ok' : i === s.index ? 'actif' : ''}"></i>`).join('');
+  const { debut, fin } = fenetreSession(s);
+  const points = s.exercices.slice(debut, fin).map((_, k) => {
+    const i = debut + k;
+    return `<i class="${i < s.index ? 'ok' : i === s.index ? 'actif' : ''}"></i>`;
+  }).join('');
 
   const propositions = ex.type === 'choix' ? ex.choix : propositionsAuto(ex);
   const zoneReponse = propositions
@@ -929,14 +1097,15 @@ function vueSession() {
 
   app.innerHTML = `
     <header class="entete">
-      <button class="btn btn--fantome" data-aller="accueil">← Retour</button>
+      <button class="btn btn--fantome" data-aller="${source.retour}">← Retour</button>
       <div class="entete__texte" style="text-align:right">
         <div class="entete__bonjour">⭐ ${s.etoiles}</div>
       </div>
     </header>
     <div class="barre-progres">${points}</div>
+    ${(ex.avant || []).map(lignePapier).join('')}
     <div class="carte question">
-      <div class="question__module">${mod.emoji} ${nomLieu(ex.moduleId, mod.titre)} — question ${s.index + 1} sur ${s.exercices.length}</div>
+      <div class="question__module">${source.etiquette(s, ex)} — question ${s.index - debut + 1} sur ${fin - debut}</div>
       <div class="question__texte">${echappe(ex.enonce)}</div>
       <button class="btn btn--fantome" id="ecouter" title="Écouter la question">🔊 Écouter</button>
     </div>
@@ -982,16 +1151,12 @@ function valider(valeur) {
   if (valeur === '' || valeur == null) return;
 
   const juste = normalise(valeur) === normalise(ex.reponse);
-  const cleMod = cle(s.classeId, ex.moduleId);
   s.essaisSurQuestion += 1;
 
   if (juste) {
     const premierCoup = s.essaisSurQuestion === 1;
-    if (premierCoup) {
-      s.etoiles += 1;
-      s.parModule[ex.moduleId] = (s.parModule[ex.moduleId] || 0) + 1;
-    }
-    P.enregistrerReponse(cleMod, premierCoup);
+    if (premierCoup) s.etoiles += 1;
+    sourceDe(s).reponse(s, ex, { reussi: true, essais: s.essaisSurQuestion });
     Son.jouer('juste');
     confettis();
     s.retour = {
@@ -1004,7 +1169,7 @@ function valider(valeur) {
     Son.jouer('astuce');
     s.retour = { type: 'astuce', titre: pick(ENCOURAGEMENTS), aide: ex.aide, encore: true };
   } else {
-    P.enregistrerReponse(cleMod, false);
+    sourceDe(s).reponse(s, ex, { reussi: false, essais: s.essaisSurQuestion });
     s.retour = {
       type: 'astuce',
       titre: 'On garde celle-ci pour la prochaine fois !',
@@ -1026,9 +1191,14 @@ function suivant() {
   }
   s.index += 1;
   s.essaisSurQuestion = 0;
+  s.debutQuestion = null;
   s.saisie = '';
   if (s.index >= s.exercices.length) aller({ nom: 'bilan' });
-  else vueSession();
+  else {
+    // Les items se font dix par dix : au bout de dix, on propose de continuer ou de s'arrêter là.
+    if (s.palier && s.index % s.palier === 0) s.pause = true;
+    vueSession();
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -1038,14 +1208,7 @@ function suivant() {
 function vueBilan() {
   const s = session || { etoiles: 0, exercices: [], ids: [] };
   const nb = s.exercices.length || nbQuestions();
-  // Le carnet garde une trace de la série : un événement par thème travaillé.
-  if (session && s.exercices.length) {
-    const questions = {};
-    s.exercices.forEach((ex) => { questions[ex.moduleId] = (questions[ex.moduleId] || 0) + 1; });
-    for (const [moduleId, n] of Object.entries(questions)) {
-      Carnet.ajouter('serie', cle(s.classeId, moduleId), { etoiles: (s.parModule || {})[moduleId] || 0, questions: n });
-    }
-  }
+  if (session && s.exercices.length) sourceDe(s).cloture(s);
   const nouveaux = P.verifierBadges();
   if (s.etoiles > 0) confettis();
   Son.jouer(nouveaux.length ? 'badge' : 'juste');
@@ -1068,10 +1231,8 @@ function vueBilan() {
     ${nouveaux.length ? `
       <div class="section-titre">Nouveau${nouveaux.length > 1 ? 'x' : ''} badge${nouveaux.length > 1 ? 's' : ''} !</div>
       <div class="badges">${nouveaux.map((b) => `<span class="badge">${b.emoji} ${b.titre}</span>`).join('')}</div>` : ''}
-    <div style="display:grid;gap:12px;margin-top:20px">
-      <button class="btn btn--large btn--vert" data-jouer="${s.ids.length === 1 ? s.ids[0] : 'melange'}">Encore une série ! 🔁</button>
-      <button class="btn btn--large btn--jaune" data-aller="accueil">Choisir un autre thème</button>
-      <button class="btn btn--fantome" data-aller="progres">Voir mes progrès</button>
+    ${(s.papierFin || []).map(lignePapier).join('')}
+    <div style="display:grid;gap:12px;margin-top:20px">${sourceDe(s).boutonsBilan(s)}
     </div>`;
   session = null;
 }
@@ -1090,14 +1251,70 @@ function pastilleAppreciation(valeur) {
 const appreciationDe = (id, code) =>
   Carnet.evenements({ type: 'appreciation', notion: id }).filter((e) => e.donnees.code === code).pop()?.donnees.valeur;
 
+/* --- Maîtrise d'une notion (pour l'adulte : jamais dans le bilan de l'enfant) ---------- */
+
+const LIBELLES_ETAT = { decouverte: 'découverte', 'en-cours': 'en cours', acquis: 'acquis', 'a-consolider': 'à consolider' };
+const COURBE = { l: 160, h: 44, marge: 5, bas: 800, haut: 1400, acquis: 1150, points: 40 };
+
+// L'historique du classement en une petite courbe : sans échelle, sans chiffre. L'échelle verticale est la
+// même pour toutes les notions ; le trait pointillé est le seuil à partir duquel une notion est acquise.
+function courbeMaitrise(historique, nom) {
+  const h = historique.slice(-COURBE.points);
+  if (h.length < 2) return '';
+  const y = (r) => {
+    const t = (Math.min(COURBE.haut, Math.max(COURBE.bas, r)) - COURBE.bas) / (COURBE.haut - COURBE.bas);
+    return COURBE.h - COURBE.marge - t * (COURBE.h - 2 * COURBE.marge);
+  };
+  const x = (i) => COURBE.marge + (i * (COURBE.l - 2 * COURBE.marge)) / (h.length - 1);
+  const trace = h.map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)} ${y(p.r).toFixed(1)}`).join(' ');
+  const dernier = h[h.length - 1];
+  return `<svg class="courbe" viewBox="0 0 ${COURBE.l} ${COURBE.h}" role="img" aria-label="Courbe de progression : ${echappe(nom)}" focusable="false">
+      <line class="courbe__seuil" x1="${COURBE.marge}" x2="${COURBE.l - COURBE.marge}" y1="${y(COURBE.acquis).toFixed(1)}" y2="${y(COURBE.acquis).toFixed(1)}" />
+      <path class="courbe__trace" d="${trace}" />
+      <circle class="courbe__fin" cx="${x(h.length - 1).toFixed(1)}" cy="${y(dernier.r).toFixed(1)}" r="4" />
+    </svg>`;
+}
+
+// Les dix derniers items d'une notion : du premier coup, après l'astuce, pas encore.
+function detailItems(id) {
+  const derniers = Carnet.evenements({ type: 'item', notion: id }).slice(-10);
+  const premier = derniers.filter((e) => e.donnees.reussi && e.donnees.essais === 1).length;
+  const astuce = derniers.filter((e) => e.donnees.reussi && e.donnees.essais !== 1).length;
+  const pas = derniers.length - premier - astuce;
+  return `${premier} du premier coup, ${astuce} après l’astuce, ${pas} pas encore`;
+}
+
+function maitriseHTML(classement) {
+  const lignes = FICHES.filter((f) => classement[f.id]);
+  if (!lignes.length) return '';
+  return `
+    <h3 class="carnet-titre">Maîtrise des notions</h3>
+    ${lignes.map((f) => {
+      const m = classement[f.id];
+      const n = m.nbItems;
+      return `<div class="maitrise" data-maitrise="${f.id}">
+        <div class="maitrise__haut">
+          <span>${f.emoji}</span>
+          <span class="ligne-stat__nom">${f.court}
+            <span class="carnet-ligne__vu">${n} question${n > 1 ? 's' : ''} faite${n > 1 ? 's' : ''} · ${detailItems(f.id)}</span>
+          </span>
+          <span class="pastille-carnet pastille-carnet--${m.etat}">${LIBELLES_ETAT[m.etat]}</span>
+        </div>
+        ${courbeMaitrise(m.historique, f.court)}
+      </div>`;
+    }).join('')}`;
+}
+
 function carnetHTML(message = '') {
   const resume = Carnet.resume();
+  const classement = classementDuCarnet();
+  const maitrise = maitriseHTML(classement);
   const lignes = FICHES.filter((f) => resume[f.id]);
   const imprimees = [];
   for (const e of Carnet.evenements({ type: 'fiche' }).reverse()) {
     if (!imprimees.some((x) => x.donnees.code === e.donnees.code)) imprimees.push(e);
   }
-  if (!lignes.length && !imprimees.length) {
+  if (!lignes.length && !imprimees.length && !maitrise) {
     return '<p class="reglage__aide">Ton carnet se remplit tout seul : chaque série terminée et chaque fiche imprimée y laisse une trace.</p>';
   }
   return `
@@ -1111,6 +1328,7 @@ function carnetHTML(message = '') {
         ${r.derniereAppreciation ? pastilleAppreciation(r.derniereAppreciation.valeur) : ''}
       </div>`;
     }).join('')}
+    ${maitrise}
     ${imprimees.length ? `
     <h3 class="carnet-titre">Fiches imprimées</h3>
     ${imprimees.slice(0, 10).map((e) => {
@@ -1285,7 +1503,7 @@ app.addEventListener('change', (ev) => {
 });
 
 app.addEventListener('click', (ev) => {
-  const cible = ev.target.closest('[data-aller],[data-jouer],[data-touche],[data-choix],[data-decor],[data-reglage],[data-pas],[data-fiche],[data-fiche-option],[data-cocher-notion],[data-domaine],[data-semaine],[data-affichage],[data-nb-feuilles],[data-compo],[data-appreciation],[data-corrige],#regenerer,#suivant,#ecouter');
+  const cible = ev.target.closest('[data-aller],[data-jouer],[data-touche],[data-choix],[data-decor],[data-reglage],[data-pas],[data-fiche],[data-fiche-option],[data-cocher-notion],[data-domaine],[data-semaine],[data-affichage],[data-nb-feuilles],[data-compo],[data-appreciation],[data-corrige],#regenerer,#faire-app,#continuer-items,#arreter-items,#suivant,#ecouter');
   if (!cible) return;
 
   if (cible.dataset.appreciation) return apprecier(cible.dataset.code, cible.dataset.appreciation);
@@ -1365,6 +1583,9 @@ app.addEventListener('click', (ev) => {
     }
     return;
   }
+  if (cible.id === 'faire-app') { Son.jouer('clic'); return demarrerItems(); }
+  if (cible.id === 'continuer-items') return continuerApresPause();
+  if (cible.id === 'arreter-items') return arreterApresPause();
   if (cible.id === 'suivant') return suivant();
   if (cible.id === 'ecouter') return lire(app.querySelector('.question__texte').textContent);
   if (cible.dataset.aller) return aller({ nom: cible.dataset.aller });
@@ -1392,6 +1613,10 @@ app.addEventListener('keydown', (ev) => {
 // Clavier physique (ordinateur)
 window.addEventListener('keydown', (ev) => {
   if (vue.nom !== 'session' || !session) return;
+  if (session.pause) {
+    if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); continuerApresPause(); }
+    return;
+  }
   if (session.retour) {
     if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); suivant(); }
     return;

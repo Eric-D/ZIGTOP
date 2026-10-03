@@ -1608,6 +1608,15 @@ svg.visuel {
 .pastille-carnet--acquis { background: #D9F5EC; color: #006B54; }
 .pastille-carnet--en-cours { background: #FFF1CC; color: #7A5600; }
 .pastille-carnet--a-revoir { background: #F0ECFF; color: var(--violet); }
+.pastille-carnet--decouverte { background: #E6F2FF; color: #00518F; }
+.pastille-carnet--a-consolider { background: #F0ECFF; color: var(--violet); }
+.maitrise { padding: 10px 0; border-top: 2px dotted #EFE9DE; }
+.maitrise__haut { display: flex; align-items: center; gap: 10px; }
+.courbe { display: block; width: 100%; max-width: 320px; height: auto; margin-top: 6px; }
+.courbe__trace { fill: none; stroke: var(--violet); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.courbe__seuil { stroke: var(--vert); stroke-width: 1.5; stroke-dasharray: 4 4; opacity: .7; }
+.courbe__fin { fill: var(--violet); }
+.intro-bloc { margin: 0 0 10px; padding: 10px 14px; border-radius: 14px; background: #F0ECFF; color: var(--encre); font-weight: 700; }
 .carnet-ligne__vu { display: block; font-size: .8rem; font-weight: 600; color: var(--encre-douce); }
 .carnet-titre { margin: 18px 0 8px; font-size: 1.05rem; }
 .carnet-fiche { display: grid; gap: 8px; padding: 12px 0; border-top: 2px dotted #EFE9DE; }

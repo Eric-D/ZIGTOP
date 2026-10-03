@@ -6,6 +6,11 @@
 //
 //   type « serie »        une série terminée dans l'application
 //                         notion = « classe:module » (ex. « ce2:tables »), donnees = { etoiles, questions }
+//                         Une série faite sur l'application avec des items (mode interactif) a pour notion
+//                         l'id de la fiche (ex. « ce2-addition-posee ») : même donnees, une série par notion.
+//   type « item »         une réponse finale à un item de la banque (js/items.js), notion = id de fiche
+//                         donnees = { difficulte (1 à 5), reussi, essais (1 = du premier coup, 2 = après l'astuce),
+//                         duree (secondes, jamais affichée), item (id de l'item : « code#rang ») }
 //   type « fiche »        une fiche ou une feuille panachée imprimée
 //                         notion = '' (la feuille), donnees = { code, notions: [id de fiche…] }
 //   type « appreciation » saisie par l'adulte après correction
@@ -14,7 +19,7 @@ import * as P from './progression.js';
 import { FICHES } from './fiches.js';
 
 export const VERSION_EXPORT = 1;
-export const TYPES = ['serie', 'fiche', 'appreciation'];
+export const TYPES = ['serie', 'fiche', 'appreciation', 'item'];
 export const APPRECIATIONS = ['acquis', 'en cours', 'a revoir'];
 
 /* Correspondance module de l'application -> fiche (« classe:module » -> id de fiche).
@@ -70,7 +75,7 @@ export function resume() {
   for (const e of liste()) {
     const d = e.donnees || {};
     if (e.type === 'serie') {
-      const id = ficheDuModule(e.notion);
+      const id = connues.has(e.notion) ? e.notion : ficheDuModule(e.notion);
       if (!id) continue;
       const r = entree(id);
       r.nbSeries += 1;
