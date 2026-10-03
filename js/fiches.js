@@ -2610,6 +2610,339 @@ const miseHeures = {
   },
 };
 
+/* ------------------------------------------------------------------ */
+/* CE2 — masses et contenances : unités et conversions                  */
+/* ------------------------------------------------------------------ */
+
+// Chaque unité vaut tant de g (masses) ou de cL (contenances) ; les mesures sont toutes des entiers.
+const BASE_MC = { g: 1, kg: 1000, t: 1000000, cL: 1, dL: 10, L: 100 };
+const FAMILLE_MC = { g: 'masses', kg: 'masses', t: 'masses', cL: 'contenances', dL: 'contenances', L: 'contenances' };
+const mesureMC = (n, u) => lg(n, u);
+
+// Ex. 1 : des objets, leurs quantités possibles. Les repères en litres sont ceux du livret.
+const OBJETS_MC = {
+  g: [['Une pomme', [100, 150, 200]], ['Un œuf', [50, 60, 70]], ['Un cahier', [100, 150, 200]], ['Un livre', [200, 300, 400]], ['Un stylo', [5, 10]]],
+  kg: [['Un chat', [3, 4, 5]], ['Un cartable', [3, 4, 5]], ['Un melon', [1, 2]], ['Un vélo', [10, 12, 15]], ['Un élève de CE2', [25, 30, 35]]],
+  t: [['Un camion', [8, 10, 12, 15, 20]], ['Un éléphant', [4, 5, 6]], ['Un autobus', [10, 12, 14]]],
+  cL: [['Un verre', [15, 25]], ['Une canette', [33]], ['Une petite cuillère', [1]], ['Un biberon', [15, 25]]],
+  dL: [['Une tasse à café', [1]], ['Un bol', [3, 4]], ['Une louche', [2]], ['Un pot de crème', [2]]],
+  L: [['Une bouteille d’eau', [1]], ['Un bidon de produit ménager', [2]], ['Une casserole', [5]], ['Un arrosoir', [12]], ['Un aquarium', [40]],
+    ['Un réservoir de voiture', [50]], ['Une baignoire', [150]], ['Une piscine gonflable', [930]]],
+};
+
+// `n` unités de la famille, chaque série de trois (ou de trois fois deux) les utilisant toutes avant d'en répéter une.
+function unitesDe(famille, n) {
+  const trois = famille === 'masses' ? ['g', 'kg', 't'] : ['cL', 'dL', 'L'];
+  const suite = [];
+  while (suite.length < n) suite.push(...shuffle(trois));
+  return suite.slice(0, n);
+}
+function objetsDe(famille, n) {
+  const pools = {};
+  return unitesDe(famille, n).map((u) => {
+    pools[u] = pools[u] || shuffle(OBJETS_MC[u]);
+    const [nom, quantites] = pools[u].pop();
+    return { nom, n: pick(quantites), u };
+  });
+}
+
+// Mélange deux familles une à une : le premier, le troisième… sont des masses, les autres des contenances.
+const alterner = (a, b) => a.flatMap((x, i) => [x, b[i]]);
+// Pour chaque exercice : `mono` (une seule famille) ou la moitié de chaque.
+const parFamille = (grandeur, n, tirage) => {
+  if (grandeur === 'deux') return alterner(tirage('masses', n / 2), tirage('contenances', n / 2));
+  return tirage(grandeur, n);
+};
+
+const CONV_MASSES = {
+  'kg>g': () => [rnd(2, 9), 'kg', 'g'], 'g>kg': () => [1000 * rnd(2, 9), 'g', 'kg'],
+  't>kg': () => [rnd(2, 9), 't', 'kg'], 'kg>t': () => [1000 * rnd(2, 9), 'kg', 't'],
+};
+const CONV_CONT = {
+  'L>cL': () => [rnd(2, 9), 'L', 'cL'], 'L>dL': () => [rnd(2, 9), 'L', 'dL'], 'dL>cL': () => [rnd(2, 9), 'dL', 'cL'],
+  'cL>dL': () => [10 * rnd(2, 9), 'cL', 'dL'], 'cL>L': () => [100 * rnd(2, 9), 'cL', 'L'], 'dL>L': () => [10 * rnd(2, 9), 'dL', 'L'],
+};
+function conversionsDe(famille, n) {
+  const table = famille === 'masses' ? CONV_MASSES : CONV_CONT;
+  const cles = Object.keys(table);
+  const suite = [];
+  while (suite.length < n) suite.push(...shuffle(cles));
+  return suite.slice(0, n);
+}
+
+// Une paire à comparer : l'unité `ua` est la plus grande ; `genre` 'egal' ou 'inegal'.
+function paireMC(ua, ub, genre) {
+  const r = BASE_MC[ua] / BASE_MC[ub];
+  const base = rnd(2, 9) * r;
+  const ecart = (r / 10) * rnd(1, 9);
+  const nbB = genre === 'egal' ? base : base + (rnd(0, 1) ? ecart : -ecart);
+  const a = { n: base / r, u: ua }, b = { n: nbB, u: ub };
+  return rnd(0, 1) ? { a, b } : { a: b, b: a };
+}
+const valeurMC = (x) => x.n * BASE_MC[x.u];
+const PAIRES_MASSES = [['kg', 'g'], ['t', 'kg']];
+const PAIRES_CONT = [['L', 'cL'], ['L', 'dL'], ['dL', 'cL']];
+function pairesDe(famille, n) {
+  const pool = famille === 'masses' ? PAIRES_MASSES : PAIRES_CONT;
+  const suite = [];
+  while (suite.length < n) suite.push(...shuffle(pool));
+  return suite.slice(0, n);
+}
+
+// Quatre mesures mélangées, jamais déjà dans l'ordre : en g et kg (ou en kg et t), ou bien avec les trois unités de contenance.
+function listeMC(famille) {
+  for (let essai = 0; essai < 2000; essai++) {
+    let liste;
+    if (famille === 'masses') {
+      const [petite, grande] = pick([['g', 'kg'], ['kg', 't']]);
+      const vals = shuffle([500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500]).slice(0, 4);
+      liste = vals.map((v) => (v % 1000 === 0 && rnd(0, 1) ? { n: v / 1000, u: grande } : { n: v, u: petite }));
+      if (!liste.some((x) => x.u === grande) || !liste.some((x) => x.u === petite)) continue;
+    } else {
+      const choix = { L: () => rnd(1, 4), dL: () => rnd(5, 45), cL: () => 5 * rnd(10, 90) };
+      liste = shuffle([...shuffle(['L', 'dL', 'cL']), pick(['L', 'dL', 'cL'])]).map((u) => ({ n: choix[u](), u }));
+    }
+    const v = liste.map(valeurMC).sort((a, b) => a - b);
+    if (v.some((x, i) => i && x - v[i - 1] < (famille === 'masses' ? 400 : 20))) continue;
+    const m = liste.map(valeurMC);
+    if (m.every((x, i) => !i || x > m[i - 1]) || m.every((x, i) => !i || x < m[i - 1])) continue;
+    return liste;
+  }
+  return famille === 'masses' ? [{ n: 2, u: 'kg' }, { n: 1500, u: 'g' }, { n: 1, u: 'kg' }, { n: 2500, u: 'g' }]
+    : [{ n: 2, u: 'L' }, { n: 15, u: 'dL' }, { n: 100, u: 'cL' }, { n: 3, u: 'L' }];
+}
+
+// Ex. 4 : les problèmes. Chacun garde son énoncé, son calcul et sa phrase réponse.
+function problemeMC(modele, p) {
+  if (modele === 'recette') {
+    const a = pick([300, 400, 500]), b = pick([200, 250, 300]), c = pick([100, 150, 200]);
+    const t = a + b + c;
+    return { modele, nombres: [a, b, c], resultat: t, unite: 'g',
+      enonce: `Pour un gâteau, ${p} met ${lg(a, 'g')} de farine, ${lg(b, 'g')} de sucre et ${lg(c, 'g')} de beurre. Quelle est la masse totale, en${NBSP}g ?`,
+      calcul: `${lg(a, 'g')} + ${lg(b, 'g')} + ${lg(c, 'g')} = ${lg(t, 'g')}`, phrase: `La masse totale est de ${lg(t, 'g')}.` };
+  }
+  if (modele === 'sac') {
+    const k = pick([2, 3, 5]), u = 50 * rnd(4, 17);
+    const r = k * 1000 - u;
+    return { modele, nombres: [k, u], resultat: r, unite: 'g',
+      enonce: `Un sac contient ${lg(k, 'kg')} de farine. ${p} en utilise ${lg(u, 'g')}. Combien de g de farine reste-t-il ?`,
+      calcul: `${lg(k, 'kg')} = ${lg(k * 1000, 'g')} ; ${lg(k * 1000, 'g')} − ${lg(u, 'g')} = ${lg(r, 'g')}`, phrase: `Il reste ${lg(r, 'g')} de farine.` };
+  }
+  if (modele === 'camion') {
+    const a = rnd(2, 4), b = 100 * rnd(2, 9);
+    const t = a * 1000 + b;
+    return { modele, nombres: [a, b], resultat: t, unite: 'kg',
+      enonce: `Un camion transporte ${lg(a, 't')} de sable et ${lg(b, 'kg')} de gravier. Quelle masse transporte-t-il en tout, en${NBSP}kg ?`,
+      calcul: `${lg(a, 't')} = ${lg(a * 1000, 'kg')} ; ${lg(a * 1000, 'kg')} + ${lg(b, 'kg')} = ${lg(t, 'kg')}`, phrase: `Le camion transporte ${lg(t, 'kg')} en tout.` };
+  }
+  if (modele === 'verres') {
+    const [v, T] = pick([[25, 1], [20, 1], [10, 1], [50, 2], [25, 2], [20, 2]]);
+    const n = T * 100 / v;
+    return { modele, nombres: [v, T], resultat: n, unite: 'verres',
+      enonce: `Avec ${T === 1 ? 'une bouteille de 1' + NBSP + 'L' : `un pichet de ${T}${NBSP}L`}, on remplit des verres de ${lg(v, 'cL')}. Combien de verres peut-on remplir ?`,
+      calcul: `${lg(T, 'L')} = ${lg(T * 100, 'cL')} ; ${lg(T * 100, 'cL')} ÷ ${lg(v, 'cL')} = ${n}`, phrase: `On peut remplir ${n} verres.` };
+  }
+  if (modele === 'bouteille') {
+    if (rnd(0, 1)) {
+      const x = 5 * rnd(3, 17), r = 100 - x;
+      return { modele, nombres: [1, x], resultat: r, unite: 'cL',
+        enonce: `Une bouteille contient ${lg(1, 'L')} d’eau. ${p} en verse ${lg(x, 'cL')} dans un verre. Combien de cL d’eau reste-t-il ?`,
+        calcul: `${lg(1, 'L')} = ${lg(100, 'cL')} ; ${lg(100, 'cL')} − ${lg(x, 'cL')} = ${lg(r, 'cL')}`, phrase: `Il reste ${lg(r, 'cL')} d’eau.` };
+    }
+    const T = pick([1, 2]), x = T === 1 ? rnd(2, 9) : rnd(3, 15), r = T * 10 - x;
+    return { modele, nombres: [T, x], resultat: r, unite: 'dL',
+      enonce: `Un pichet contient ${lg(T, 'L')} de jus. ${p} en verse ${lg(x, 'dL')} dans une carafe. Combien de dL de jus reste-t-il ?`,
+      calcul: `${lg(T, 'L')} = ${lg(T * 10, 'dL')} ; ${lg(T * 10, 'dL')} − ${lg(x, 'dL')} = ${lg(r, 'dL')}`, phrase: `Il reste ${lg(r, 'dL')} de jus.` };
+  }
+  // 'carafe' : un dL et des cL ajoutés
+  const a = rnd(2, 6), b = 5 * rnd(2, 12), t = a * 10 + b;
+  return { modele, nombres: [a, b], resultat: t, unite: 'cL',
+    enonce: `${p} verse ${lg(a, 'dL')} de jus puis ${lg(b, 'cL')} d’eau dans une carafe. Quelle quantité de liquide y a-t-il en tout, en${NBSP}cL ?`,
+    calcul: `${lg(a, 'dL')} = ${lg(a * 10, 'cL')} ; ${lg(a * 10, 'cL')} + ${lg(b, 'cL')} = ${lg(t, 'cL')}`, phrase: `Il y a ${lg(t, 'cL')} en tout.` };
+}
+
+function genererMassesContenances(options) {
+  const grandeur = ['masses', 'contenances'].includes(options.grandeur) ? options.grandeur : 'deux';
+  const [p, q, r] = shuffle(PRENOMS);
+
+  // Ex. 1 : huit objets (six avec le rappel), l'unité à choisir.
+  const objets = parFamille(grandeur, 8, objetsDe);
+
+  // Ex. 2 : huit conversions (six avec le rappel), dans les deux sens, jamais deux fois la même.
+  const vues = new Set();
+  const conversions = parFamille(grandeur, 8, conversionsDe).map((cle) => {
+    const table = cle.includes('g') || cle.includes('t') ? CONV_MASSES : CONV_CONT;
+    for (let essai = 0; essai < 50; essai++) {
+      const [n, de, vers] = table[cle]();
+      const k = `${n}${de}${vers}`;
+      if (!vues.has(k)) { vues.add(k); return { n, de, vers }; }
+    }
+    const [n, de, vers] = table[cle]();
+    return { n, de, vers };
+  });
+
+  // Ex. 3 : six comparaisons (quatre avec le rappel), dont une égalité parmi les quatre premières, puis un rangement.
+  const unites = parFamille(grandeur, 6, pairesDe);
+  const egale = rnd(0, 3);
+  const vuesP = new Set();
+  const comparaisons = unites.map(([ua, ub], i) => {
+    for (let essai = 0; essai < 100; essai++) {
+      const pa = paireMC(ua, ub, i === egale ? 'egal' : 'inegal');
+      const cle = `${mesureMC(pa.a.n, pa.a.u)}/${mesureMC(pa.b.n, pa.b.u)}`;
+      if (!vuesP.has(cle)) { vuesP.add(cle); return pa; }
+    }
+    return paireMC(ua, ub, 'inegal');
+  });
+  const famRang = grandeur === 'deux' ? pick(['masses', 'contenances']) : grandeur;
+  const rangement = listeMC(famRang);
+
+  // Ex. 4 : une recette ou un remplissage d'abord, puis les autres.
+  const ordre = {
+    masses: ['recette', 'sac', 'camion'],
+    contenances: ['verres', ...shuffle(['bouteille', 'carafe'])],
+  };
+  const modeles = grandeur === 'deux'
+    ? ['recette', 'verres', pick(['sac', 'camion', 'bouteille', 'carafe'])]
+    : ordre[grandeur];
+  const problemes = modeles.map((m, i) => problemeMC(m, [p, q, r][i]));
+
+  return {
+    grandeur,
+    objectif: grandeur === 'masses' ? 'Je connais les relations entre gramme (g), kilogramme (kg) et tonne (t).'
+      : grandeur === 'contenances' ? 'Je connais les unités de contenance (cL, dL, L).'
+        : 'Je connais les relations entre g, kg et t, et les unités de contenance (cL, dL, L).',
+    methode: {},
+    objets, conversions, comparaisons, rangement, problemes,
+  };
+}
+
+const MASSES_REPERES = [
+  `<b>1${NBSP}kg = ${lg(1000, 'g')}</b><br>Un chat pèse ${lg(5300, 'g')} ou 5${NBSP}kg ${lg(300, 'g')}.`,
+  `<b>1${NBSP}t = ${lg(1000, 'kg')}</b><br>Un éléphant pèse ${lg(6250, 'kg')} ou 6${NBSP}t ${lg(250, 'kg')}.`,
+];
+const REPERES_L = [['Une bouteille d’eau', 1], ['Une brique de lait', 1], ['Un bidon de produit ménager', 2], ['Une casserole', 5], ['Un arrosoir', 12],
+  ['Un aquarium', 40], ['Un réservoir de voiture', 50], ['Une baignoire', 150], ['Une piscine gonflable', 930]].map(([nom, n]) => `${nom} de ${lg(n, 'L')}`);
+
+const miseMassesContenances = {
+  signe: '',
+  combien: (contenu, methode) => ({
+    objets: contenu.objets.slice(0, methode ? 6 : 8),
+    conversions: contenu.conversions.slice(0, methode ? 6 : 8),
+    comparaisons: contenu.comparaisons.slice(0, methode ? 4 : 6),
+    problemes: contenu.problemes.slice(0, methode ? 2 : 3),
+  }),
+  noteCorrige: 'les réponses attendues sont en rouge ; chaque problème montre son calcul, avec la conversion quand il y en a une, puis sa phrase réponse.',
+  // Rappel : les phrases, relations et repères de la leçon (page 39 pour les masses, pages 41 et 42 pour les contenances).
+  rappel(contenu) {
+    const g = contenu.grandeur;
+    const masses = `
+        <div class="rappel-mc__partie">
+          <p class="rappel-mc__titre">Les masses</p>
+          ${MASSES_REPERES.map((t) => `<p>${t}</p>`).join('')}
+        </div>`;
+    const contenances = `
+        <div class="rappel-mc__partie">
+          <p class="rappel-mc__titre">Les contenances</p>
+          <p>On utilise le litre pour mesurer des contenances. Un litre s’écrit <b>1${NBSP}L</b>.</p>
+          <p>Une petite cuillère a une contenance de 1${NBSP}cL. Une tasse à café a une contenance de 1${NBSP}dL. Une brique de lait a une contenance de 1${NBSP}L.</p>
+          <p><b>1${NBSP}L = 100${NBSP}cL</b> et <b>1${NBSP}L = 10${NBSP}dL</b></p>
+        </div>`;
+    const reperes = `
+        <ul class="rappel-mc__reperes">${REPERES_L.map((t) => `<li>${t}</li>`).join('')}</ul>`;
+    return `
+      <div class="rappel-mc rappel-mc--${g}">${g !== 'contenances' ? masses : ''}${g !== 'masses' ? contenances : ''}${g !== 'masses' ? reperes : ''}
+      </div>`;
+  },
+  exercices(contenu, methode) {
+    const { objets, conversions, comparaisons } = this.combien(contenu, methode);
+    const pts = '<span class="pointilles pointilles--mini"></span>';
+    const k = comparaisons.length;
+    const g = contenu.grandeur;
+    const choix = g === 'masses' ? 'g, kg ou t' : g === 'contenances' ? 'cL, dL ou L' : 'g, kg, t, cL, dL ou L';
+    const problemes = this.combien(contenu, methode).problemes;
+    return `
+    <div class="bloc">
+      <h2>Exercice 1 — Choisis l’unité qui convient (${choix}).</h2>
+      <div class="conversions conversions--objets">
+        ${objets.map((o, i) => `<div class="conversion"><b>${lettre(i)}.</b><span>${o.nom} : ${fmt(o.n)}</span>${pts}</div>`).join('')}
+      </div>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 2 — Convertis.</h2>
+      <div class="conversions conversions--3">
+        ${conversions.map((c, i) => `<div class="conversion"><b>${lettre(i)}.</b><span>${lg(c.n, c.de)} =</span>${pts}<span>${c.vers}</span></div>`).join('')}
+      </div>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 3 — Compare avec &lt;, &gt; ou =, puis range les mesures de la plus petite à la plus grande.</h2>
+      <div class="paires paires--lg${k === 4 ? ' paires--lg4' : ''}">
+        ${comparaisons.map((p, i) => `<div class="paire"><b>${lettre(i)}.</b> <span class="paire__a">${lgn(p.a.n, p.a.u)}</span><span class="case-symbole"></span><span class="paire__b">${lgn(p.b.n, p.b.u)}</span></div>`).join('')}
+      </div>
+      <div class="rangs rangs--lg">
+        <div class="rang">
+          <div class="rang__nombres"><b>${lettre(k)}.</b> ${contenu.rangement.map((x) => lgn(x.n, x.u)).join('&nbsp;; ')}</div>
+          <div class="rang__reponse">${contenu.rangement.map(() => '<span class="pointilles pointilles--rang"></span>').join('<span class="rang__signe">&lt;</span>')}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 4 — Résous chaque problème.</h2>
+      <div class="problemes-fr">
+        ${problemes.map((pb, i) => `<div class="probleme-fr">
+          <p class="probleme-fr__enonce"><b>${lettre(i)}.</b> ${pb.enonce}</p>
+          <div class="probleme-fr__ligne"><span>Calcul :</span><span class="pointilles pointilles--ligne"></span></div>
+          <div class="probleme-fr__ligne"><span>Phrase réponse :</span><span class="pointilles pointilles--ligne"></span></div>
+        </div>`).join('')}
+      </div>
+    </div>
+`;
+  },
+  corriges(contenu, methode) {
+    const { objets, conversions, comparaisons, problemes } = this.combien(contenu, methode);
+    const k = comparaisons.length;
+    const croissant = [...contenu.rangement].sort((x, y) => valeurMC(x) - valeurMC(y));
+    return `
+    <div class="bloc">
+      <h2>Exercice 1</h2>
+      <div class="conversions conversions--objets conversions--corrigees">
+        ${objets.map((o, i) => `<div class="conversion"><b>${lettre(i)}.</b><span>${o.nom} : ${fmt(o.n)}${NBSP}${rouge(o.u)}</span></div>`).join('')}
+      </div>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 2</h2>
+      <div class="conversions conversions--3 conversions--corrigees">
+        ${conversions.map((c, i) => `<div class="conversion"><b>${lettre(i)}.</b><span>${lg(c.n, c.de)} = ${rouge(lg(c.n * BASE_MC[c.de] / BASE_MC[c.vers], c.vers))}</span></div>`).join('')}
+      </div>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 3</h2>
+      <div class="paires paires--lg paires--corrigees${k === 4 ? ' paires--lg4' : ''}">
+        ${comparaisons.map((p, i) => `<div class="paire"><b>${lettre(i)}.</b> <span class="paire__a">${lgn(p.a.n, p.a.u)}</span><span class="paire__symbole rouge">${symboleDe(valeurMC(p.a), valeurMC(p.b))}</span><span class="paire__b">${lgn(p.b.n, p.b.u)}</span></div>`).join('')}
+      </div>
+      <div class="rangs rangs--corriges rangs--lg">
+        <div class="rang"><div class="rang__reponse rang__reponse--corrige" data-sens="croissant"><b>${lettre(k)}.</b> ${croissant.map((x) => rouge(lgn(x.n, x.u))).join(' <span class="rang__signe">&lt;</span> ')}</div></div>
+      </div>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 4</h2>
+      <div class="problemes-fr">
+        ${problemes.map((pb, i) => `<div class="probleme-fr">
+          <p class="probleme-fr__enonce"><b>${lettre(i)}.</b> ${pb.enonce}</p>
+          <div class="probleme-fr__ligne"><span>Calcul :</span><span class="probleme-fr__rep">${pb.calcul}</span></div>
+          <div class="probleme-fr__ligne"><span>Phrase réponse :</span><span class="probleme-fr__rep">${pb.phrase}</span></div>
+        </div>`).join('')}
+      </div>
+    </div>
+`;
+  },
+};
+
 function pageExercices(fiche, contenu, { base = '', methode = true, identite = true } = {}) {
   const { signe } = fiche.mise;
   if (fiche.mise.rappel) return pageExercicesLibre(fiche, contenu, { base, methode, identite });
@@ -2858,6 +3191,26 @@ export const FICHES = [
     ],
     generer: genererHeures,
     mise: miseHeures,
+  },
+  {
+    id: 'ce2-masses-contenances',
+    classe: 'ce2',
+    domaine: 'Grandeurs et mesures',
+    titre: 'Les masses et les contenances',
+    emoji: '⚖️',
+    options: [
+      {
+        id: 'grandeur', libelle: 'Grandeurs',
+        valeurs: [
+          { v: 'masses', nom: 'Masses (g, kg, t)' },
+          { v: 'contenances', nom: 'Contenances (cL, dL, L)' },
+          { v: 'deux', nom: 'Les deux' },
+        ],
+        defaut: 'deux',
+      },
+    ],
+    generer: genererMassesContenances,
+    mise: miseMassesContenances,
   },
 ];
 

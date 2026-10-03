@@ -1741,7 +1741,7 @@ for (const opt of optionsMult) {
 {
   const fh = FICHES.find((f) => f.id === 'ce2-heures');
   console.log('— Heures : lire l’heure sur une horloge');
-  verifier(FICHES.indexOf(fh) === FICHES.length - 1 && FICHES.indexOf(fh) === 10, 'heures : fiche ajoutée en fin de FICHES (index 10)');
+  verifier(FICHES.indexOf(fh) === 10, 'heures : fiche à l’index 10 de FICHES');
   verifier(fh.titre === 'Les heures : lire l’heure sur une horloge' && fh.emoji === '🕒' && fh.options.length === 1 && fh.options[0].id === 'minutes' && fh.options[0].defaut === 'cinq'
     && JSON.stringify(fh.options[0].valeurs) === JSON.stringify([{ v: 'quarts', nom: 'Heures, quarts et demies' }, { v: 'cinq', nom: 'Toutes les 5 minutes' }]),
     'heures : titre, emoji, option minutes (quarts puis cinq, défaut cinq)');
@@ -1925,6 +1925,198 @@ for (const opt of optionsMult) {
     .map(([id, o]) => somme(empreinte(FICHES.find((x) => x.id === id), o)));
   verifier(h.join() === '2857615915,841554819,1341628403,3247079376,2467628440,3671073380,178792032,2718432813,1534335352,750168435,1150851747,649082766,1335819493,11888257,1584605419', `heures : les dix fiches précédentes sont inchangées (${h.join()})`);
   verifier(FICHES.slice(0, 10).map((f) => f.id).join() === 'ce2-addition-posee,ce2-soustraction-posee,ce2-multiplication,ce2-nombres-lire-ecrire,ce2-nombres-comparer,ce2-fractions-lire,ce2-fractions-comparer,ce2-fractions-calculer,ce2-monnaie,ce2-longueurs', 'heures : ordre des dix premières fiches inchangé');
+}
+
+/* Masses et contenances : unités et conversions --------------------------- */
+{
+  const fm = FICHES.find((f) => f.id === 'ce2-masses-contenances');
+  console.log('— Masses et contenances : unités et conversions');
+  verifier(FICHES.indexOf(fm) === 11, 'masses et contenances : fiche à l’index 11 de FICHES');
+  verifier(fm.titre === 'Les masses et les contenances' && fm.emoji === '⚖️' && fm.options.length === 1 && fm.options[0].id === 'grandeur' && fm.options[0].defaut === 'deux'
+    && JSON.stringify(fm.options[0].valeurs) === JSON.stringify([{ v: 'masses', nom: 'Masses (g, kg, t)' }, { v: 'contenances', nom: 'Contenances (cL, dL, L)' }, { v: 'deux', nom: 'Les deux' }]),
+    'masses et contenances : titre, emoji, option grandeur (masses, contenances, deux ; défaut deux)');
+
+  const fenetre = new JSDOM('<body></body>').window.document;
+  const conteneur = (html) => { const div = fenetre.createElement('div'); div.innerHTML = html; return div; };
+  const doc = (c, o) => conteneur(rendre(fm, c, o));
+  const blocs = (page) => [...page.querySelectorAll('.bloc:not(.bloc--methode)')];
+  const brut = (el) => el.textContent;
+  const txt = (el) => { const c = el.cloneNode(true); c.querySelectorAll('svg').forEach((x) => x.remove()); return c.textContent.replace(/[  ]/g, ' ').replace(/[ \t\n\r]+/g, ' ').trim(); };
+
+  // Tout est recalculé ici : valeur en g (masses) ou en cL (contenances).
+  const BASE = { g: 1, kg: 1000, t: 1000000, cL: 1, dL: 10, L: 100 };
+  const FAM = { g: 'masses', kg: 'masses', t: 'masses', cL: 'contenances', dL: 'contenances', L: 'contenances' };
+  const mesures = (t) => [...String(t).matchAll(/(\d+(?: \d{3})*) (kg|g|t|cL|dL|L)(?![\p{L}\d])/gu)].map((m) => ({ n: parseInt(m[1].replace(/ /g, ''), 10), u: m[2] }));
+  const val = (x) => x.n * BASE[x.u];
+  // Objets : unité et quantités réalistes (aucun verre de 12 t).
+  const OBJETS = {
+    'Une pomme': ['g', 80, 250], 'Un œuf': ['g', 40, 80], 'Un cahier': ['g', 80, 250], 'Un livre': ['g', 150, 500], 'Un stylo': ['g', 3, 20],
+    'Un chat': ['kg', 2, 6], 'Un cartable': ['kg', 2, 6], 'Un melon': ['kg', 1, 3], 'Un vélo': ['kg', 8, 20], 'Un élève de CE2': ['kg', 20, 40],
+    'Un camion': ['t', 5, 30], 'Un éléphant': ['t', 3, 7], 'Un autobus': ['t', 8, 15],
+    'Un verre': ['cL', 10, 30], 'Une canette': ['cL', 25, 50], 'Une petite cuillère': ['cL', 1, 2], 'Un biberon': ['cL', 10, 30],
+    'Une tasse à café': ['dL', 1, 2], 'Un bol': ['dL', 2, 5], 'Une louche': ['dL', 1, 3], 'Un pot de crème': ['dL', 1, 3],
+    'Une bouteille d’eau': ['L', 1, 2], 'Un bidon de produit ménager': ['L', 1, 5], 'Une casserole': ['L', 1, 6], 'Un arrosoir': ['L', 5, 15], 'Un aquarium': ['L', 20, 100],
+    'Un réservoir de voiture': ['L', 30, 80], 'Une baignoire': ['L', 100, 200], 'Une piscine gonflable': ['L', 500, 1500],
+  };
+  const dans = (o, fam) => (o === 'deux' ? true : o === fam);
+  const dernierNombre = (t) => { const m = [...String(t).matchAll(/(\d+(?: \d{3})*)(?! \d)/g)]; return m.length ? parseInt(m[m.length - 1][1].replace(/ /g, ''), 10) : NaN; };
+
+  for (const grandeur of ['masses', 'contenances', 'deux']) for (const methode of [true, false]) {
+    const k = methode ? { o: 6, c: 6, p: 4, pb: 2 } : { o: 8, c: 8, p: 6, pb: 3 };
+    const nom = `masses et contenances ${grandeur}, ${methode ? 'avec' : 'sans'} méthode`;
+    let comptes = 0, objets = 0, conv = 0, comp = 0, rang = 0, probl = 0, fuite = 0, mots = 0, famil = 0, equilibre = 0, egal = 0, sens = 0;
+    for (let graine = 1; graine <= 40; graine++) {
+      const c = tirer(fm, { grandeur }, graine * 7919);
+      const d = doc(c, { corrige: true, methode });
+      const [pe, pc] = d.querySelectorAll('.feuille');
+      const [e1, e2, e3, e4] = blocs(pe), [c1, c2, c3, c4] = blocs(pc);
+      const cmpt = (el, sel) => el.querySelectorAll(sel).length;
+      if (!(cmpt(e1, '.conversion') === k.o && cmpt(c1, '.conversion') === k.o && cmpt(e2, '.conversion') === k.c && cmpt(c2, '.conversion') === k.c
+        && cmpt(e3, '.paire') === k.p && cmpt(c3, '.paire') === k.p && cmpt(e3, '.rang') === 1 && cmpt(c3, '.rang') === 1
+        && cmpt(e4, '.probleme-fr') === k.pb && cmpt(c4, '.probleme-fr') === k.pb && blocs(pe).length === 4 && blocs(pc).length === 4)) comptes++;
+
+      const familles = { objets: [], conv: [], comp: [] };
+      // Ex. 1 : l'unité adaptée
+      const noms = new Set();
+      [...c1.querySelectorAll('.conversion')].forEach((el, i) => {
+        const m = /^[a-z]\.\s*(.+) : (\d+(?: \d{3})*) (kg|g|t|cL|dL|L)$/u.exec(txt(el));
+        if (!m) { objets++; return; }
+        const [, nomObjet, q, u] = m; const n = parseInt(q.replace(/ /g, ''), 10);
+        const ref = OBJETS[nomObjet];
+        if (!ref || ref[0] !== u || n < ref[1] || n > ref[2] || noms.has(nomObjet) || !dans(grandeur, FAM[u])) objets++;
+        noms.add(nomObjet); familles.objets.push(FAM[u]);
+        if (txt(e1.querySelectorAll('.conversion')[i]).replace(/ /g, '') !== `${lettre(i)}.${nomObjet}:${q}`.replace(/ /g, '') || cmpt(e1.querySelectorAll('.conversion')[i], '.pointilles') !== 1) objets++;
+      });
+      // Ex. 2 : conversions dans les deux sens, exactes
+      let versPetit = 0, versGrand = 0;
+      [...c2.querySelectorAll('.conversion')].forEach((el, i) => {
+        const [g, dr] = txt(el).replace(/^[a-z]\.\s*/, '').split(' = ');
+        const a = mesures(g)[0], b = mesures(dr)[0];
+        const eleve = txt(e2.querySelectorAll('.conversion')[i]).replace(/^[a-z]\.\s*/, '').replace(/ /g, '');
+        if (!a || !b || a.u === b.u || FAM[a.u] !== FAM[b.u] || val(a) !== val(b) || !dans(grandeur, FAM[a.u]) || b.n < 1 || a.n < 2
+          || eleve !== `${a.n}${a.u}=${b.u}`.replace(/ /g, '')) conv++;
+        else { familles.conv.push(FAM[a.u]); if (BASE[a.u] > BASE[b.u]) versPetit++; else versGrand++; }
+      });
+      if (!versPetit || !versGrand) sens++;
+      // Ex. 3 : symboles, une égalité, unités différentes de chaque côté
+      let egalites = 0;
+      [...c3.querySelectorAll('.paire')].forEach((el, i) => {
+        const a = mesures(el.querySelector('.paire__a').textContent.replace(/[  ]/g, ' ')), b = mesures(el.querySelector('.paire__b').textContent.replace(/[  ]/g, ' '));
+        const s = el.querySelector('.paire__symbole').textContent;
+        if (a.length !== 1 || b.length !== 1 || a[0].u === b[0].u || FAM[a[0].u] !== FAM[b[0].u] || !dans(grandeur, FAM[a[0].u]) || s !== (val(a[0]) < val(b[0]) ? '<' : val(a[0]) > val(b[0]) ? '>' : '=')) comp++;
+        else familles.comp.push(FAM[a[0].u]);
+        if (s === '=') egalites++;
+        const ev = e3.querySelectorAll('.paire')[i];
+        if (txt(ev.querySelector('.paire__a')) !== txt(el.querySelector('.paire__a')) || txt(ev.querySelector('.paire__b')) !== txt(el.querySelector('.paire__b'))) comp++;
+      });
+      if (egalites !== 1) egal++;
+      // Rangement : quatre mesures mélangées d'unités différentes, rangées du plus petit au plus grand
+      const donnees = mesures(txt(e3.querySelector('.rang__nombres')));
+      const rangees = mesures(txt(c3.querySelector('.rang__reponse--corrige')));
+      const tri = [...donnees].sort((x, y) => val(x) - val(y));
+      const ordreDonne = donnees.every((x, i) => !i || val(x) > val(donnees[i - 1])) || donnees.every((x, i) => !i || val(x) < val(donnees[i - 1]));
+      const famRang = donnees.length ? FAM[donnees[0].u] : '';
+      if (donnees.length !== 4 || rangees.length !== 4 || JSON.stringify(rangees) !== JSON.stringify(tri) || ordreDonne || new Set(donnees.map(val)).size !== 4
+        || donnees.some((x) => FAM[x.u] !== famRang) || !dans(grandeur, famRang) || new Set(donnees.map((x) => x.u)).size < (famRang === 'masses' ? 2 : 3)
+        || cmpt(e3, '.rang .pointilles') !== 4 || cmpt(c3, '.rang__reponse--corrige .rouge') !== 4) rang++;
+      // Option « deux » : la moitié de chaque dans chaque exercice (rangement à part)
+      if (grandeur === 'deux') {
+        for (const liste of [familles.objets, familles.conv, familles.comp]) if (liste.filter((x) => x === 'masses').length * 2 !== liste.length) equilibre++;
+      } else for (const liste of [familles.objets, familles.conv, familles.comp]) if (liste.some((x) => x !== grandeur)) famil++;
+      // Chaque unité de la famille apparaît dans les objets
+      for (const fam of grandeur === 'deux' ? ['masses', 'contenances'] : [grandeur]) {
+        const unites = new Set([...c1.querySelectorAll('.conversion')].map((el) => /(\S+)$/.exec(txt(el))[1]).filter((u) => FAM[u] === fam));
+        if (unites.size !== 3) famil++;
+      }
+      // Ex. 4 : problèmes recalculés
+      const modeles = [];
+      [...c4.querySelectorAll('.probleme-fr')].forEach((el, i) => {
+        const enonce = txt(el.querySelector('.probleme-fr__enonce')).replace(/^[a-z]\. /, '');
+        const [ligneCalcul, lignePhrase] = [...el.querySelectorAll('.probleme-fr__ligne')].map((l) => txt(l.querySelector('.probleme-fr__rep')));
+        const m = mesures(enonce);
+        let attendu = NaN, modele = '', etapes = [];
+        if (/^Pour un gâteau/.test(enonce) && m.length === 3) { modele = 'recette'; attendu = m[0].n + m[1].n + m[2].n; etapes = [`${m[0].n} g + ${m[1].n} g + ${m[2].n} g`]; if (m.some((x) => x.u !== 'g' || x.n < 50 || x.n > 600) || attendu > 1100) attendu = NaN; }
+        else if (/^Un sac contient/.test(enonce) && m.length === 2) { modele = 'sac'; attendu = m[0].n * 1000 - m[1].n; if (m[0].u !== 'kg' || m[1].u !== 'g' || attendu <= 0) attendu = NaN; }
+        else if (/^Un camion transporte/.test(enonce) && m.length === 2) { modele = 'camion'; attendu = m[0].n * 1000 + m[1].n; if (m[0].u !== 't' || m[1].u !== 'kg' || m[0].n > 5) attendu = NaN; }
+        else if (/verres de/.test(enonce) && m.length === 2) { modele = 'verres'; attendu = val(m[0]) / val(m[1]); if (m[0].u !== 'L' || m[1].u !== 'cL' || attendu !== Math.floor(attendu) || attendu < 2) attendu = NaN; }
+        else if (/^Une bouteille contient/.test(enonce) && m.length === 2) { modele = 'bouteille'; attendu = (val(m[0]) - val(m[1])) / BASE.cL; if (m[1].u !== 'cL' || attendu <= 0) attendu = NaN; }
+        else if (/^Un pichet contient/.test(enonce) && m.length === 2) { modele = 'bouteille'; attendu = (val(m[0]) - val(m[1])) / BASE.dL; if (m[1].u !== 'dL' || attendu <= 0) attendu = NaN; }
+        else if (/de jus puis/.test(enonce) && m.length === 2) { modele = 'carafe'; attendu = val(m[0]) + val(m[1]); if (m[0].u !== 'dL' || m[1].u !== 'cL') attendu = NaN; }
+        modeles.push(modele);
+        const uniteRep = { recette: 'g', sac: 'g', camion: 'kg', verres: 'verres', carafe: 'cL', bouteille: /^Un pichet/.test(enonce) ? 'dL' : 'cL' }[modele] || '';
+        const unitesEnonce = new Set(m.map((x) => FAM[x.u]));
+        const premiereEtape = ligneCalcul.split(' ; ')[0];
+        const conversionOk = modele === 'recette' || (() => { const [x, y] = mesures(premiereEtape); return x && y && x.u === m[0].u && x.n === m[0].n && val(x) === val(y) && y.u === (uniteRep === 'verres' ? 'cL' : uniteRep); })();
+        const ecrit = String(attendu).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+        const finOk = uniteRep === 'verres' ? ligneCalcul.endsWith(` = ${attendu}`) && lignePhrase.includes(`${attendu} verres`) : ligneCalcul.endsWith(` = ${ecrit} ${uniteRep}`) && lignePhrase.includes(`${ecrit} ${uniteRep}`);
+        if (!modele || Number.isNaN(attendu) || dernierNombre(ligneCalcul) !== attendu || dernierNombre(lignePhrase) !== attendu || !conversionOk || !finOk
+          || unitesEnonce.size !== 1 || !dans(grandeur, [...unitesEnonce][0])) probl++;
+        if (!/^Calcul/.test(txt(e4.querySelectorAll('.probleme-fr__ligne')[2 * i])) || !/^Phrase réponse/.test(txt(e4.querySelectorAll('.probleme-fr__ligne')[2 * i + 1])) || txt(e4.querySelectorAll('.probleme-fr__enonce')[i]) !== txt(el.querySelector('.probleme-fr__enonce'))) probl++;
+      });
+      const attendusModeles = grandeur === 'masses' ? ['recette', 'sac', 'camion'] : grandeur === 'contenances' ? ['verres'] : ['recette', 'verres'];
+      attendusModeles.slice(0, k.pb).forEach((x, i) => { if (modeles[i] !== x) probl++; });
+      if (grandeur === 'contenances' && modeles.slice(1).some((x) => x !== 'bouteille' && x !== 'carafe')) probl++;
+      if (grandeur === 'deux' && modeles[2] !== undefined && ['recette', 'verres'].includes(modeles[2])) probl++;
+
+      // Page élève : aucune réponse
+      if (pe.querySelectorAll('.rouge, .paire__symbole, .probleme-fr__rep').length) fuite++;
+      if (/=\s*\d/.test(txt(e1) + txt(e2) + txt(e4))) fuite++;
+      if ([...e3.querySelectorAll('.case-symbole')].some((x) => x.textContent.trim())) fuite++;
+      if ([...pe.querySelectorAll('.pointilles')].some((x) => x.textContent.trim())) fuite++;
+      // Ton, emoji, typographie (espace insécable avant l'unité, espace fine dans les milliers)
+      const tout = brut(pe) + brut(pc);
+      if (/faux|erreur|raté|✗|✘|❌|[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(tout)) mots++;
+      if (/\d (kg|g|t|cL|dL|L)(?![\p{L}])/u.test(tout) || /\d \d{3}(?!\d)/.test(tout)) mots++;
+    }
+    verifier(comptes === 0, `${nom} : mêmes comptes élève / corrigé (${k.o} objets, ${k.c} conversions, ${k.p} comparaisons + 1 rangement, ${k.pb} problèmes), 40 tirages`);
+    verifier(objets === 0, `${nom} : unités des objets exactes, quantités réalistes, jamais deux fois le même objet`);
+    verifier(conv === 0 && sens === 0, `${nom} : conversions exactes (recalculées en g ou en cL), dans les deux sens`);
+    verifier(comp === 0 && egal === 0, `${nom} : symboles exacts, une égalité par feuille, unités différentes de chaque côté`);
+    verifier(rang === 0, `${nom} : rangement de 4 mesures d’unités différentes, exact et jamais déjà rangé`);
+    verifier(famil === 0 && equilibre === 0, `${nom} : unités dans les bornes de l’option${grandeur === 'deux' ? ' (moitié de chaque dans les exercices 1 à 3)' : ''}`);
+    verifier(probl === 0, `${nom} : problèmes exacts (calcul et phrase), recalculés indépendamment`);
+    verifier(fuite === 0, `${nom} : aucune réponse sur la page élève`);
+    verifier(mots === 0, `${nom} : aucun mot négatif ni emoji, espace insécable avant chaque unité`);
+    const d0 = doc(tirer(fm, { grandeur }, 99), { corrige: true, methode });
+    const [pe0, pc0] = d0.querySelectorAll('.feuille');
+    verifier(pe0.querySelectorAll('.bloc--methode').length === (methode ? 1 : 0) && !pc0.querySelector('.bloc--methode') && !pc0.textContent.includes('Nom :'), `${nom} : rappel seulement avec la méthode, jamais dans le corrigé ni la ligne Nom / Date`);
+  }
+
+  // Le rappel : les phrases, relations et repères des leçons
+  for (const grandeur of ['masses', 'contenances', 'deux']) {
+    const m = doc(tirer(fm, { grandeur }, 11), { corrige: false, methode: true }).querySelector('.bloc--methode');
+    const t = txt(m);
+    const masses = ['1 kg = 1 000 g', 'Un chat pèse 5 300 g ou 5 kg 300 g.', '1 t = 1 000 kg', 'Un éléphant pèse 6 250 kg ou 6 t 250 kg.'];
+    const contenances = ['On utilise le litre pour mesurer des contenances.', 'Un litre s’écrit 1 L.', 'Une petite cuillère a une contenance de 1 cL.', 'Une tasse à café a une contenance de 1 dL.',
+      'Une brique de lait a une contenance de 1 L.', '1 L = 100 cL', '1 L = 10 dL'];
+    const reperes = ['Une bouteille d’eau de 1 L', 'Une brique de lait de 1 L', 'Un bidon de produit ménager de 2 L', 'Une casserole de 5 L', 'Un arrosoir de 12 L', 'Un aquarium de 40 L',
+      'Un réservoir de voiture de 50 L', 'Une baignoire de 150 L', 'Une piscine gonflable de 930 L'];
+    verifier(masses.every((p) => t.includes(p)) === (grandeur !== 'contenances') && (grandeur !== 'contenances' || !/kg|tonne/.test(t)), `masses et contenances ${grandeur} : le rappel ${grandeur === 'contenances' ? 'ne parle pas des masses' : 'reprend les phrases de la leçon des masses (page 39)'}`);
+    verifier(contenances.every((p) => t.includes(p)) === (grandeur !== 'masses') && (grandeur !== 'masses' || !/cL|dL|litre/.test(t)), `masses et contenances ${grandeur} : le rappel ${grandeur === 'masses' ? 'ne parle pas des contenances' : 'reprend les phrases de la leçon des contenances (pages 41 et 42)'}`);
+    verifier(reperes.every((p) => t.includes(p)) === (grandeur !== 'masses') && m.querySelectorAll('.rappel-mc__reperes li').length === (grandeur === 'masses' ? 0 : 9), `masses et contenances ${grandeur} : le rappel ${grandeur === 'masses' ? 'n’a pas la liste de repères en litres' : 'reprend les neuf repères du livret'}`);
+    verifier(!m.querySelector('table, svg, img'), `masses et contenances ${grandeur} : pas de tableau ni de dessin dans le rappel (la leçon n’en montre pas)`);
+  }
+
+  // Codes reproductibles et options
+  for (const grandeur of ['masses', 'contenances', 'deux']) {
+    const c = tirer(fm, { grandeur });
+    const r = decoder(c.code);
+    verifier(r && r.fiche === fm && r.options.grandeur === grandeur && JSON.stringify(tirer(r.fiche, r.options, r.graine)) === JSON.stringify(c), `masses et contenances ${grandeur} : le code ${c.code} redonne la même fiche`);
+    verifier(rendre(fm, tirer(fm, { grandeur }, 77), { corrige: true }) === rendre(fm, tirer(fm, { grandeur }, 77), { corrige: true }), `masses et contenances ${grandeur} : même graine, même HTML`);
+    const vus = new Set(); for (let i = 0; i < 200; i++) vus.add(tirer(fm, { grandeur }).code);
+    verifier(vus.size > 190, `masses et contenances ${grandeur} : codes variés (${vus.size} sur 200)`);
+  }
+  verifier(new Set(['masses', 'contenances', 'deux'].map((g) => codeDe(fm, { grandeur: g }, 5))).size === 3, 'masses et contenances : l’option change le code');
+
+  // Les onze fiches précédentes inchangées : empreinte du HTML à graine fixe, mesurée avant l’ajout
+  const empreinte = (f, o) => { const t = tirer(f, o, 424242); return JSON.stringify(t) + rendre(f, t, { corrige: true, base: 'http://x/' }); };
+  const somme = (s) => { let h = 5381; for (const ch of s) h = ((h * 33) ^ ch.charCodeAt(0)) >>> 0; return h; };
+  const h = [['ce2-addition-posee', { taille: 'mix' }], ['ce2-soustraction-posee', { taille: 'mix' }], ['ce2-multiplication', { facteur: '2' }], ['ce2-nombres-lire-ecrire', { taille: '1000' }], ['ce2-nombres-lire-ecrire', { taille: '10000' }],
+    ['ce2-nombres-comparer', { taille: '1000' }], ['ce2-nombres-comparer', { taille: '10000' }], ['ce2-fractions-lire', {}], ['ce2-fractions-comparer', {}], ['ce2-fractions-calculer', { denominateur: '4' }], ['ce2-fractions-calculer', { denominateur: '10' }],
+    ['ce2-monnaie', { centimes: 'non' }], ['ce2-monnaie', { centimes: 'oui' }], ['ce2-longueurs', { km: 'non' }], ['ce2-longueurs', { km: 'oui' }], ['ce2-heures', { minutes: 'quarts' }], ['ce2-heures', { minutes: 'cinq' }]]
+    .map(([id, o]) => somme(empreinte(FICHES.find((x) => x.id === id), o)));
+  verifier(h.join() === '2857615915,841554819,1341628403,3247079376,2467628440,3671073380,178792032,2718432813,1534335352,750168435,1150851747,649082766,1335819493,11888257,1584605419,857785706,538954699', `masses et contenances : les onze fiches précédentes sont inchangées (${h.join()})`);
+  verifier(FICHES.slice(0, 11).map((f) => f.id).join() === 'ce2-addition-posee,ce2-soustraction-posee,ce2-multiplication,ce2-nombres-lire-ecrire,ce2-nombres-comparer,ce2-fractions-lire,ce2-fractions-comparer,ce2-fractions-calculer,ce2-monnaie,ce2-longueurs,ce2-heures', 'masses et contenances : ordre des onze premières fiches inchangé');
 }
 
 process.exit(echecs ? 1 : 0);

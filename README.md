@@ -37,6 +37,10 @@ et le **corrigé sur une deuxième page** pour l'adulte.
 
 Fiches disponibles (le plan complet est dans [`programme/ce2/PLAN-FICHES.md`](programme/ce2/PLAN-FICHES.md)) :
 
+- **CE2 — Les masses et les contenances** (p. 39–42 du livret) : 1 kg = 1 000 g,
+  1 t = 1 000 kg, 1 L = 10 dL = 100 cL et les repères de la leçon (bouteille de 1 L,
+  baignoire de 150 L…) ; unité à choisir, conversions, comparaisons, rangement, problèmes.
+  Option : masses, contenances, ou les deux.
 - **CE2 — Les heures : lire l'heure sur une horloge** (p. 37–38 du livret) : la petite et
   la grande aiguille dans les mots de la leçon, la lecture « 8 heures moins 10 » ; horloges à
   lire, lectures en « moins », aiguilles à tracer sur des cadrans vierges, heures de

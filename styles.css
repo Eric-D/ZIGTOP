@@ -1233,3 +1233,15 @@ svg.visuel {
   .horloges--moins .ligne-h { gap: 1mm; }
   .horloges--moins .case-h { width: 8mm; }
 }
+
+/* ---------- fiche masses et contenances : unités et conversions ---------- */
+.rappel-mc { display: grid; grid-template-columns: 1fr; gap: 3mm 5mm; font-size: .82rem; line-height: 1.25; }
+.rappel-mc--deux { grid-template-columns: 1fr 1.7fr; }
+.rappel-mc p { margin: 0 0 3px; }
+.rappel-mc__titre { font-weight: 800; }
+.rappel-mc__partie + .rappel-mc__partie { border-left: 1px dashed #CFC9BC; padding-left: 5mm; }
+.rappel-mc__reperes { grid-column: 1 / -1; list-style: none; margin: 0; padding: 2mm 0 0; border-top: 1px dashed #CFC9BC; display: grid; grid-template-columns: repeat(3, auto); justify-content: space-between; gap: 0 4mm; white-space: nowrap; }
+.conversions--objets .conversion .pointilles--mini { min-width: 12mm; }
+@media print {
+  .rappel-mc { font-size: 8.3pt; line-height: 1.22; }
+}
