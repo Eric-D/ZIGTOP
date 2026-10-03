@@ -120,6 +120,9 @@ export function visuel(spec) {
       case 'grille': return grille(spec.lignes, spec.colonnes);
       case 'decimal': return decimal(spec.n);
       case 'partage': return partage(spec.total, spec.parts);
+      // Schémas de la banque d'items (js/items.js), les mêmes que ceux des fiches.
+      case 'polygone': return polygoneCote({ forme: spec.forme, cotes: spec.cotes, taille: spec.taille || 150 });
+      case 'monnaie': return monnaie(spec.valeurs, { taille: spec.taille });
       default: return '';
     }
   } catch {
