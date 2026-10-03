@@ -4,7 +4,7 @@
 
 import { rnd, pick, shuffle, fmt, enLettres, setAlea, generateurAleatoire } from './utils.js';
 import { qrSVG } from './qr.js';
-import { demiDroite, figureFraction, regleFractions, monnaie, polygoneCote, horloge, ligneDuTemps, solide, patronCube, figurePlane, cercle, PX_PAR_CM, FIGURES_POLYGONES, FIGURES_NON_POLYGONES, NB_VARIANTES_FIGURE, NB_PATRONS, NB_ASSEMBLAGES, PIECES_EURO, BILLETS_EURO } from './visuels.js';
+import { demiDroite, figureFraction, regleFractions, monnaie, polygoneCote, horloge, ligneDuTemps, solide, patronCube, figurePlane, cercle, PX_PAR_CM, figureSymetrie, quadrillageSymetrie, nbAxesFigure, FIGURES_SYMETRIQUES, FIGURES_ASYMETRIQUES, FIGURES_POLYGONES, FIGURES_NON_POLYGONES, NB_VARIANTES_FIGURE, NB_PATRONS, NB_ASSEMBLAGES, PIECES_EURO, BILLETS_EURO } from './visuels.js';
 
 /* ------------------------------------------------------------------ */
 /* Outils de mise en page                                              */
@@ -3591,6 +3591,140 @@ ${fiche.mise.corriges(contenu, methode)}
 }
 
 /* ------------------------------------------------------------------ */
+/* CE2 — symétrie : axes et figures symétriques                         */
+/* ------------------------------------------------------------------ */
+
+// Page 55 du livret : « Je reconnais si une figure présente un axe de symétrie. » Le pli est un axe de symétrie ;
+// la figure est symétrique par rapport à cet axe ; « Ce carré a 4 axes de symétrie. »
+const FIGURES_NOMBRE_SYM = ['carré', 'rectangle', 'triangle isocèle', 'losange', 'étoile', 'croix', 'lettre H', 'cœur', 'sablier'];
+
+// Sujets des affirmations : le nom avec son article, et la figure dessinée qui sert à compter les axes.
+const SUJETS_SYM = {
+  'carré': 'Un carré', 'rectangle': 'Un rectangle', 'cercle': 'Un cercle', 'losange': 'Un losange', 'triangle isocèle': 'Un triangle isocèle',
+  'lettre H': 'La lettre H', 'cœur': 'Le cœur', 'lettre L': 'La lettre L', 'lettre F': 'La lettre F', 'lettre R': 'La lettre R',
+};
+const SUJETS_VRAIS_SYM = ['carré', 'rectangle', 'cercle', 'losange', 'triangle isocèle', 'lettre H', 'cœur'];
+const SUJETS_FAUX_SYM = [...SUJETS_VRAIS_SYM, 'lettre L', 'lettre F', 'lettre R'];
+// Les deux phrases de la leçon qui sont des affirmations toujours vraies, avec la phrase de la leçon qui les justifie.
+const PHRASES_LECON_SYM = {
+  pli: { texte: 'Le pli d’une figure pliée en deux parties qui se superposent exactement est un axe de symétrie.', justif: 'Le pli est un axe de symétrie.' },
+  symetrique: { texte: 'Une figure qu’on plie en deux parties qui se superposent exactement est symétrique par rapport au pli.', justif: 'On dit que la figure est symétrique par rapport à cet axe.' },
+};
+const axesTxt = (n) => (n === Infinity ? 'une infinité d’axes' : `${n} ${n > 1 ? 'axes' : 'axe'}`);
+
+function affirmationSym(sujet, vrai) {
+  if (PHRASES_LECON_SYM[sujet]) return { sujet, vrai: true, texte: PHRASES_LECON_SYM[sujet].texte, justif: PHRASES_LECON_SYM[sujet].justif };
+  const reel = nbAxesFigure(sujet);
+  const n = vrai ? reel : pick([1, 2, 3, 4].filter((x) => x !== reel));
+  const justif = sujet === 'carré' ? 'Ce carré a 4 axes de symétrie.'
+    : reel === 0 ? `Aucun pli ne superpose exactement les deux parties de ${SUJETS_SYM[sujet].replace(/^(Un|La|Le)/, (m) => m.toLowerCase())}.`
+      : `${SUJETS_SYM[sujet]} a ${axesTxt(reel)} de symétrie.`;
+  return { sujet, vrai, nombre: n, texte: `${SUJETS_SYM[sujet]} a ${axesTxt(n)} de symétrie.`, justif };
+}
+
+function genererSymetrie(options = {}) {
+  // Ex. 2 : 6 figures à nombre d'axes fini ; les 4 premières (avec le rappel) donnent au moins trois nombres différents.
+  let compter;
+  do { compter = shuffle(FIGURES_NOMBRE_SYM).slice(0, 6); } while (new Set(compter.slice(0, 4).map(nbAxesFigure)).size < 3);
+  // Ex. 1 : 10 figures, 5 avec axe et 5 sans ; les 8 premières (avec le rappel) en gardent 3 à 5 de chaque sorte.
+  const avec = shuffle(FIGURES_SYMETRIQUES.filter((n) => n !== 'cercle' && !compter.includes(n))).slice(0, 5);
+  const sans = shuffle(FIGURES_ASYMETRIQUES).slice(0, 5);
+  let reconnaitre;
+  do { reconnaitre = shuffle([...avec, ...sans]); }
+  while (reconnaitre.slice(0, 8).filter((n) => nbAxesFigure(n) > 0).length < 3 || reconnaitre.slice(0, 8).filter((n) => nbAxesFigure(n) > 0).length > 5);
+  // Ex. 3 : 4 quadrillages, des demi-figures toutes différentes ; avec les deux axes, les trois premiers ont les deux.
+  const deux = options.axes !== 'vertical';
+  const axes = deux ? [...shuffle(['vertical', 'horizontal', pick(['vertical', 'horizontal'])]), pick(['vertical', 'horizontal'])] : Array(4).fill('vertical');
+  const demi = shuffle([0, 1, 2, 3, 4, 5]).slice(0, 4);
+  const quadrillages = axes.map((axe, i) => ({ axe, figure: demi[i], cote: pick(axe === 'vertical' ? ['gauche', 'droite'] : ['haut', 'bas']) }));
+  // Ex. 4 : 6 affirmations, autant de vraies que de fausses (2 et 2 parmi les 4 premières), un sujet une seule fois.
+  const verdicts = [...shuffle([true, true, false, false]), ...shuffle([true, false])];
+  const pris = new Set();
+  const affirmations = verdicts.map((vrai) => {
+    const sujet = pick((vrai ? [...SUJETS_VRAIS_SYM, 'pli', 'symetrique'] : SUJETS_FAUX_SYM).filter((s) => !pris.has(s)));
+    pris.add(sujet);
+    return affirmationSym(sujet, vrai);
+  });
+  return { objectif: 'Je reconnais si une figure présente un axe de symétrie.', reconnaitre, compter, quadrillages, affirmations };
+}
+
+const miseSymetrie = {
+  signe: '',
+  combien: (contenu, methode) => ({
+    reconnaitre: contenu.reconnaitre.slice(0, methode ? 8 : 10),
+    compter: contenu.compter.slice(0, methode ? 4 : 6),
+    quadrillages: contenu.quadrillages.slice(0, methode ? 3 : 4),
+    affirmations: contenu.affirmations.slice(0, methode ? 4 : 6),
+    cases: methode ? 8 : 6,
+  }),
+  noteCorrige: 'réponses en rouge, case cochée = bonne réponse, axes tracés en pointillés, cases ajoutées hachurées dans l’exercice 3 ; dans l’exercice 4, la phrase sous chaque affirmation dit pourquoi.',
+  // Rappel : la méthode du pliage et l'exemple du carré de la page 55.
+  rappel() {
+    return `
+      <div class="rappel-sy">
+        <div class="rappel-sy__texte">
+          <p>Pour trouver les axes de symétrie d’une figure, j’essaie de la plier en deux, de façon à obtenir deux parties qui se superposent exactement.</p>
+          <p><b>Le pli est un axe de symétrie.</b> On dit que la figure est symétrique par rapport à cet axe.</p>
+        </div>
+        <div class="rappel-sy__schema">
+          <figure>${figureSymetrie('cœur', { taille: 70, axes: true }).svg}<figcaption>La figure</figcaption></figure>
+          <span class="rappel-sy__fleche">→</span>
+          <figure>${figureSymetrie('cœur', { taille: 70, plie: true }).svg}<figcaption>La figure pliée le long de l’axe</figcaption></figure>
+        </div>
+        <div class="rappel-sy__exemple">
+          <figure>${figureSymetrie('carré', { taille: 70, axes: true }).svg}</figure>
+          <p><b>Ce carré a 4 axes de symétrie.</b></p>
+        </div>
+      </div>`;
+  },
+  exercices(contenu, methode, corrige = false) {
+    const { reconnaitre, compter, quadrillages, affirmations, cases } = this.combien(contenu, methode);
+    const dessin = (nom, taille) => figureSymetrie(nom, { taille, axes: corrige }).svg;
+    const aUnAxe = (nom) => nbAxesFigure(nom) > 0;
+    const trou = '<span class="pointilles pointilles--mini"></span>';
+
+    const cellule1 = (nom, i) => `<div class="fig-sy fig-sy--${reconnaitre.length}"><b>${lettre(i)}.</b>${dessin(nom, methode ? 76 : 66)}<span class="oui-non">${case_('oui', corrige && aUnAxe(nom))}${case_('non', corrige && !aUnAxe(nom))}</span></div>`;
+    const cellule2 = (nom, i) => {
+      const n = nbAxesFigure(nom);
+      return `<div class="fig-ax fig-ax--${compter.length}"><b>${lettre(i)}.</b>${dessin(nom, methode ? 78 : 66)}<span class="fig-ax__rep">${corrige ? `<span class="reponse rouge">${n}</span>` : trou} axe${corrige && n < 2 ? '' : 's'}</span></div>`;
+    };
+    const grille = (q, i) => `<div class="grille-sy"><b>${lettre(i)}.</b>${quadrillageSymetrie({ cases, figure: q.figure, axe: q.axe, cote: q.cote, complete: corrige }).svg}</div>`;
+    const affirmation = (a, i) => `<li class="affirmation" data-sujet="${a.sujet}" data-vrai="${a.vrai ? 'oui' : 'non'}"><span class="affirmation__texte"><b>${lettre(i)}.</b> ${a.texte}</span><span class="cases-vf">${case_('V', corrige && a.vrai)}${case_('F', corrige && !a.vrai)}</span>${corrige ? `<span class="affirmation__justif">${a.justif}</span>` : ''}</li>`;
+
+    return `
+    <div class="bloc">
+      <h2>Exercice 1 — A-t-elle un axe de symétrie ? Coche oui ou non ; si oui, trace-le.</h2>
+      <div class="figs-sy figs-sy--${reconnaitre.length}">
+        ${reconnaitre.map(cellule1).join('')}
+      </div>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 2 — Combien d’axes de symétrie a chaque figure ?</h2>
+      <div class="figs-ax figs-ax--${compter.length}">
+        ${compter.map(cellule2).join('')}
+      </div>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 3 — Complète la figure : le trait épais est l’axe de symétrie.</h2>
+      <div class="grilles-sy grilles-sy--${quadrillages.length}">
+        ${quadrillages.map(grille).join('')}
+      </div>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 4 — Coche la bonne case : V ou F.</h2>
+      <ul class="affirmations affirmations--so affirmations--sy">
+        ${affirmations.map(affirmation).join('')}
+      </ul>
+    </div>
+`;
+  },
+  corriges(contenu, methode) { return this.exercices(contenu, methode, true); },
+};
+
+/* ------------------------------------------------------------------ */
 
 export const FICHES = [
   {
@@ -3844,6 +3978,25 @@ export const FICHES = [
     options: [],
     generer: genererPolygones,
     mise: misePolygones,
+  },
+  {
+    id: 'ce2-symetrie',
+    classe: 'ce2',
+    domaine: 'Géométrie',
+    titre: 'La symétrie : axes et figures symétriques',
+    emoji: '🪞',
+    options: [
+      {
+        id: 'axes', libelle: 'Axes des quadrillages',
+        valeurs: [
+          { v: 'vertical', nom: 'Axe vertical' },
+          { v: 'deux', nom: 'Axe vertical ou horizontal' },
+        ],
+        defaut: 'deux',
+      },
+    ],
+    generer: genererSymetrie,
+    mise: miseSymetrie,
   },
 ];
 

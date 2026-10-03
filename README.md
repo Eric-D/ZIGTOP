@@ -37,6 +37,10 @@ et le **corrigé sur une deuxième page** pour l'adulte.
 
 Fiches disponibles (le plan complet est dans [`programme/ce2/PLAN-FICHES.md`](programme/ce2/PLAN-FICHES.md)) :
 
+- **CE2 — La symétrie : axes et figures symétriques** (p. 55 du livret) : le pliage dans les
+  mots de la leçon (« le pli est un axe de symétrie »), « Ce carré a 4 axes de symétrie » ;
+  figures avec ou sans axe, nombre d'axes, figures à compléter par symétrie sur quadrillage,
+  vrai ou faux. Option : axe vertical seulement, ou vertical et horizontal.
 - **CE2 — Les polygones et le cercle** (p. 48–50 du livret) : « Un polygone est une figure
   fermée qu'on peut tracer avec une règle », côtés et sommets, triangle, quadrilatère,
   pentagone, hexagone, le cercle (centre, rayon, diamètre, compas) ; polygone ou pas,

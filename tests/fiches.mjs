@@ -4,7 +4,7 @@ import { JSDOM } from 'jsdom';
 import { FICHES, tirer, rendre, decoder, codeDe, optionsParDefaut } from '../js/fiches.js';
 import { matrice } from '../js/qr.js';
 import { fmt } from '../js/utils.js';
-import { figureFraction, monnaie, polygoneCote, horloge, ligneDuTemps, solide, patronCube, NB_ASSEMBLAGES, figurePlane, cercle, PX_PAR_CM, FIGURES_POLYGONES, FIGURES_NON_POLYGONES, NB_VARIANTES_FIGURE } from '../js/visuels.js';
+import { figureFraction, monnaie, polygoneCote, horloge, ligneDuTemps, solide, patronCube, NB_ASSEMBLAGES, figurePlane, cercle, PX_PAR_CM, FIGURES_POLYGONES, FIGURES_NON_POLYGONES, NB_VARIANTES_FIGURE, figureSymetrie, quadrillageSymetrie, FIGURES_SYMETRIQUES, FIGURES_ASYMETRIQUES, TAILLES_QUADRILLAGE, NB_MOITIES_QUADRILLAGE } from '../js/visuels.js';
 
 let echecs = 0;
 const verifier = (ok, message) => { if (!ok) echecs++; console.log(`${ok ? '✔' : '✘'} ${message}`); };
@@ -2597,6 +2597,211 @@ for (const opt of optionsMult) {
     .map(([id, o]) => somme(empreinte(FICHES.find((x) => x.id === id), o)));
   verifier(h.join() === '2857615915,841554819,1341628403,3247079376,2467628440,3671073380,178792032,2718432813,1534335352,750168435,1150851747,649082766,1335819493,11888257,1584605419,857785706,538954699,1652536371,2192490432,1573601925,237366352,3253221856,906907030', `polygones : les quatorze fiches précédentes sont inchangées (${h.join()})`);
   verifier(FICHES.slice(0, 14).map((f) => f.id).join() === 'ce2-addition-posee,ce2-soustraction-posee,ce2-multiplication,ce2-nombres-lire-ecrire,ce2-nombres-comparer,ce2-fractions-lire,ce2-fractions-comparer,ce2-fractions-calculer,ce2-monnaie,ce2-longueurs,ce2-heures,ce2-masses-contenances,ce2-durees,ce2-solides', 'polygones : ordre des quatorze premières fiches inchangé');
+}
+
+/* Symétrie : axes et figures symétriques --------------------------------------- */
+{
+  const fy = FICHES.find((f) => f.id === 'ce2-symetrie');
+  console.log('— Symétrie');
+  verifier(FICHES.indexOf(fy) === 15, 'symétrie : fiche à l’index 15 de FICHES');
+  verifier(fy.titre === 'La symétrie : axes et figures symétriques' && fy.emoji === '🪞' && fy.options.length === 1 && fy.options[0].id === 'axes'
+    && fy.options[0].valeurs.map((v) => v.v).join() === 'vertical,deux' && fy.options[0].valeurs[0].nom === 'Axe vertical' && fy.options[0].valeurs[1].nom === 'Axe vertical ou horizontal' && fy.options[0].defaut === 'deux', 'symétrie : titre, emoji, option axes (vertical, deux ; défaut deux)');
+
+  const fenetre = new JSDOM('<body></body>').window.document;
+  const conteneur = (html) => { const div = fenetre.createElement('div'); div.innerHTML = html; return div; };
+  const doc = (c, o) => conteneur(rendre(fy, c, o));
+  const texte = (el) => el.textContent.replace(/[  ]/g, ' ').replace(/\s+/g, ' ').trim();
+
+  // Brute force : les axes de symétrie d'un polygone (ensemble de sommets), recalculés indépendamment du catalogue
+  const EPS = 0.05;
+  const reflechi = (p, a, b) => { const dx = b[0] - a[0], dy = b[1] - a[1], t = ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / (dx * dx + dy * dy); const fx = a[0] + t * dx, fy2 = a[1] + t * dy; return [2 * fx - p[0], 2 * fy2 - p[1]]; };
+  const memeEnsemble = (P, a, b) => P.every((p) => { const q = reflechi(p, a, b); return P.some((r) => Math.hypot(r[0] - q[0], r[1] - q[1]) < EPS); });
+  const sommetsDe = (svg) => [...svg.querySelectorAll('polygon')].flatMap((pg) => pg.getAttribute('points').trim().split(/\s+/).map((s) => s.split(',').map(Number)))
+    .concat([...svg.querySelectorAll('rect')].flatMap((r) => { const x = +r.getAttribute('x'), y = +r.getAttribute('y'), w = +r.getAttribute('width'), h2 = +r.getAttribute('height'); return [[x, y], [x + w, y], [x + w, y + h2], [x, y + h2]]; }));
+  const axesPolygone = (P) => {
+    const c = [P.reduce((s, p) => s + p[0], 0) / P.length, P.reduce((s, p) => s + p[1], 0) / P.length];
+    const angles = [];
+    const ajouter = (dx, dy) => {
+      if (Math.hypot(dx, dy) < 1e-6) return;
+      let a = Math.atan2(dy, dx); if (a < 0) a += Math.PI; if (a >= Math.PI - 1e-6) a = 0;
+      if (angles.some((x) => Math.abs(x - a) < 0.02 || Math.abs(Math.abs(x - a) - Math.PI) < 0.02)) return;
+      if (memeEnsemble(P, c, [c[0] + Math.cos(a), c[1] + Math.sin(a)])) angles.push(a);
+    };
+    for (const p of P) ajouter(p[0] - c[0], p[1] - c[1]);
+    for (let i = 0; i < P.length; i++) for (let j = i + 1; j < P.length; j++) ajouter((P[i][0] + P[j][0]) / 2 - c[0], (P[i][1] + P[j][1]) / 2 - c[1]);
+    return angles.length;
+  };
+
+  // Le catalogue : au moins 12 figures, des deux sortes ; nbAxes et tracés cohérents avec le dessin
+  const toutes = [...FIGURES_SYMETRIQUES, ...FIGURES_ASYMETRIQUES];
+  verifier(toutes.length >= 12 && FIGURES_SYMETRIQUES.length >= 6 && FIGURES_ASYMETRIQUES.length >= 5, `figureSymetrie : ${toutes.length} figures (${FIGURES_SYMETRIQUES.length} avec axe, ${FIGURES_ASYMETRIQUES.length} sans)`);
+  let figOk = 0, polyVus = 0;
+  for (const nom of toutes) {
+    const r = figureSymetrie(nom, { axes: true });
+    const svg = conteneur(r.svg).querySelector('svg');
+    const sans = conteneur(figureSymetrie(nom).svg).querySelector('svg');
+    const traces = [...svg.querySelectorAll('line.axe-symetrie')];
+    const P = sommetsDe(svg);
+    const attendu = nom === 'cercle' ? Infinity : P.length ? axesPolygone(P) : { 'cœur': 1, spirale: 0 }[nom];
+    let ok = svg.getAttribute('data-figure') === nom && r.nbAxes === attendu && svg.getAttribute('data-axes') === (attendu === Infinity ? 'infini' : String(attendu))
+      && sans.querySelectorAll('line').length === 0 && figureSymetrie(nom).nbAxes === r.nbAxes && /stroke="#222"/.test(r.svg);
+    if (attendu !== Infinity) ok = ok && traces.length === attendu;
+    if (P.length) {
+      polyVus++;
+      // chaque axe tracé est bien un axe de symétrie du dessin (sommets réfléchis = sommets)
+      ok = ok && traces.every((l) => memeEnsemble(P, [+l.getAttribute('x1'), +l.getAttribute('y1')], [+l.getAttribute('x2'), +l.getAttribute('y2')]));
+    } else if (nom === 'cœur') {
+      ok = ok && traces.length === 1 && traces[0].getAttribute('x1') === '50' && traces[0].getAttribute('x2') === '50';
+    }
+    if (ok) figOk++; else console.log('  figure en défaut :', nom, r.nbAxes, attendu, traces.length);
+  }
+  verifier(figOk === toutes.length && polyVus >= 18, `figureSymetrie : nbAxes = axes de symétrie recalculés sur le dessin, axes tracés exacts (${figOk}/${toutes.length})`);
+  verifier(figureSymetrie('carré').nbAxes === 4 && figureSymetrie('rectangle').nbAxes === 2 && figureSymetrie('triangle isocèle').nbAxes === 1 && figureSymetrie('étoile').nbAxes === 5 && figureSymetrie('cercle').nbAxes === Infinity && figureSymetrie('parallélogramme').nbAxes === 0, 'figureSymetrie : carré 4, rectangle 2, triangle isocèle 1, étoile 5, cercle infini, parallélogramme 0');
+
+  // Quadrillages : symétrie exacte des coordonnées lues dans le SVG
+  const lireGrille = (html) => {
+    const svg = conteneur(html).querySelector('svg');
+    const cases = +svg.getAttribute('data-cases'), axe = svg.getAttribute('data-axe');
+    const cellules = (sel) => [...svg.querySelectorAll(sel)].map((r) => [+r.getAttribute('data-x'), +r.getAttribute('data-y')]);
+    const ligne = svg.querySelector('line.axe-quadrillage');
+    return { svg, cases, axe, grises: cellules('rect.case-grise'), ajoutees: cellules('rect.case-ajoutee'), ligne, cote: svg.getAttribute('data-cote') };
+  };
+  const miroir = (axe, n, [x, y]) => (axe === 'vertical' ? [n - 1 - x, y] : [x, n - 1 - y]);
+  const dedans = (l, p) => l.some((q) => q[0] === p[0] && q[1] === p[1]);
+  const coteVrai = (axe, n, [x, y]) => (axe === 'vertical' ? x : y) < n / 2;
+  let quadOk = 0, quadTot = 0;
+  for (const n of TAILLES_QUADRILLAGE) for (const axe of ['vertical', 'horizontal']) for (let fg = 0; fg < NB_MOITIES_QUADRILLAGE; fg++) for (const cote of axe === 'vertical' ? ['gauche', 'droite'] : ['haut', 'bas']) {
+    quadTot++;
+    const vide = lireGrille(quadrillageSymetrie({ cases: n, figure: fg, axe, cote }).svg);
+    const plein = lireGrille(quadrillageSymetrie({ cases: n, figure: fg, axe, cote, complete: true }).svg);
+    const tout = [...plein.grises];                        // case-grise comprend les ajoutées dans le corrigé
+    const cotesVrais = vide.grises.map((p) => coteVrai(axe, n, p));
+    const m = n / 2, centre = +plein.ligne.getAttribute(axe === 'vertical' ? 'x1' : 'y1');
+    const touche = vide.grises.some(([x, y]) => (axe === 'vertical' ? x : y) === (cote === 'gauche' || cote === 'haut' ? m - 1 : m));
+    if (vide.grises.length >= 8 && vide.ajoutees.length === 0 && new Set(cotesVrais).size === 1 && cotesVrais[0] === (cote === 'gauche' || cote === 'haut')
+      && touche && plein.ajoutees.length === vide.grises.length && tout.length === 2 * vide.grises.length
+      && tout.every((p) => dedans(tout, miroir(axe, n, p)) && (axe === 'vertical' ? p[0] : p[1]) !== undefined)
+      && plein.ajoutees.every((p) => dedans(vide.grises, miroir(axe, n, p)) && !dedans(vide.grises, p))
+      && new Set(tout.map((p) => p.join())).size === tout.length
+      && vide.grises.every(([x, y]) => x >= 0 && y >= 0 && x < n && y < n)
+      && Math.abs(centre - (8 + n * 10)) < 1e-9 && vide.svg.getAttribute('data-complete') === 'non' && plein.svg.getAttribute('data-complete') === 'oui') quadOk++;
+  }
+  verifier(quadOk === quadTot, `quadrillageSymetrie : chaque case grisée du corrigé a sa symétrique exacte, une moitié seulement dans l’énoncé, axe au milieu (${quadOk}/${quadTot})`);
+  // taille des cases : au moins 6 mm à 96 dpi (22,7 px)
+  const cm6 = TAILLES_QUADRILLAGE.every((n) => { const g = conteneur(quadrillageSymetrie({ cases: n }).svg).querySelector('svg'); const vb = +g.getAttribute('viewBox').split(' ')[2]; return (+g.getAttribute('width') * 20 / vb) >= 22.7; });
+  verifier(cm6, 'quadrillageSymetrie : cases de 6 mm au moins');
+  const noms6 = new Set(Array.from({ length: NB_MOITIES_QUADRILLAGE }, (_, i) => quadrillageSymetrie({ cases: 8, figure: i }).grises.map((p) => p.join()).join(';')));
+  verifier(noms6.size === NB_MOITIES_QUADRILLAGE, 'quadrillageSymetrie : des demi-figures toutes différentes');
+
+  // La fiche : exercices et corrigés
+  let comptes = 0, vierge = 0, ton = 0, ouiOk = 0, ouiTot = 0, nbOk = 0, nbTot = 0, gOk = 0, gTot = 0, vfOk = 0, vfTot = 0, mixte = 0, axesVus = new Set(), optOk = 0, ordre = 0;
+  const NB_ATTENDU = (methode) => (methode ? '8,4,3,4' : '10,6,4,6');
+  for (const axes of ['vertical', 'deux']) for (let i = 0; i < 25; i++) {
+    const c = tirer(fy, { axes });
+    for (const methode of [true, false]) {
+      const d = doc(c, { corrige: true, methode });
+      const [eleve, corr] = d.querySelectorAll('.feuille');
+      const nb = (page) => [page.querySelectorAll('.fig-sy').length, page.querySelectorAll('.fig-ax').length, page.querySelectorAll('.grille-sy').length, page.querySelectorAll('.affirmation').length].join();
+      if (nb(eleve) === NB_ATTENDU(methode) && nb(corr) === NB_ATTENDU(methode)) comptes++;
+      // ex. 1 : oui / non cohérent avec le nombre d'axes de la figure dessinée, et axes tracés seulement si oui
+      const cel1 = [...corr.querySelectorAll('.fig-sy')];
+      let nOui = 0;
+      for (const cel of cel1) {
+        ouiTot++;
+        const svg = cel.querySelector('svg'), n = svg.getAttribute('data-axes');
+        const a = n !== '0', coches = [...cel.querySelectorAll('.case-vf--cochee')];
+        const traces = svg.querySelectorAll('line.axe-symetrie').length;
+        if (coches.length === 1 && coches[0].getAttribute('data-choix') === (a ? 'oui' : 'non') && (a ? traces > 0 : traces === 0) && figureSymetrie(svg.getAttribute('data-figure')).nbAxes > 0 === a) ouiOk++;
+        if (a) nOui++;
+      }
+      if (nOui >= 3 && cel1.length - nOui >= 3) mixte++;
+      // ex. 2 : nombre exact d'axes
+      for (const cel of corr.querySelectorAll('.fig-ax')) {
+        nbTot++;
+        const svg = cel.querySelector('svg'), n = +svg.getAttribute('data-axes'), rep = +texte(cel.querySelector('.reponse'));
+        const P = sommetsDe(svg);
+        const calcule = P.length ? axesPolygone(P) : n;
+        if (rep === n && n === calcule && n >= 1 && svg.querySelectorAll('line.axe-symetrie').length === n) { nbOk++; axesVus.add(n); }
+      }
+      // ex. 3 : quadrillages complétés
+      const rangs = [...corr.querySelectorAll('.grille-sy svg')], rangsE = [...eleve.querySelectorAll('.grille-sy svg')];
+      const typesAxes = new Set();
+      rangs.forEach((svg, k) => {
+        gTot++;
+        const g = lireGrille(svg.outerHTML), e = lireGrille(rangsE[k].outerHTML);
+        typesAxes.add(g.axe);
+        const tout = g.grises;
+        if (tout.length === 2 * e.grises.length && e.ajoutees.length === 0 && g.cases === (methode ? 8 : 6) && tout.every((p) => dedans(tout, miroir(g.axe, g.cases, p)))
+          && e.grises.every((p) => dedans(tout, p)) && (axes !== 'vertical' || g.axe === 'vertical') && g.axe === e.axe) gOk++;
+      });
+      if (axes === 'deux' && typesAxes.size === 2) optOk++;
+      if (axes === 'vertical' && typesAxes.size === 1) optOk++;
+      // ex. 4 : vrai / faux recalculé
+      for (const li of corr.querySelectorAll('.affirmation')) {
+        vfTot++;
+        const sujet = li.getAttribute('data-sujet'), t = texte(li.querySelector('.affirmation__texte')).replace(/^[a-f]\.\s*/, '');
+        const coches = [...li.querySelectorAll('.case-vf--cochee')].map((x) => x.getAttribute('data-choix'));
+        let vrai;
+        if (sujet === 'pli' || sujet === 'symetrique') vrai = true;
+        else {
+          const m = t.match(/a (\d+ |une infinité d’)axes?/);
+          const n = m[1].startsWith('une') ? Infinity : +m[1].trim();
+          vrai = n === figureSymetrie(sujet).nbAxes;
+        }
+        if (coches.length === 1 && coches[0] === (vrai ? 'V' : 'F') && li.querySelector('.affirmation__justif') && li.getAttribute('data-vrai') === (vrai ? 'oui' : 'non')) vfOk++;
+      }
+      // page élève : aucune réponse hors exemple du rappel
+      const hors = (page) => { const copie = page.cloneNode(true); copie.querySelectorAll('.bloc--methode').forEach((x) => x.remove()); return copie; };
+      const nu = hors(eleve).querySelectorAll('.rouge, .reponse, .case-vf--cochee, .axe-symetrie, .case-ajoutee, .affirmation__justif').length === 0
+        && eleve.querySelectorAll('.fig-ax .pointilles').length === (methode ? 4 : 6);
+      if (nu) vierge++;
+      if (!/faux|erreur|✗|✘|✕|✖|raté/i.test(texte(d)) && !/\p{Extended_Pictographic}/u.test(texte(d))) ton++;
+    }
+  }
+  verifier(mixte === 100, 'symétrie : ex. 1 contient des figures avec et sans axe (3 au moins de chaque)');
+  verifier(ouiOk === ouiTot, `symétrie : case oui/non = nbAxes de la figure dessinée, axe tracé seulement si oui (${ouiOk}/${ouiTot})`);
+  verifier(nbOk === nbTot && axesVus.size >= 3, `symétrie : nombres d’axes exacts, recalculés sur le dessin (${nbOk}/${nbTot}, valeurs ${[...axesVus].sort().join(',')})`);
+  verifier(gOk === gTot && optOk === 100, `symétrie : quadrillages du corrigé symétriques, axes conformes à l’option (${gOk}/${gTot})`);
+  verifier(vfOk === vfTot, `symétrie : V / F recalculé sur les figures, avec justification (${vfOk}/${vfTot})`);
+  verifier(comptes === 100, 'symétrie : mêmes comptes élève / corrigé, avec et sans méthode (8-4-3-4 et 10-6-4-6)');
+  verifier(vierge === 100, 'symétrie : aucune réponse sur la page élève (hors exemple du rappel)');
+  verifier(ton === 100, 'symétrie : pas de mot négatif ni d’emoji sur la feuille');
+
+  // Les affirmations : autant de vraies que de fausses
+  let equilibre = 0;
+  for (let i = 0; i < 40; i++) { const a = tirer(fy, {}).affirmations; if (a.slice(0, 4).filter((x) => x.vrai).length === 2 && a.filter((x) => x.vrai).length === 3 && new Set(a.map((x) => x.sujet)).size === 6) equilibre++; }
+  verifier(equilibre === 40, 'symétrie : 6 affirmations, 3 vraies et 3 fausses (2 et 2 parmi les 4 premières), sujets distincts');
+
+  // Le rappel
+  const c0 = tirer(fy, {});
+  const sans = doc(c0, { corrige: false, methode: false }), avec = doc(c0, { corrige: false, methode: true });
+  verifier(avec.textContent.includes('Je me souviens de la méthode') && !sans.textContent.includes('Je me souviens de la méthode'), 'symétrie : le rappel se masque');
+  const rap = avec.querySelector('.rappel-sy'), tr = texte(rap);
+  verifier(['j’essaie de la plier en deux, de façon à obtenir deux parties qui se superposent exactement', 'Le pli est un axe de symétrie.', 'On dit que la figure est symétrique par rapport à cet axe.', 'La figure pliée le long de l’axe', 'Ce carré a 4 axes de symétrie.'].every((m) => tr.includes(m)), 'symétrie : le rappel reprend les phrases de la leçon');
+  const sv = [...rap.querySelectorAll('svg')];
+  verifier(sv.length === 3 && sv[0].querySelectorAll('line.axe-symetrie').length === 1 && sv[2].getAttribute('data-figure') === 'carré' && sv[2].querySelectorAll('line.axe-symetrie').length === 4 && sv[1].querySelector('clipPath'), 'symétrie : schéma figure / figure pliée, carré et ses 4 axes');
+
+  // Reproductibilité par le code
+  for (const axes of ['vertical', 'deux']) for (let i = 0; i < 10; i++) {
+    const c = tirer(fy, { axes });
+    const r = decoder(c.code);
+    if (!(r && r.fiche === fy && r.options.axes === axes && JSON.stringify(tirer(r.fiche, r.options, r.graine)) === JSON.stringify(c))) { verifier(false, `symétrie : le code ${c.code} ne redonne pas la même fiche`); break; }
+  }
+  verifier(true, 'symétrie : le code redonne la même fiche');
+  verifier(rendre(fy, tirer(fy, { axes: 'deux' }, 77), { corrige: true }) === rendre(fy, tirer(fy, { axes: 'deux' }, 77), { corrige: true }), 'symétrie : même graine, même HTML');
+  const vus = new Set(); for (let i = 0; i < 200; i++) vus.add(tirer(fy, {}).code);
+  verifier(vus.size > 190, `symétrie : codes variés (${vus.size} sur 200)`);
+
+  // Les quinze fiches précédentes inchangées : empreinte du HTML à graine fixe
+  const empreinte = (f, o) => { const t = tirer(f, o, 424242); return JSON.stringify(t) + rendre(f, t, { corrige: true, base: 'http://x/' }); };
+  const somme = (x) => { let h = 5381; for (const ch of x) h = ((h * 33) ^ ch.charCodeAt(0)) >>> 0; return h; };
+  const h = [['ce2-addition-posee', { taille: 'mix' }], ['ce2-soustraction-posee', { taille: 'mix' }], ['ce2-multiplication', { facteur: '2' }], ['ce2-nombres-lire-ecrire', { taille: '1000' }], ['ce2-nombres-lire-ecrire', { taille: '10000' }],
+    ['ce2-nombres-comparer', { taille: '1000' }], ['ce2-nombres-comparer', { taille: '10000' }], ['ce2-fractions-lire', {}], ['ce2-fractions-comparer', {}], ['ce2-fractions-calculer', { denominateur: '4' }], ['ce2-fractions-calculer', { denominateur: '10' }],
+    ['ce2-monnaie', { centimes: 'non' }], ['ce2-monnaie', { centimes: 'oui' }], ['ce2-longueurs', { km: 'non' }], ['ce2-longueurs', { km: 'oui' }], ['ce2-heures', { minutes: 'quarts' }], ['ce2-heures', { minutes: 'cinq' }],
+    ['ce2-masses-contenances', { grandeur: 'masses' }], ['ce2-masses-contenances', { grandeur: 'contenances' }], ['ce2-masses-contenances', { grandeur: 'deux' }], ['ce2-durees', { secondes: 'non' }], ['ce2-durees', { secondes: 'oui' }], ['ce2-solides', {}], ['ce2-polygones', {}]]
+    .map(([id, o]) => somme(empreinte(FICHES.find((x) => x.id === id), o)));
+  verifier(h.join() === '2857615915,841554819,1341628403,3247079376,2467628440,3671073380,178792032,2718432813,1534335352,750168435,1150851747,649082766,1335819493,11888257,1584605419,857785706,538954699,1652536371,2192490432,1573601925,237366352,3253221856,906907030,3321772385', `symétrie : les quinze fiches précédentes sont inchangées (${h.join()})`);
+  verifier(FICHES.slice(0, 15).map((f) => f.id).join() === 'ce2-addition-posee,ce2-soustraction-posee,ce2-multiplication,ce2-nombres-lire-ecrire,ce2-nombres-comparer,ce2-fractions-lire,ce2-fractions-comparer,ce2-fractions-calculer,ce2-monnaie,ce2-longueurs,ce2-heures,ce2-masses-contenances,ce2-durees,ce2-solides,ce2-polygones', 'symétrie : ordre des quinze premières fiches inchangé');
 }
 
 process.exit(echecs ? 1 : 0);

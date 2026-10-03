@@ -730,3 +730,159 @@ export function cercle({ rayon, centre = true, rayonTrace = false, diametreTrace
   const dim = echelle ? ` width="${W}" height="${H}"` : ` width="${taille}" height="${Math.round((taille * H) / W)}"`;
   return `<svg class="cercle-fig" data-rayon="${rayon}" data-diametre="${diametre}" data-trace="${trace ? 'oui' : 'non'}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}"${dim} role="img" aria-label="${trace ? `Cercle de rayon ${cm(rayon)}` : `Le point ${nom}`}">${corps}</svg>`;
 }
+
+/* ------------------------------------------------------------------ */
+/* Symétrie : figures avec ou sans axe, quadrillages à compléter       */
+/* ------------------------------------------------------------------ */
+
+// Figures dessinées dans un carré de 100 × 100 ; chaque figure donne ses axes de symétrie
+// (segments [x1, y1, x2, y2], un peu plus longs que la figure) et leur nombre.
+const ptsSym = (liste) => liste.map((p) => p.join(',')).join(' ');
+const polySym = (liste) => `<polygon points="${ptsSym(liste)}"/>`;
+const AXE_V = [50, 4, 50, 96], AXE_H = [4, 50, 96, 50];
+
+const ETOILE = (() => {
+  const c = [50, 55], sommets = [], axes = [];
+  for (let k = 0; k < 10; k++) {
+    const r = k % 2 === 0 ? 43 : 17, a = (-90 + 36 * k) * Math.PI / 180;
+    sommets.push([+(c[0] + r * Math.cos(a)).toFixed(2), +(c[1] + r * Math.sin(a)).toFixed(2)]);
+  }
+  for (let k = 0; k < 5; k++) {
+    const a = (-90 + 72 * k) * Math.PI / 180;
+    axes.push([+(c[0] + 47 * Math.cos(a)).toFixed(2), +(c[1] + 47 * Math.sin(a)).toFixed(2), +(c[0] - 30 * Math.cos(a)).toFixed(2), +(c[1] - 30 * Math.sin(a)).toFixed(2)]);
+  }
+  return { sommets, axes };
+})();
+
+const SPIRALE = (() => {
+  const p = [];
+  for (let t = 0; t <= 2.75 * 2 * Math.PI; t += 0.25) {
+    const r = 3 + 37 * t / (2.75 * 2 * Math.PI);
+    p.push([+(50 + r * Math.cos(t)).toFixed(1), +(50 + r * Math.sin(t)).toFixed(1)]);
+  }
+  return p;
+})();
+
+const FIGURES_SYM = {
+  // avec axe(s)
+  'cœur': { article: 'un cœur', axes: [AXE_V], corps: '<path d="M50 88 C14 62 8 36 26 21 C38 11 48 17 50 29 C52 17 62 11 74 21 C92 36 86 62 50 88 Z"/>' },
+  'triangle isocèle': { article: 'un triangle isocèle', axes: [AXE_V], corps: polySym([[50, 12], [88, 88], [12, 88]]) },
+  'carré': { article: 'un carré', axes: [AXE_V, AXE_H, [8, 8, 92, 92], [92, 8, 8, 92]], corps: '<rect x="20" y="20" width="60" height="60"/>' },
+  'rectangle': { article: 'un rectangle', axes: [AXE_V, AXE_H], corps: '<rect x="10" y="29" width="80" height="42"/>' },
+  'losange': { article: 'un losange', axes: [AXE_V, AXE_H], corps: polySym([[50, 8], [86, 50], [50, 92], [14, 50]]) },
+  'cercle': { article: 'un cercle', infini: true, axes: [AXE_V, AXE_H, [8, 8, 92, 92], [92, 8, 8, 92]], corps: '<circle cx="50" cy="50" r="40"/>' },
+  'étoile': { article: 'une étoile', axes: ETOILE.axes, corps: polySym(ETOILE.sommets) },
+  'flèche': { article: 'une flèche', axes: [AXE_V], corps: polySym([[50, 8], [86, 44], [62, 44], [62, 92], [38, 92], [38, 44], [14, 44]]) },
+  'sablier': { article: 'un sablier', axes: [AXE_V, AXE_H], corps: polySym([[22, 10], [78, 10], [54, 50], [78, 90], [22, 90], [46, 50]]) },
+  'lettre A': { article: 'la lettre A', axes: [AXE_V], corps: polySym([[12, 90], [40, 12], [60, 12], [88, 90], [70, 90], [64, 72], [36, 72], [30, 90]]) + polySym([[42, 58], [58, 58], [50, 34]]), trou: true },
+  'lettre M': { article: 'la lettre M', axes: [AXE_V], corps: polySym([[14, 88], [14, 14], [30, 14], [50, 52], [70, 14], [86, 14], [86, 88], [70, 88], [70, 44], [54, 78], [46, 78], [30, 44], [30, 88]]) },
+  'lettre T': { article: 'la lettre T', axes: [AXE_V], corps: polySym([[15, 15], [85, 15], [85, 33], [59, 33], [59, 88], [41, 88], [41, 33], [15, 33]]) },
+  'lettre H': { article: 'la lettre H', axes: [AXE_V, AXE_H], corps: polySym([[18, 10], [36, 10], [36, 41], [64, 41], [64, 10], [82, 10], [82, 90], [64, 90], [64, 59], [36, 59], [36, 90], [18, 90]]) },
+  'croix': { article: 'une croix', axes: [AXE_V, AXE_H, [8, 8, 92, 92], [92, 8, 8, 92]], corps: polySym([[38, 8], [62, 8], [62, 38], [92, 38], [92, 62], [62, 62], [62, 92], [38, 92], [38, 62], [8, 62], [8, 38], [38, 38]]) },
+  // sans axe
+  'parallélogramme': { article: 'un parallélogramme', axes: [], corps: polySym([[28, 24], [92, 24], [72, 76], [8, 76]]) },
+  'lettre F': { article: 'la lettre F', axes: [], corps: polySym([[22, 10], [80, 10], [80, 26], [40, 26], [40, 44], [70, 44], [70, 60], [40, 60], [40, 90], [22, 90]]) },
+  'lettre L': { article: 'la lettre L', axes: [], corps: polySym([[25, 10], [43, 10], [43, 72], [80, 72], [80, 90], [25, 90]]) },
+  'lettre R': { article: 'la lettre R', axes: [], corps: polySym([[22, 10], [66, 10], [80, 22], [80, 44], [68, 56], [84, 90], [66, 90], [52, 58], [40, 58], [40, 90], [22, 90]]) + polySym([[40, 25], [40, 43], [62, 43], [63, 41], [63, 27], [62, 25]]), trou: true },
+  'forme quelconque': { article: 'une forme quelconque', axes: [], corps: polySym([[14, 58], [26, 22], [58, 10], [90, 36], [74, 62], [80, 90], [40, 80]]) },
+  'triangle quelconque': { article: 'un triangle quelconque', axes: [], corps: polySym([[12, 86], [82, 86], [58, 16]]) },
+  'spirale': { article: 'une spirale', axes: [], ouverte: true, corps: `<polyline points="${ptsSym(SPIRALE)}"/>` },
+};
+export const FIGURES_SYMETRIQUES = Object.keys(FIGURES_SYM).filter((n) => FIGURES_SYM[n].axes.length > 0);
+export const FIGURES_ASYMETRIQUES = Object.keys(FIGURES_SYM).filter((n) => FIGURES_SYM[n].axes.length === 0);
+export const nbAxesFigure = (nom) => (FIGURES_SYM[nom].infini ? Infinity : FIGURES_SYM[nom].axes.length);
+
+// `figureSymetrie(nom, { taille, axes, plie, couleurAxe })` : une figure en SVG, traits nets, fond blanc, lisible en noir et blanc.
+// Retourne { svg, nbAxes, nom } ; `nbAxes` vaut Infinity pour le cercle. Le `<svg>` porte `data-figure` et `data-axes`
+// (le nombre d'axes, « infini » pour le cercle). `axes: true` trace les axes en pointillés (`<line class="axe-symetrie">`).
+// `plie: true` dessine la figure pliée le long de son premier axe vertical : la moitié gauche, avec le pli en trait plein.
+export function figureSymetrie(nom, { taille = 80, axes = false, plie = false, couleurAxe = '#C0392B' } = {}) {
+  const f = FIGURES_SYM[nom];
+  if (!f) throw new Error(`figureSymetrie : « ${nom} » inconnue`);
+  const nbAxes = nbAxesFigure(nom);
+  const fond = f.ouverte ? 'fill="none"' : 'fill="#fff"';
+  const trait = `stroke="${TRAIT_PLAN}" stroke-width="3" stroke-linejoin="miter" stroke-linecap="round"`;
+  let corps = `<g ${fond} ${trait}>${f.corps}</g>`;
+  if (plie) {
+    const id = `plie-${nom.replace(/[^a-z]/gi, '')}`;
+    corps = `<clipPath id="${id}"><rect x="0" y="0" width="50" height="100"/></clipPath><g clip-path="url(#${id})">${corps}</g>`
+      + `<line x1="50" y1="${nom === 'cœur' ? 24 : 4}" x2="50" y2="${nom === 'cœur' ? 88 : 96}" stroke="${TRAIT_PLAN}" stroke-width="5" stroke-linecap="round"/>`;
+  } else if (axes) {
+    corps += f.axes.map(([x1, y1, x2, y2]) => `<line class="axe-symetrie" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${couleurAxe}" stroke-width="2.4" stroke-dasharray="6 4" stroke-linecap="round"/>`).join('');
+  }
+  const svg = `<svg class="figure-symetrie" data-figure="${nom}" data-axes="${nbAxes === Infinity ? 'infini' : nbAxes}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="${taille}" height="${taille}" role="img" aria-label="Figure : ${f.article}">${corps}</svg>`;
+  return { svg, nbAxes, nom };
+}
+
+// Moitiés de figure à compléter : chaque ligne est une rangée de la moitié, la dernière colonne touche l'axe ('#' = case grisée).
+const MOITIES_QUADRILLAGE = {
+  6: [
+    ['..#', '.##', '###', '.##', '.##', '###'],
+    ['..#', '..#', '.##', '.##', '###', '###'],
+    ['#.#', '###', '.##', '..#', '.##', '###'],
+    ['..#', '.##', '..#', '.##', '###', '.##'],
+    ['.##', '.##', '..#', '..#', '.##', '###'],
+    ['###', '#..', '##.', '.##', '..#', '###'],
+  ],
+  8: [
+    ['...#', '..##', '.###', '####', '.###', '.###', '.#.#', '.###'],
+    ['...#', '...#', '..##', '..##', '.###', '.###', '####', '####'],
+    ['#..#', '##.#', '.###', '..##', '..##', '.###', '##.#', '#..#'],
+    ['...#', '..##', '...#', '..##', '.###', '..##', '.###', '####'],
+    ['.###', '.###', '..##', '..##', '..##', '.###', '####', '####'],
+    ['####', '##..', '.#..', '.###', '...#', '..##', '.###', '####'],
+  ],
+};
+export const NB_MOITIES_QUADRILLAGE = 6;
+export const TAILLES_QUADRILLAGE = Object.keys(MOITIES_QUADRILLAGE).map(Number);
+
+// `quadrillageSymetrie({ cases, figure, axe, cote, complete, taille })` : un quadrillage carré de `cases` × `cases` (6 ou 8),
+// un axe en trait fort au milieu (`axe` : 'vertical' ou 'horizontal') et, d'un seul côté de l'axe (`cote` : 'gauche' ou 'droite'
+// pour un axe AXE_V, 'haut' ou 'bas' pour un axe AXE_H), la moitié de figure à compléter, formée de cases grisées
+// (`figure` : numéro de 0 à 5). `complete: true` ajoute les cases symétriques, hachurées (le corrigé).
+// Retourne { svg, cases, axe, cote, grises, ajoutees } (cases en coordonnées [colonne, ligne] depuis 0).
+// Le `<svg>` porte `data-cases`, `data-axe`, `data-cote`, `data-complete` ; chaque case est un `<rect>` de classe
+// `case-grise` ou `case-ajoutee`, avec `data-x` et `data-y` (colonne et ligne).
+export function quadrillageSymetrie({ cases = 8, figure = 0, axe = 'vertical', cote, complete = false, taille } = {}) {
+  const moities = MOITIES_QUADRILLAGE[cases];
+  if (!moities) throw new Error(`quadrillageSymetrie : ${cases} cases non prises en charge`);
+  const vert = axe === 'vertical';
+  const cotes = vert ? ['gauche', 'droite'] : ['haut', 'bas'];
+  const c = cotes.includes(cote) ? cote : cotes[0];
+  const premier = c === cotes[0];
+  const moitie = moities[((figure % moities.length) + moities.length) % moities.length];
+  const demi = cases / 2;
+  const grises = [], ajoutees = [];
+  moitie.forEach((rang, r) => [...rang].forEach((ch, k) => {
+    if (ch !== '#') return;
+    // k : colonne de la moitié (la dernière touche l'axe) ; u = distance à l'axe − 1, 0 pour la case voisine de l'axe
+    const u = demi - 1 - k;
+    const dist = premier ? demi - 1 - u : demi + u;      // rang de la case dans la direction perpendiculaire à l'axe
+    const sym = premier ? demi + u : demi - 1 - u;
+    grises.push(vert ? [dist, r] : [r, dist]);
+    ajoutees.push(vert ? [sym, r] : [r, sym]);
+  }));
+  const S = 20, P = 8, N = cases * S;
+  const L = N + 2 * P;
+  const px = taille || (cases === 8 ? 204 : 156);
+  const rect = (x, y, classe, style) => `<rect class="${classe}" data-x="${x}" data-y="${y}" x="${P + x * S}" y="${P + y * S}" width="${S}" height="${S}" ${style}/>`;
+  let corps = `<rect x="${P}" y="${P}" width="${N}" height="${N}" fill="#fff"/>`;
+  corps += grises.map(([x, y]) => rect(x, y, 'case-grise', 'fill="#9A9A9A" stroke="#555" stroke-width="1"')).join('');
+  if (complete) {
+    corps += ajoutees.map(([x, y]) => {
+      const X = P + x * S, Y = P + y * S;
+      return `<g>${rect(x, y, 'case-grise case-ajoutee', 'fill="#E4E4E4" stroke="#555" stroke-width="1"')}`
+        + `<path d="M${X} ${Y + S} L${X + S} ${Y} M${X} ${Y + S / 2} L${X + S / 2} ${Y} M${X + S / 2} ${Y + S} L${X + S} ${Y + S / 2}" stroke="#222" stroke-width="1.6" fill="none"/></g>`;
+    }).join('');
+  }
+  let trame = '';
+  for (let i = 0; i <= cases; i++) trame += `M${P + i * S} ${P} V${P + N} M${P} ${P + i * S} H${P + N} `;
+  corps += `<path d="${trame}" stroke="#808080" stroke-width="1" fill="none"/>`;
+  corps += `<rect x="${P}" y="${P}" width="${N}" height="${N}" fill="none" stroke="#222" stroke-width="2"/>`;
+  const m = P + N / 2;
+  corps += vert
+    ? `<line class="axe-quadrillage" x1="${m}" y1="1" x2="${m}" y2="${L - 1}" stroke="#000" stroke-width="3.6" stroke-linecap="round"/>`
+    : `<line class="axe-quadrillage" x1="1" y1="${m}" x2="${L - 1}" y2="${m}" stroke="#000" stroke-width="3.6" stroke-linecap="round"/>`;
+  const svg = `<svg class="quadrillage-symetrie" data-cases="${cases}" data-axe="${axe}" data-cote="${c}" data-complete="${complete ? 'oui' : 'non'}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${L} ${L}" width="${px}" height="${px}" role="img" aria-label="Quadrillage de ${cases} cases sur ${cases}, axe de symétrie ${vert ? 'vertical' : 'horizontal'}, figure à compléter">${corps}</svg>`;
+  return { svg, cases, axe, cote: c, grises, ajoutees };
+}
