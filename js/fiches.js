@@ -4,6 +4,7 @@
 
 import { rnd, pick, shuffle, fmt, enLettres, setAlea, generateurAleatoire } from './utils.js';
 import { qrSVG } from './qr.js';
+import { HAUTEURS_BLOCS } from './hauteurs-blocs.js';
 import { demiDroite, figureFraction, regleFractions, monnaie, polygoneCote, horloge, ligneDuTemps, solide, patronCube, figurePlane, cercle, PX_PAR_CM, figureSymetrie, quadrillageSymetrie, diagrammeBarres, nbAxesFigure, FIGURES_SYMETRIQUES, FIGURES_ASYMETRIQUES, FIGURES_POLYGONES, FIGURES_NON_POLYGONES, NB_VARIANTES_FIGURE, NB_PATRONS, NB_ASSEMBLAGES, PIECES_EURO, BILLETS_EURO } from './visuels.js';
 
 /* ------------------------------------------------------------------ */
@@ -607,19 +608,28 @@ function genererNombres(options) {
 /* Mise en page de la fiche                                            */
 /* ------------------------------------------------------------------ */
 
-const echappe = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+export const echappe = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 // Le QR code rouvre exactement cette fiche dans l'application. Celui de la feuille
 // de l'enfant ouvre les exercices seuls — les réponses ne sont pas à un scan près ;
 // celui du corrigé, que l'adulte garde, ouvre la correction.
 function enTete(fiche, sousTitre, contenu, base, identite = true, vue = 'eleve') {
-  const lien = base ? `${base}?fiche=${contenu.code}&vue=${vue}` : '';
+  return enTeteHTML({
+    surtitre: `${fiche.classe.toUpperCase()} · ${fiche.domaine}`,
+    titre: `${fiche.titre}${sousTitre ? ` — <em>${sousTitre}</em>` : ''}`,
+    code: contenu.code, base, identite, vue,
+  });
+}
+
+// Le même en-tête sert aux feuilles panachées (voir panache.js).
+export function enTeteHTML({ surtitre, titre, code, base, identite = true, vue = 'eleve' }) {
+  const lien = base ? `${base}?fiche=${code}&vue=${vue}` : '';
   const qr = lien ? qrSVG(lien, { taille: 76, marge: 2 }) : '';
   return `
     <div class="feuille__entete">
       <div class="feuille__entete__texte">
-        <div class="feuille__domaine">${fiche.classe.toUpperCase()} · ${fiche.domaine}</div>
-        <h1 class="feuille__titre">${fiche.titre}${sousTitre ? ` — <em>${sousTitre}</em>` : ''}</h1>
+        <div class="feuille__domaine">${surtitre}</div>
+        <h1 class="feuille__titre">${titre}</h1>
         ${identite ? `<div class="feuille__identite">
           <span>Nom : <span class="pointilles"></span></span>
           <span>Date : <span class="pointilles pointilles--court"></span></span>
@@ -627,7 +637,7 @@ function enTete(fiche, sousTitre, contenu, base, identite = true, vue = 'eleve')
       </div>
       <div class="feuille__qr">
         ${qr}
-        <div class="feuille__code">${contenu.code}</div>
+        <div class="feuille__code">${code}</div>
       </div>
     </div>`;
 }
@@ -638,6 +648,8 @@ const lettre = (i) => String.fromCharCode(97 + i);
 //   signe, combien(contenu, methode) → opérations imprimées,
 //   noteCorrige (phrase d'en-tête du corrigé),
 //   exercices(contenu, methode) / corriges(contenu, methode) → blocs HTML des exercices.
+// Chaque exercice est un <div class="bloc"> de premier niveau : `blocsDe` (en fin de fichier)
+// les découpe pour que les feuilles panachées réutilisent tels quels les fragments des fiches.
 // Le reste (en-tête, objectif, rappel de méthode, pied de page) est commun.
 
 const miseAddition = {
@@ -3979,6 +3991,7 @@ export const FICHES = [
     pages: '14–15',
     objectif: 'Je sais poser et calculer des additions avec des nombres inférieurs à 10 000.',
     titre: 'Opérations — addition posée',
+    court: 'addition posée',
     emoji: '➕',
     options: [
       {
@@ -4002,6 +4015,7 @@ export const FICHES = [
     pages: '16–18',
     objectif: 'Je sais poser et calculer une soustraction avec des nombres à 4 chiffres.',
     titre: 'Opérations — soustraction posée',
+    court: 'soustraction posée',
     emoji: '➖',
     options: [
       {
@@ -4025,6 +4039,7 @@ export const FICHES = [
     pages: '19–21',
     objectif: 'Je sais calculer en ligne des produits, et poser et calculer une multiplication par un nombre à 1 chiffre.',
     titre: 'Opérations — multiplication',
+    court: 'multiplication',
     emoji: '✖️',
     options: [
       {
@@ -4047,6 +4062,7 @@ export const FICHES = [
     pages: '3–8',
     objectif: 'Je sais qu’une centaine, c’est aussi dix dizaines et cent unités, et je sais représenter un nombre de différentes façons.',
     titre: 'Les nombres : lire, écrire, décomposer',
+    court: 'nombres : lire et écrire',
     emoji: '🔢',
     options: [
       {
@@ -4069,6 +4085,7 @@ export const FICHES = [
     pages: '9–13',
     objectif: 'Je sais comparer, ranger et encadrer des nombres entiers, et les placer sur une demi-droite graduée.',
     titre: 'Les nombres : comparer, ranger, encadrer',
+    court: 'nombres : comparer',
     emoji: '⚖️',
     options: [
       {
@@ -4091,6 +4108,7 @@ export const FICHES = [
     pages: '22–25',
     objectif: 'Je sais lire et écrire une fraction.',
     titre: 'Les fractions : lire, écrire, représenter',
+    court: 'fractions : lire',
     emoji: '🍰',
     options: [],
     generer: genererFractions,
@@ -4104,6 +4122,7 @@ export const FICHES = [
     pages: '26–29',
     objectif: 'Je sais reconnaître des fractions égales et comparer des fractions.',
     titre: 'Les fractions : égales et comparaison',
+    court: 'fractions : comparer',
     emoji: '⚖️',
     options: [],
     generer: genererFractionsComparer,
@@ -4117,6 +4136,7 @@ export const FICHES = [
     pages: '30–31',
     objectif: 'Je sais mesurer des longueurs de bandes avec une règle graduée en fractions d’unité, et additionner ou soustraire des fractions de même dénominateur.',
     titre: 'Les fractions : mesurer, additionner, soustraire',
+    court: 'fractions : calculer',
     emoji: '➕',
     options: [
       {
@@ -4139,6 +4159,7 @@ export const FICHES = [
     pages: '32',
     objectif: 'Je sais composer une somme avec des pièces et des billets, et je sais rendre la monnaie.',
     titre: 'La monnaie : composer une somme, rendre la monnaie',
+    court: 'monnaie',
     emoji: '🪙',
     options: [
       {
@@ -4161,6 +4182,7 @@ export const FICHES = [
     pages: '33–36',
     objectif: 'Je connais les relations entre mm, cm, dm et m, et je sais calculer le périmètre d’une figure.',
     titre: 'Les longueurs : unités, conversions, périmètre',
+    court: 'longueurs',
     emoji: '📏',
     options: [
       {
@@ -4183,6 +4205,7 @@ export const FICHES = [
     pages: '37–38',
     objectif: 'Je sais lire l’heure sur une horloge à aiguilles et les horaires comme 8 heures moins 10.',
     titre: 'Les heures : lire l’heure sur une horloge',
+    court: 'heures',
     emoji: '🕒',
     options: [
       {
@@ -4205,6 +4228,7 @@ export const FICHES = [
     pages: '39–42',
     objectif: 'Je connais les relations entre g, kg et t, et les unités de contenance (cL, dL, L).',
     titre: 'Les masses et les contenances',
+    court: 'masses et contenances',
     emoji: '⚖️',
     options: [
       {
@@ -4228,6 +4252,7 @@ export const FICHES = [
     pages: '43–44',
     objectif: 'Je connais les relations entre minutes, heures, demi-heure, quart d’heure, siècle et millénaire, et je calcule des durées.',
     titre: 'Les durées : relations et calculs',
+    court: 'durées',
     emoji: '⏱️',
     options: [
       {
@@ -4250,6 +4275,7 @@ export const FICHES = [
     pages: '45–47',
     objectif: 'Je sais reconnaître les solides : un cube, un pavé, une pyramide, une boule, un cylindre, un cône.',
     titre: 'Les solides : reconnaître, décrire, patrons du cube',
+    court: 'solides',
     emoji: '🧊',
     options: [],
     generer: genererSolides,
@@ -4263,6 +4289,7 @@ export const FICHES = [
     pages: '48–50',
     objectif: 'Je sais reconnaître un polygone et construire un cercle avec un compas.',
     titre: 'Les polygones et le cercle',
+    court: 'polygones et cercle',
     emoji: '🔷',
     options: [],
     generer: genererPolygones,
@@ -4276,6 +4303,7 @@ export const FICHES = [
     pages: '55',
     objectif: 'Je reconnais si une figure présente un axe de symétrie.',
     titre: 'La symétrie : axes et figures symétriques',
+    court: 'symétrie',
     emoji: '🪞',
     options: [
       {
@@ -4298,6 +4326,7 @@ export const FICHES = [
     pages: '56',
     objectif: 'Je sais lire et interpréter des données d’un tableau à double entrée ou d’un diagramme en barres.',
     titre: 'Les tableaux et les diagrammes en barres',
+    court: 'tableaux et diagrammes',
     emoji: '📊',
     options: [
       {
@@ -4342,9 +4371,12 @@ export function codeDe(fiche, options, graine) {
   return `${brut.slice(0, 4)}-${brut.slice(4)}`;
 }
 
-// Renvoie { fiche, options, graine } ou null si le code n'est pas reconnu.
+// Renvoie { fiche, options, graine } (code d'une fiche) ou
+// { panache: true, notions, graine, miniRappel } (code d'une feuille panachée, préfixé « Z »),
+// ou null si le code n'est pas reconnu.
 export function decoder(code) {
   const brut = String(code || '').toUpperCase().replace(/[^0-9A-Z]/g, '');
+  if (brut[0] === 'Z') return decoderPanache(brut);
   if (brut.length < 7) return null;
   const fiche = FICHES[parseInt(brut[0], 36)];
   if (!fiche) return null;
@@ -4360,6 +4392,54 @@ export function decoder(code) {
   const graine = parseInt(brut.slice(i), 36);
   if (!Number.isFinite(graine)) return null;
   return { fiche, options, graine };
+}
+
+/* Code d'une feuille panachée
+   « Z » + masque des notions (base 36, 4 caractères : le bit i est la fiche d'index i de FICHES,
+   soit 20 fiches au plus) + un caractère par option de chaque notion choisie (dans l'ordre de
+   FICHES, puis dans l'ordre des options) : l'index de sa valeur + graine (6 caractères) + mini-rappel (0 ou 1).
+   « Z » n'est jamais l'index d'une fiche : l'ancien format n'en compte que 17, et il ne
+   pourrait de toute façon pas dépasser 35. Mêmes règles que codeDe : on n'ajoute qu'à la fin. */
+const BITS_MASQUE = 20;
+
+// notions : [{ id, options }] (dans n'importe quel ordre). Renvoie le code groupé par 4.
+export function codePanache(notions, graine, miniRappel = false) {
+  const choisies = FICHES.map((f, i) => ({ f, i, n: notions.find((x) => x.id === f.id) })).filter((x) => x.n);
+  if (!choisies.length) throw new Error('Une feuille panachée a au moins une notion.');
+  if (choisies.some((x) => x.i >= BITS_MASQUE)) throw new Error('Le code panaché ne couvre que les 20 premières fiches.');
+  const masque = choisies.reduce((m, x) => m + 2 ** x.i, 0);
+  let brut = `Z${masque.toString(36).padStart(4, '0')}`;
+  for (const { f, n } of choisies) {
+    for (const o of f.options || []) {
+      brut += Math.max(0, o.valeurs.findIndex((v) => v.v === (n.options || {})[o.id])).toString(36);
+    }
+  }
+  brut += (graine % GRAINE_MAX).toString(36).padStart(6, '0') + (miniRappel ? '1' : '0');
+  return brut.toUpperCase().match(/.{1,4}/g).join('-');
+}
+
+function decoderPanache(brut) {
+  if (brut.length < 12 || !/^[0-9A-Z]{4}$/.test(brut.slice(1, 5))) return null;
+  const masque = parseInt(brut.slice(1, 5), 36);
+  const notions = [];
+  let i = 5;
+  for (let k = 0; k < BITS_MASQUE + 1; k++) {
+    if (Math.floor(masque / 2 ** k) % 2 === 0) continue;
+    const fiche = FICHES[k];
+    if (!fiche || k >= BITS_MASQUE) return null;
+    const options = {};
+    for (const o of fiche.options || []) {
+      const valeur = o.valeurs[parseInt(brut[i++], 36)];
+      if (!valeur) return null;
+      options[o.id] = valeur.v;
+    }
+    notions.push({ id: fiche.id, options });
+  }
+  if (!notions.length || brut.length !== i + 7) return null;
+  const graine = parseInt(brut.slice(i, i + 6), 36);
+  const mini = brut[i + 6];
+  if (!Number.isFinite(graine) || (mini !== '0' && mini !== '1')) return null;
+  return { panache: true, notions, graine, miniRappel: mini === '1' };
 }
 
 // Le tirage des exercices et leur mise en page sont deux étapes distinctes :
@@ -4384,3 +4464,53 @@ export function rendre(fiche, contenus, {
   if (corrige || !eleve) pages.push(...liste.map((c) => pageCorrige(fiche, c, { base, methode })));
   return pages.join('');
 }
+
+/* ------------------------------------------------------------------ */
+/* Blocs d'exercices réutilisables                                     */
+/* ------------------------------------------------------------------ */
+
+// Découpe le HTML d'une suite d'exercices en blocs de premier niveau (<div class="bloc"> …
+// </div>), en comptant les <div> imbriqués. Chaque fragment est une sous-chaîne exacte du HTML
+// que produisent `mise.exercices` / `mise.corriges` : la page d'une fiche et la feuille
+// panachée affichent donc les mêmes octets.
+function decouperBlocs(html) {
+  const blocs = [];
+  const balise = /<(\/?)div(?=[\s>])/g;
+  let profondeur = 0, debut = -1, m;
+  while ((m = balise.exec(html))) {
+    if (!m[1]) {
+      if (profondeur++ === 0) debut = m.index;
+    } else if (--profondeur === 0) {
+      blocs.push(html.slice(debut, html.indexOf('>', m.index) + 1));
+    }
+  }
+  return blocs;
+}
+
+// « Exercice 2 — Convertis. » → { titre: 'Exercice 2', consigne: 'Convertis.' }
+// (le corrigé de certaines fiches n'écrit que « Exercice 2 » : on lit toujours la consigne côté élève).
+function titreDuBloc(html) {
+  const h2 = (/<h2[^>]*>([\s\S]*?)<\/h2>/.exec(html) || [])[1] || '';
+  const m = /^\s*(Exercice \d+)\s*(?:—\s*([\s\S]*?))?\s*$/.exec(h2);
+  return { titre: m ? m[1] : h2.trim(), consigne: m && m[2] ? m[2] : '' };
+}
+
+// La liste ordonnée des exercices d'une fiche : { titre, consigne, eleve, corrige, hauteur, hauteurCorrige }.
+// `hauteur` et `hauteurCorrige` (px, impression, 703 px de large) viennent de hauteurs-blocs.js ;
+// on les mesure avec le rappel de méthode (`methode: true`), qui est la version courte des exercices.
+export function blocsDe(fiche, contenu, { methode = true } = {}) {
+  const eleves = decouperBlocs(fiche.mise.exercices(contenu, methode));
+  const corriges = decouperBlocs(fiche.mise.corriges(contenu, methode));
+  if (eleves.length !== corriges.length) throw new Error(`${fiche.id} : ${eleves.length} exercices, ${corriges.length} corrigés`);
+  const mesures = HAUTEURS_BLOCS[fiche.id] || {};
+  return eleves.map((eleve, i) => ({
+    ...titreDuBloc(eleve),
+    eleve,
+    corrige: corriges[i],
+    hauteur: (mesures.eleve || [])[i] || 0,
+    hauteurCorrige: (mesures.corrige || [])[i] || 0,
+  }));
+}
+
+// Chaque fiche expose `blocs(contenu, { methode })`.
+for (const f of FICHES) f.blocs = (contenu, options) => blocsDe(f, contenu, options);

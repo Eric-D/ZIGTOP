@@ -8,6 +8,7 @@ import * as Son from './son.js';
 import { zigo, phrase, carte, jardin, LIEUX, DECORS, decorParId } from './univers.js';
 import * as A11y from './accessibilite.js';
 import { FICHES, DOMAINES, fichesDe, ficheParId, optionsParDefaut, tirer, decoder, rendre as rendreFiche } from './fiches.js';
+import { composer, rendrePanache } from './panache.js';
 import { visuel } from './visuels.js';
 import { shuffle, pick, leurres } from './utils.js';
 
@@ -30,6 +31,7 @@ let session = null;
 // { id, options, affichage: { corrige, methode, identite, nb }, contenus }
 // Les contenus ne sont retirés que sur demande : le reste ne fait que changer l'affichage.
 let fiche = null;
+let panache = null;   // feuille panachée affichée à la place de la fiche simple (voir panache.js)
 
 const classeCourante = () => classeParId(P.get().classe || CLASSE_DEFAUT);
 const nomLieu = (moduleId, secours) => (LIEUX[moduleId] || {}).lieu || secours;
@@ -263,23 +265,36 @@ const baseURL = () => window.location.href.replace(/[?#].*$/, '').replace(/[^/]*
 // aucun compte, aucun serveur, rien à stocker — et aucune donnée sur l'enfant.
 function lienFiche({ codes, vue, methode, identite } = {}) {
   const p = new URLSearchParams();
-  const liste = codes || fiche.contenus.map((c) => c.code);
+  const liste = codes || (panache ? [panache.code] : fiche.contenus.map((c) => c.code));
   p.set(liste.length > 1 ? 'fiches' : 'fiche', liste.join(','));
   if (vue) p.set('vue', vue);
   const aff = fiche.affichage;
-  if (!(methode ?? aff.methode)) p.set('methode', '0');
+  if (!panache && !(methode ?? aff.methode)) p.set('methode', '0');
   if (!(identite ?? aff.identite)) p.set('nom', '0');
   // Les virgules restent lisibles dans l'adresse : un lien se relit, se dicte, se colle.
   return `${baseURL()}?${p.toString().replace(/%2C/g, ',')}`;
 }
 
-const ficheHTML = () =>
-  rendreFiche(ficheParId(fiche.id), fiche.contenus, { ...fiche.affichage, base: baseURL() });
+const ficheHTML = () => (panache
+  ? rendrePanache(panache.feuilles, { ...fiche.affichage, base: baseURL() })
+  : rendreFiche(ficheParId(fiche.id), fiche.contenus, { ...fiche.affichage, base: baseURL() }));
+
+// Feuille panachée : le code « Z… » redonne la même composition (notions, options, graine, mini-rappel).
+// Les réglages Nom / Date et corrigé sont ceux de la fiche courante.
+function preparerPanache({ notions, graine, miniRappel, affichage }) {
+  preparerFiche({ affichage });
+  panache = composer({ notions, graine, miniRappel });
+}
 
 // Retrouve une fiche déjà imprimée à partir de son code (ou de son QR code).
 function retrouverFiche(code) {
   const trouve = decoder(code);
   if (!trouve) return false;
+  if (trouve.panache) {
+    preparerPanache(trouve);
+    return true;
+  }
+  panache = null;
   preparerFiche({ id: trouve.fiche.id, options: trouve.options, graines: [trouve.graine] });
   return true;
 }
@@ -309,7 +324,16 @@ function vueFiches() {
       ${entete('Une fiche à imprimer, puis un crayon !')}
       ${bulle('Choisis une leçon : je fabrique une fiche neuve à chaque fois, avec son corrigé. Tu peux la faire sur papier, tranquillement.', 'curieux', 78)}
       ${disponibles.length ? '' : `<p class="note">Pas encore de fiche pour le ${c.nom} — voici celles qui existent aujourd’hui.</p>`}
-      ${DOMAINES.map((dom) => {
+      ${panache ? `
+      <div class="section-titre">Feuille panachée</div>
+      <div class="carte reglages">
+        <div class="reglage">
+          <div class="reglage__libelle">Révision : ${panache.notions.map((n) => ficheParId(n.id).court).join(' · ')}</div>
+          <div class="reglage__aide">Un exercice par notion, pour t’entraîner à reconnaître la bonne méthode.
+            ${panache.feuilles.length > 1 ? `Il y a ${panache.feuilles.length} feuilles : tout ne tient pas sur une page.` : ''}</div>
+          <button class="btn" data-fiche="${fiche.id}">← Revenir aux fiches</button>
+        </div>
+      </div>` : DOMAINES.map((dom) => {
         const lignes = liste.filter((f) => f.domaine === dom);
         if (!lignes.length) return '';
         return `
@@ -332,7 +356,7 @@ function vueFiches() {
 
       <div class="section-titre">Réglages de la fiche</div>
       <div class="carte reglages">
-        ${(active.options || []).map((o) => `
+        ${panache ? '' : (active.options || []).map((o) => `
           <div class="reglage">
             <div class="reglage__libelle">${o.libelle}</div>
             <div class="reglage__options">
@@ -341,7 +365,7 @@ function vueFiches() {
                         aria-pressed="${fiche.options[o.id] === v.v}">${v.nom}</button>`).join('')}
             </div>
           </div>`).join('')}
-        <div class="reglage">
+        ${panache ? '' : `<div class="reglage">
           <div class="reglage__libelle">Nombre de feuilles</div>
           <div class="reglage__options">
             ${[1, 2, 4, 6].map((n) => `
@@ -351,7 +375,7 @@ function vueFiches() {
             À l’impression, toutes les pages élève sortent d’abord, les corrigés ensuite.</div>
         </div>
         ${bascule('methode', 'Rappel de la méthode', 'Avec', 'Sans',
-          'Sans le rappel, la place libérée sert à quatre additions et une opération à poser de plus.')}
+          'Sans le rappel, la place libérée sert à quatre additions et une opération à poser de plus.')}`}
         ${bascule('identite', 'Ligne « Nom / Date »', 'Avec', 'Sans', '')}
         ${bascule('corrige', 'Corrigé', 'Avec', 'Sans',
           'Les corrigés s’impriment après les pages élève, à garder par l’adulte.')}
@@ -398,19 +422,19 @@ function vueFiches() {
         <div class="reglage">
           <div class="reglage__libelle">Retrouver une fiche déjà imprimée</div>
           <div class="recherche-code">
-            <input class="champ" id="code-fiche" maxlength="12" placeholder="Code : ${fiche.contenus[0].code}"
+            <input class="champ" id="code-fiche" maxlength="40" placeholder="Code : ${panache ? panache.code : fiche.contenus[0].code}"
                    aria-label="Code de la fiche à retrouver" />
             <button class="btn" id="retrouver">Retrouver</button>
           </div>
           <div class="reglage__aide" id="message-code">Chaque fiche imprimée porte un code et un QR code :
             ils redonnent exactement les mêmes exercices, et leur corrigé.
-            ${fiche.contenus.length > 1
+            ${panache ? `Cette feuille panachée est la <strong>${panache.code}</strong>.` : fiche.contenus.length > 1
               ? `Ces feuilles-ci : <strong>${fiche.contenus.map((c) => c.code).join('</strong>, <strong>')}</strong>.`
               : `Cette fiche-ci est la <strong>${fiche.contenus[0].code}</strong>.`}</div>
         </div>
       </div>
       ${(() => {
-        const n = fiche.contenus.length * ((aff.eleve ? 1 : 0) + (aff.corrige || !aff.eleve ? 1 : 0));
+        const n = (panache ? panache.feuilles.length : fiche.contenus.length) * ((aff.eleve ? 1 : 0) + (aff.corrige || !aff.eleve ? 1 : 0));
         return `<p class="note">Aperçu ci-dessous : c’est exactement ce qui sortira de l’imprimante
           (${n} page${n > 1 ? 's' : ''}).</p>`;
       })()}
@@ -441,7 +465,7 @@ function vueFiches() {
       vueFiches();
     } else {
       app.querySelector('#message-code').innerHTML =
-        `Ce code n’est pas reconnu : vérifie les lettres et les chiffres (par exemple ${fiche.contenus[0].code}).`;
+        `Ce code n’est pas reconnu : vérifie les lettres et les chiffres (par exemple ${panache ? panache.code : fiche.contenus[0].code}).`;
     }
   });
   app.querySelector('#code-fiche').addEventListener('keydown', (ev) => {
@@ -449,7 +473,8 @@ function vueFiches() {
   });
   app.querySelector('#regenerer').addEventListener('click', () => {
     Son.jouer('clic');
-    preparerFiche({ retirer: true });
+    if (panache) panache = composer({ notions: panache.notions, graine: Math.floor(Math.random() * 36 ** 6), miniRappel: panache.miniRappel });
+    else preparerFiche({ retirer: true });
     vueFiches();
   });
 }
@@ -761,10 +786,12 @@ app.addEventListener('click', (ev) => {
   if (!cible) return;
 
   if (cible.dataset.fiche) {
+    panache = null;
     preparerFiche({ id: cible.dataset.fiche, retirer: true });
     return vueFiches();
   }
   if (cible.dataset.ficheOption) {
+    panache = null;
     preparerFiche({ options: { ...fiche.options, [cible.dataset.ficheOption]: cible.dataset.valeur }, retirer: true });
     return vueFiches();
   }
@@ -837,6 +864,7 @@ window.addEventListener('keydown', (ev) => {
 // Ouverture par URL : QR code d'une fiche imprimée, ou lien partagé.
 //   ?fiche=02G0-UTSC              une feuille
 //   ?fiches=02G0-UTSC,02R5-Y0DG   plusieurs feuilles
+//   ?fiche=Z003-0...              une feuille panachée (code commençant par Z)
 //   &vue=corrige                  le corrigé seul (lien à partager, sans compte)
 //   &methode=0 &nom=0             l'affichage exact de la feuille imprimée
 function ouvrirDepuisURL() {
@@ -845,21 +873,27 @@ function ouvrirDepuisURL() {
   if (!codes.length) return false;
 
   const trouves = codes.map(decoder).filter(Boolean);
-  if (!trouves.length || trouves.some((t) => t.fiche !== trouves[0].fiche)) return false;
+  if (!trouves.length || trouves.some((t) => t.panache !== trouves[0].panache || t.fiche !== trouves[0].fiche)) return false;
 
-  preparerFiche({
-    id: trouves[0].fiche.id,
-    options: trouves[0].options,
-    graines: trouves.map((t) => t.graine),
-    affichage: {
-      methode: p.get('methode') !== '0',
-      identite: p.get('nom') !== '0',
-      // vue=eleve : les exercices seuls. vue=corrige : la correction seule.
-      // Sans précision (ancien lien), on montre les deux.
-      corrige: p.get('vue') !== 'eleve',
-      eleve: p.get('vue') !== 'corrige',
-    },
-  });
+  const affichage = {
+    methode: p.get('methode') !== '0',
+    identite: p.get('nom') !== '0',
+    // vue=eleve : les exercices seuls. vue=corrige : la correction seule.
+    // Sans précision (ancien lien), on montre les deux.
+    corrige: p.get('vue') !== 'eleve',
+    eleve: p.get('vue') !== 'corrige',
+  };
+  if (trouves[0].panache) {
+    // ?fiche=Z… : une feuille panachée (un seul code, qui redonne toutes ses feuilles)
+    preparerPanache({ ...trouves[0], affichage });
+  } else {
+    preparerFiche({
+      id: trouves[0].fiche.id,
+      options: trouves[0].options,
+      graines: trouves.map((t) => t.graine),
+      affichage,
+    });
+  }
   vue = { nom: 'fiches' };
   window.history.replaceState(null, '', window.location.pathname);
   return true;

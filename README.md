@@ -131,6 +131,17 @@ Changer un de ces réglages d'affichage ne retire pas de nouveaux nombres : seul
 « 🎲 Autres exercices » et le choix des nombres utilisés relancent un tirage. Augmenter
 le nombre de feuilles garde celles déjà affichées et n'en tire que de nouvelles.
 
+### La feuille panachée
+
+Réviser notion par notion est la forme la plus faible de l'entraînement : ce qui fait tenir
+les acquis, c'est le mélange. Une **feuille panachée** prend un exercice dans chacune des
+notions choisies (de deux à cinq par feuille, au-delà les notions se répartissent sur
+plusieurs feuilles), avec en tête une ligne de rappel par notion. Son code commence par `Z`
+(masque des notions, leurs options, la graine) et s'ouvre comme les autres par `?fiche=Z…`.
+La tenue sur une A4 est garantie par des hauteurs de blocs mesurées en mode impression
+(`js/hauteurs-blocs.js`, à régénérer avec `programme/outils/mesurer-blocs.mjs` après tout
+changement de rendu). L'interface de composition est l'objet de l'issue #20.
+
 ### Partager un lien, sans compte ni serveur
 
 Le code contenant tout, **une adresse suffit à partager une fiche ou sa correction**.
@@ -355,6 +366,7 @@ node tests/accessibilite.mjs      # réglages appliqués, séries courtes, répo
 node tests/fiches.mjs             # corrigé juste, retenues bien placées, codes de fiche reproductibles
 node tests/partage.mjs            # liens partagés : corrigé ouvert sans profil, options conservées
 node tests/ecran-fiches.mjs       # écran des fiches : domaines, liens vers les leçons, ordre figé de FICHES
+node tests/panache.mjs            # feuilles panachées : code Z, budget de hauteur, report sur plusieurs feuilles
 
 # vérification approfondie du QR code (dépendances en plus) :
 npm i --no-save playwright jsqr pngjs && npx playwright install chromium
