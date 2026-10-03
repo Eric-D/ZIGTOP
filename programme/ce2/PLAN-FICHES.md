@@ -67,7 +67,7 @@ réviser*, *composer* et *imprimer*, et permet des feuilles qui panachent les no
 
 | # | Sujet | Issue | État |
 | --- | --- | --- | --- |
-| 27 | Banque d'items par notion : exercices structurés (question, réponse, difficulté 1–5), partagés par les fiches et l'application | [#27](https://github.com/Eric-D/ZIGTOP/issues/27) | 🔧 lot 1 en ligne : 10 notions au clavier ; reste figures, horloges, tableaux (QCM) |
+| 27 | Banque d'items par notion : exercices structurés (question, réponse, difficulté 1–5), partagés par les fiches et l'application | [#27](https://github.com/Eric-D/ZIGTOP/issues/27) | ✅ en ligne : les 17 notions ont des items (QCM pour les figures) |
 | 28 | Mode interactif : faire une fiche ou une révision panachée dans l'application, sans papier ; événements `item` dans le carnet | [#28](https://github.com/Eric-D/ZIGTOP/issues/28) | ✅ en ligne : « Faire sur l'application » aux pas 2 et 3 du tunnel |
 | 29 | Maîtrise d'une notion : classement à la Elo par notion (K décroissant, incertitude, oubli, seuils), jamais montré à l'enfant | [#29](https://github.com/Eric-D/ZIGTOP/issues/29) | ✅ branché : difficulté qui suit l'enfant, état et courbe dans *Mes progrès*, révision de la semaine |
 

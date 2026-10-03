@@ -16,7 +16,7 @@ let echecs = 0;
 const verifier = (ok, message) => { if (!ok) echecs++; console.log(`${ok ? '✔' : '✘'} ${message}`); };
 const MOTS_NEGATIFS = /\b(faux|raté|ratée|échec|erreur|nul|nulle|mauvais|mauvaise)\b/i;
 
-const SOUSTRACTION = 'ce2-soustraction-posee', ADDITION = 'ce2-addition-posee', POLYGONES = 'ce2-polygones';
+const SOUSTRACTION = 'ce2-soustraction-posee', ADDITION = 'ce2-addition-posee', POLYGONES = 'ce2-papier-seulement';   // les 17 fiches ont des items : une copie des polygones, hors banque, tient lieu de notion sur papier
 const profil = (extra = {}) => ({
   prenom: 'Lina', avatar: '🐼', classe: 'ce2', etoiles: 0, modules: {}, jours: [],
   serieJours: 1, badges: [], jardin: [], etoilesDepensees: 0, son: true, reglages: {}, ...extra,
@@ -150,8 +150,9 @@ verifier(!!ligne.querySelector('svg.courbe path.courbe__trace') && !ligne.queryS
 verifier(!MOTS_NEGATIFS.test(d.body.textContent) && !/\b\d{3,4}\b/.test(texte(`[data-maitrise="${SOUSTRACTION}"]`)), 'Mes progrès : aucun mot négatif, aucun nombre de classement');
 
 /* (c) une feuille panachée : trois notions dont une sans items */
+FICHES.push({ ...ficheParId('ce2-polygones'), id: POLYGONES });
 w = await ouvrir(profil()); d = w.document;
-verifier(!notionsAvecItems().includes(POLYGONES), 'les polygones n’ont pas d’items');
+verifier(!notionsAvecItems().includes(POLYGONES) && notionsAvecItems().length === 17, 'la notion hors banque n’a pas d’items (les 17 fiches en ont)');
 ouvrirPas2([ADDITION, POLYGONES, SOUSTRACTION]);
 const codeZ = d.querySelector('#code-composition').textContent.trim();
 verifier(/^Z/.test(codeZ) && !!d.querySelector('#faire-app'), `le code ${codeZ} ; le bouton est là (deux notions sur trois ont des items)`);
@@ -182,11 +183,12 @@ const papierTxt = lignesPapier.length ? lignesPapier[0] : texte('.intro-bloc');
 verifier(new RegExp(nomPolygones, 'i').test(papierTxt) && /celle-ci se fait sur papier/.test(papierTxt),
   `une ligne annonce « ${nomPolygones} : celle-ci se fait sur papier »`);
 const sz = evts("serie");
-verifier(sz.length === 2 && sz.some((e) => e.notion === ADDITION) && sz.some((e) => e.notion === SOUSTRACTION), 'un événement serie par notion avec items (pas pour les polygones)');
+verifier(sz.length === 2 && sz.some((e) => e.notion === ADDITION) && sz.some((e) => e.notion === SOUSTRACTION), 'un événement serie par notion avec items (pas pour la notion sur papier)');
 const n1 = (id) => items(id, { options: tz.notions.find((n) => n.id === id).options, graine: Interactif.compositionPanachee([{ graine: tz.graine, notions: tz.notions }])[0].notions.find((n) => n.id === id).graine }).filter((x) => x.exercice1).length;
 verifier(evts('item').filter((e) => e.notion === ADDITION).length === n1(ADDITION) && evts('item').filter((e) => e.notion === SOUSTRACTION).length === n1(SOUSTRACTION),
   `un seul exercice 1 par notion (${n1(ADDITION)} items d’addition, ${n1(SOUSTRACTION)} de soustraction)`);
 
+FICHES.pop();
 /* le bouton est aussi au pas 3 (un code Z ouvert par lien) et la session s'y fait */
 const w2 = await ouvrir(profil()); w = w2; d = w.document;
 ouvrirPas2([ADDITION, SOUSTRACTION]);

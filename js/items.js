@@ -3,7 +3,8 @@
 // `items(ficheId, { options, graine, difficulte, formulation })` appelle `tirer(fiche, options, graine)`
 // (le tirage de la fiche imprimée) et en fait une liste d'items :
 //   { id, notion, difficulte (1–5), type: 'nombre' | 'choix', enonce, reponse, aide,
-//     choix? (type 'choix'), visuel? (spec de `visuel()` de visuels.js), formulation, operandes }
+//     choix? (type 'choix'), visuel? (aide, spec de `visuel()` de visuels.js), visuelEnonce? (figure posée avec
+//     l'énoncé), formulation, operandes }
 // - `reponse` est toujours un entier (type 'nombre') ou une chaîne courte (type 'choix'), comparable avec
 //   `normalise()` de l'application ; un décimal n'est jamais demandé : on demande des centimes, ou on
 //   sépare les euros et les centimes (ou les heures et les minutes) en deux items ;
@@ -12,8 +13,8 @@
 // - `aide` reprend la formulation (`commune` par défaut, ou `livret`), comme le rappel de la fiche ;
 // - `id` : « code de fiche # rang » (stable pour une fiche donnée, quelle que soit la formulation) ;
 // - `exercice1` : vrai pour les items qui reprennent l'exercice 1 de la page élève (celui qu'une feuille
-//   panachée garde, voir js/panache.js). Faux pour tous les items de la fiche monnaie et de la fiche des
-//   fractions : leur exercice 1 (composer une somme en pièces, mesurer une bande) reste sur papier.
+//   panachée garde, voir js/panache.js). Pour la monnaie (composer une somme) et les fractions à
+//   calculer (mesurer une bande), les items de l'exercice 1 viennent en tête de liste.
 // Même graine et mêmes options : mêmes items, dans le même ordre. L'ordre est celui de la fiche (exercice 1,
 // puis 2…) ; `difficulte` (un nombre, ou { min, max }) ne garde que les items de cette difficulté.
 //
@@ -37,12 +38,36 @@
 //                          l'heure + trois sauts + durée de 2 h ou plus, + 1 pour un problème
 //   fractions            : dénominateur 2–3 : 1, 4–5 : 2, 6–7 : 3, 8–10 : 4 ; + 1 pour une soustraction ; + 1 pour un
 //                          problème (au plus 5)
-// Hors de ce lot (restent sur papier, ou viendront ensuite) : composer une somme en pièces, ranger une liste,
-// intercaler, la droite graduée, les tableaux de numération, lire un nombre en lettres à écrire, les bandes
-// de fractions à mesurer.
+//   fractions : lire     : comme les fractions (dénominateur 2–3 : 1 … 8–10 : 4) pour la figure et le nom en lettres ;
+//                          phrases du vocabulaire : dénominateur / numérateur / parts 2, nom / écriture / « fois » 3
+//   fractions : comparer : égale à 1 : 1, égale à 1/2 : 2 ; même dénominateur 1 (+ 1 si dénominateur ≥ 10) ; même
+//                          numérateur 2 (+ 1 si numérateur ≥ 3) ; la plus petite / grande de quatre : 3 (+ 1 si ≥ 10)
+//   heures               : lire une horloge : pile 1, quart ou demie 2, autre minute 3 (+ 1 après la demie) ;
+//                          dire avec « moins » : et demie 2, moins le quart 3, autres 4 ; 24 heures 2
+//   solides              : nommer : cube, boule 1 ; pavé, pyramide, cylindre 2 ; cône 3 ; compter faces 1, sommets 2,
+//                          arêtes 3 (+ 1 pour la pyramide) ; patron : 1-4-1 → 3, autres patrons → 4, ligne ou
+//                          rectangle de six carrés 2, autres assemblages 4
+//   polygones            : reconnaître : triangle, quadrilatère, ligne ouverte, cercle 1 ; pentagone, hexagone,
+//                          ovale, courbe fermée 2 ; demi-disque 3 ; nommer = comme reconnaître, compter les côtés
+//                          + 1 ; rayon → diamètre 2, diamètre → rayon 3
+//   symétrie             : a un axe : oui 1, non 2 (le parallélogramme 3) ; nombre d'axes : 1 + nombre d'axes (au plus 5)
+//   données              : lire une case ou une barre 1 ; le plus / le moins (tableau, diagramme) 2 ; total d'une ligne
+//                          ou d'une colonne, somme de deux cases 2, écart 3 ; + 1 pour les calculs avec les grands effectifs
+//   le plus petit / grand d'une liste (nombres) : 2 (+ 1 avec 4 chiffres) ; intercaler : 1 (dizaine ou centaine
+//                          entière), 2 sinon, + 1 si le premier nombre finit par 9 ; composer une somme : 2, + 1 à
+//                          5 pièces ou billets et plus, + 1 avec les centimes ; bande sur la règle : comme les fractions
+// Lot 2 : les 17 fiches ont des items. Quand la réponse est une figure ou un mot, c'est un QCM (`type: 'choix'`, 2 à 4
+// propositions dont une seule juste : « oui » / « non » pour une question fermée, jamais « vrai » / « faux ») ; quand
+// c'est un nombre, on le tape. `visuelEnonce` (spec de `visuel()`) : la figure à lire, posée AVEC l'énoncé, tirée de la
+// même donnée que la figure de la feuille de même code ; `visuel` reste l'aide montrée après une réponse.
+// Hors de la banque (restent sur papier) : colorier, tracer (aiguilles, cercle, axes), compléter une figure par symétrie,
+// construire un diagramme, la droite graduée, les tableaux de numération, écrire un nombre en lettres, les phrases à
+// trous du vocabulaire (polygones) et le vrai-ou-faux des solides et de la symétrie. L'intercalation n'est demandée
+// que par « le plus petit nombre entier » : la réponse reste un entier unique, comparée avec `normalise()`.
 
 import { ficheParId, tirer, formulation, optionsParDefaut, FORMULATION_DEFAUT } from './fiches.js';
 import { fmt, enLettres } from './utils.js';
+import { patronCube, nbAxesFigure, BILLETS_EURO, PIECES_EURO } from './visuels.js';
 
 const NBSP = ' ';
 const NOMS_RANGS = ['unités', 'dizaines', 'centaines', 'milliers'];
@@ -256,6 +281,7 @@ function itemsComparer(c, fm) {
     out.push(nombreItem(d, `Encadre ${nb(n)} ${quoi} : … < ${nb(n)} < … . Quelle est la borne de gauche ?`, inf, aide, [nb(n)]));
     out.push(nombreItem(d, `Encadre ${nb(n)} ${quoi} : … < ${nb(n)} < … . Quelle est la borne de droite ?`, sup, aide, [nb(n)]));
   }
+  out.push(...itemsRanger(c), ...itemsIntercaler(c));
   return out;
 }
 
@@ -358,7 +384,7 @@ const listeArticles = (articles) => {
 };
 
 function itemsMonnaie(c, fm) {
-  const out = [];
+  const out = itemsSommes(c);
   const unite = c.centimes ? 'combien de centimes ?' : 'combien d’euros ?';
   const sortie = (cts) => (c.centimes ? cts : cts / 100);
   if (c.centimes) {
@@ -463,7 +489,7 @@ function itemsDurees(c, fm) {
 const fr = (n, d) => `${n}/${d}`;
 const difficulteFraction = (d, sous, probleme) => AU_PLUS((d <= 3 ? 1 : d <= 5 ? 2 : d <= 7 ? 3 : 4) + (sous ? 1 : 0) + (probleme ? 1 : 0));
 function itemsFractions(c, fm) {
-  const out = [];
+  const out = itemsBandes(c, fm);
   const aide = (a, b, d, sous) => `${sous ? fm.rappel.soustraire : fm.rappel.additionner} ${a} ${sous ? '−' : '+'} ${b} = ${sous ? a - b : a + b}, donc ${fr(sous ? a - b : a + b, d)}.`;
   for (const { a, b, d } of c.additions) {
     out.push(nombreItem(difficulteFraction(d, false), `${fr(a, d)} + ${fr(b, d)} = …/${d}. Quel est le numérateur ?`, a + b, aide(a, b, d, false), [a, b, d]));
@@ -487,17 +513,396 @@ function itemsFractions(c, fm) {
   return out;
 }
 
+/* ------------------------------------------------------------------ */
+/* Lot 2 : les figures et les mots se répondent par QCM                */
+/* ------------------------------------------------------------------ */
+
+// `visuelEnonce` : un dessin posé AVEC l'énoncé (la figure à lire), même spec que `visuel` ; il vient de la même
+// donnée que la figure de la feuille de même code. `visuel` reste l'aide montrée après une réponse.
+const OUI_NON = ['oui', 'non'];
+const ouiNon = (b) => (b ? 'oui' : 'non');
+const maj = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+// Le texte brut d'un morceau de formulation (sans balises ni entités).
+const texteBrut = (h) => String(h).replace(/<br\s*\/?>/g, ' ').replace(/<[^>]*>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+  .replace(/&nbsp;/g, NBSP).replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
+const Fp = (n, d) => `${n}/${d}`;
+// Les propositions : la bonne, puis les premiers leurres distincts, au plus `n`.
+function qcm(bonne, leurres, n = 4) {
+  const out = [bonne];
+  for (const l of leurres) { if (out.length >= n) break; if (!out.includes(l)) out.push(l); }
+  return out;
+}
+
+/* Fractions : lire */
+const NOM_FRACTION = { 2: 'demi', 3: 'tiers', 4: 'quart', 5: 'cinquième', 6: 'sixième', 7: 'septième', 8: 'huitième', 9: 'neuvième', 10: 'dixième' };
+const enMots = (n, d) => `${enLettres(n)} ${NOM_FRACTION[d]}${n > 1 && d !== 3 ? 's' : ''}`;
+const nomPluriel = (n, d) => `${n} ${NOM_FRACTION[d]}${n > 1 && d !== 3 ? 's' : ''}`;
+// Quatre fractions : la bonne et trois erreurs classiques (inverser, prendre les parts non coloriées…).
+function proposerFractions(n, d, candidats) {
+  const bonnes = candidats.filter(([a, b]) => a >= 1 && b >= 1 && a * d !== n * b && !(a === n && b === d)).map(([a, b]) => [a, b]);
+  const vus = new Set([Fp(n, d)]);
+  const choisies = [[n, d]];
+  for (const f of bonnes) { if (choisies.length >= 4) break; if (!vus.has(Fp(...f))) { vus.add(Fp(...f)); choisies.push(f); } }
+  // Un ordre sans lien avec la bonne réponse, mais le même à chaque tirage (une empreinte de l'écriture).
+  const empreinte = (f) => [...Fp(...f)].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) % 1009, 7);
+  return choisies.sort((x, y) => empreinte(x) - empreinte(y)).map((f) => Fp(...f));
+}
+
+const MESURE_DIFFICILE = (d) => (d <= 3 ? 1 : d <= 5 ? 2 : d <= 7 ? 3 : 4);
+
+function phraseAffirmation(a) {
+  switch (a.modele) {
+    case 'den': return `Dans ${Fp(a.n, a.d)}, le dénominateur est ${a.x}.`;
+    case 'num': return `Dans ${Fp(a.n, a.d)}, le numérateur est ${a.x}.`;
+    case 'nom': return `${Fp(1, a.d)}, c’est un ${NOM_FRACTION[a.x]}.`;
+    case 'ecrit': return `${enMots(a.n, a.d)} s’écrit ${Fp(a.n, a.x)}.`;
+    case 'fois': return `${Fp(a.n, a.d)}, c’est ${enLettres(a.x)} fois ${Fp(1, a.d)}.`;
+    case 'parts': return a.vrai
+      ? 'Le dénominateur indique en combien de parts égales on partage l’unité.'
+      : 'Le dénominateur indique combien de parts on a coloriées.';
+    default: return a.vrai
+      ? 'Le numérateur indique combien de parts on a coloriées.'
+      : 'Le numérateur indique en combien de parts égales on partage l’unité.';
+  }
+}
+const DIFFICULTE_AFFIRMATION = { den: 2, num: 2, parts: 2, colorie: 2, nom: 3, ecrit: 3, fois: 3 };
+
+function itemsFractionsLire(c, fm) {
+  const out = [];
+  const aideFigure = (n, d) => (fm.nom === 'livret'
+    ? `L’unité est partagée en ${d} parts égales : le dénominateur est ${d}. On a colorié ${n === 1 ? 'une part' : `${n} parts`} : le numérateur est ${n}. La fraction est ${Fp(n, d)}.`
+    : `L’unité est partagée en ${d} parts : le dénominateur est ${d}. On en prend ${n} : le numérateur est ${n}. On écrit ${Fp(n, d)}.`);
+  for (const f of c.lire) {
+    const choix = proposerFractions(f.n, f.parts, [[f.parts - f.n, f.parts], [f.n, f.parts - f.n], [f.parts, f.n], [f.n + 1, f.parts], [f.n - 1, f.parts], [f.n, f.parts + 1], [f.n, f.parts - 1]]);
+    out.push(choixItem(difficulteFraction(f.parts, false), 'Quelle fraction est coloriée ?', choix, Fp(f.n, f.parts), aideFigure(f.n, f.parts), [],
+      { visuelEnonce: { type: 'fraction', forme: f.forme, parts: f.parts, coloriees: f.n } }));
+  }
+  for (const f of c.chiffres) {
+    const mots = enMots(f.n, f.d);
+    const d2 = (x) => (x >= 2 && x <= 10 ? x : f.d + 1);
+    const choix = proposerFractions(f.n, f.d, [[f.d, f.n], [f.n, d2(f.d + 1)], [f.n + 1, f.d], [f.n, d2(f.d - 1)], [f.n, f.d + 2], [f.n - 1, f.d]]);
+    out.push(choixItem(difficulteFraction(f.d, false), `Quelle fraction s’écrit « ${mots} » ?`, choix, Fp(f.n, f.d),
+      `« ${mots} » : le nom dit qu’on a des ${NOM_FRACTION[f.d]}s, donc le dénominateur est ${f.d} ; le nombre dit combien on en a, donc le numérateur est ${f.n}. On écrit ${Fp(f.n, f.d)}.`, [mots]));
+  }
+  const regles = fm.rappel.droite().map(texteBrut);
+  for (const a of c.affirmations) {
+    const aide = () => {
+      switch (a.modele) {
+        case 'den': return `Le dénominateur est le nombre du bas : dans ${Fp(a.n, a.d)}, c’est ${a.d}. Le numérateur, celui du haut, est ${a.n}.`;
+        case 'num': return `Le numérateur est le nombre du haut : dans ${Fp(a.n, a.d)}, c’est ${a.n}. Le dénominateur, celui du bas, est ${a.d}.`;
+        case 'nom': return `${Fp(1, a.d)} se lit « un ${NOM_FRACTION[a.d]} » : il en faut ${a.d} pour faire 1.`;
+        case 'ecrit': return `« ${enMots(a.n, a.d)} » s’écrit ${Fp(a.n, a.d)} : le nom donne le dénominateur et le nombre donne le numérateur.`;
+        case 'fois': return `${Fp(a.n, a.d)}, c’est ${enLettres(a.n)} fois ${Fp(1, a.d)} : on a ${a.n} parts d’un ${NOM_FRACTION[a.d]}.`;
+        default: return `Par exemple, dans ${Fp(3, 4)} : ${regles[1]} ${regles[2]}`;
+      }
+    };
+    out.push(choixItem(DIFFICULTE_AFFIRMATION[a.modele], `Cette phrase est-elle vraie ? ${phraseAffirmation(a)}`, OUI_NON, ouiNon(a.vrai), aide(),
+      a.n ? [a.n, a.d] : []));
+  }
+  return out;
+}
+
+/* Fractions : égales et comparer */
+function itemsFractionsComparer(c, fm) {
+  const out = [];
+  const cartes = fm.rappel.cartes(Fp).map((x) => texteBrut(x.texte));
+  for (const f of c.demi.slice(0, 8)) {
+    const m = f.d / 2, moitie = String(m).replace('.', ',');
+    out.push(choixItem(2, `${Fp(f.n, f.d)} est-elle égale à 1/2 ?`, OUI_NON, ouiNon(f.n * 2 === f.d),
+      f.n * 2 === f.d ? `Dans ${Fp(f.n, f.d)}, la moitié de ${f.d} est ${m} et c’est bien le numérateur : ${Fp(f.n, f.d)} = 1/2. ${cartes[1]}`
+        : `Dans ${Fp(f.n, f.d)}, la moitié de ${f.d} est ${moitie}, mais le numérateur est ${f.n} : ${Fp(f.n, f.d)} n’est pas égale à 1/2. ${cartes[1]}`, [f.n, f.d]));
+  }
+  for (const f of c.un.slice(0, 8)) {
+    out.push(choixItem(1, `${Fp(f.n, f.d)} est-elle égale à 1 ?`, OUI_NON, ouiNon(f.n === f.d),
+      f.n === f.d ? `Le numérateur ${f.n} est égal au dénominateur ${f.d} : ${Fp(f.n, f.d)} = 1. ${cartes[2]}`
+        : `Le numérateur ${f.n} et le dénominateur ${f.d} ne sont pas égaux : ${Fp(f.n, f.d)} n’est pas égale à 1. ${cartes[2]}`, [f.n, f.d]));
+  }
+  for (const { d, a, b } of c.memeDen) {
+    const s = symbole(a, b);
+    out.push(choixItem(1 + (d >= 10 ? 1 : 0), `Compare : ${Fp(a, d)} … ${Fp(b, d)}`, ['<', '>'], s,
+      `Je compare ${Fp(a, d)} et ${Fp(b, d)} : ${texteBrut(fm.corrige.memeDen(a, b, s))}.`, [a, b, d]));
+  }
+  for (const { n, a, b } of c.memeNum) {
+    const s = symbole(b, a);   // n/a est plus petit quand a est plus grand
+    out.push(choixItem(2 + (n >= 3 ? 1 : 0), `Compare : ${Fp(n, a)} … ${Fp(n, b)}`, ['<', '>'], s,
+      `Je compare ${Fp(n, a)} et ${Fp(n, b)} : ${texteBrut(fm.corrige.memeNum(nomPluriel(n, a), nomPluriel(n, b), s))}.`, [n, a, b],
+      { visuel: { type: 'figures', liste: [{ type: 'fraction', forme: 'bande', parts: a, coloriees: n }, { type: 'fraction', forme: 'bande', parts: b, coloriees: n }] } }));
+  }
+  c.ranger.forEach(({ d, valeurs }, i) => {
+    const tri = [...valeurs].sort((x, y) => x - y);
+    const petite = i % 2 === 0;
+    const rep = petite ? tri[0] : tri[tri.length - 1];
+    out.push(choixItem(3 + (d >= 10 ? 1 : 0), `Parmi ces fractions, laquelle est la plus ${petite ? 'petite' : 'grande'} ? ${valeurs.map((v) => Fp(v, d)).join(' ; ')}`,
+      valeurs.map((v) => Fp(v, d)), Fp(rep, d),
+      `${maj(texteBrut(fm.corrige.rang(tri)))}. La plus ${petite ? 'petite' : 'grande'} est ${Fp(rep, d)}.`, [...valeurs, d]));
+  });
+  return out;
+}
+
+/* Heures */
+const MOINS_H = { 35: 25, 40: 20, 45: 'le quart', 50: 10, 55: 5 };
+const RONDE_MOINS = [25, 20, 'le quart', 10, 5];
+const lectureMoins = (h, m) => (m === 30 ? `${h} heures et demie` : `${h + 1} heures moins ${MOINS_H[m]}`);
+const heure12 = (h) => ((h + 11) % 12) + 1;
+const cle12 = (h, m) => (h % 12) * 60 + m;
+function itemsHeures(c, fm) {
+  const out = [];
+  const horlogeDe = (h, m) => ({ type: 'horloge', heures: h, minutes: m, titre: 'Horloge à aiguilles' });
+  const minutesAide = (m) => (m === 15 || m === 30 ? ` ${fm.rappel.minutes}` : '');
+  for (const { h, m } of c.lire) {
+    const juste = hm(h, m);
+    const cand = [[m === 0 ? 12 : m / 5, (h % 12) * 5], [h % 12 + 1, m], [h, (60 - m) % 60], [heure12(h + 10), m], [h, (m + 5) % 60], [h, (m + 55) % 60]]
+      .filter(([x, y]) => y % 5 === 0 && y >= 0 && y < 60 && x >= 1 && x <= 12).map(([x, y]) => hm(x, y));
+    const choix = qcm(juste, cand).sort((x, y) => {
+      const f = (t) => { const [a, b] = t.split(/\s*h\s*/).map(Number); return cle12(a, b); };
+      return f(x) - f(y);
+    });
+    const d = m === 0 ? 1 : m % 15 === 0 ? 2 : 3 + (m > 30 ? 1 : 0);
+    out.push(choixItem(d, 'Quelle heure indique l’horloge ?', choix, juste,
+      `La petite aiguille indique les heures : elle est sur le ${h}. La grande aiguille indique les minutes : elle est sur le ${m === 0 ? 12 : m / 5}, soit ${m} minute${m > 1 ? 's' : ''}.${minutesAide(m)} Il est ${juste}.`, [],
+      { visuelEnonce: horlogeDe(h, m) }));
+  }
+  for (const { h, m } of c.moins) {
+    const juste = lectureMoins(h, m);
+    let cand;
+    if (m === 30) cand = [`${h + 1} heures et demie`, `${h} heures moins le quart`, `${h + 1} heures moins le quart`];
+    else {
+      const i = RONDE_MOINS.indexOf(MOINS_H[m]);
+      cand = [`${h} heures moins ${MOINS_H[m]}`, `${h + 1} heures moins ${RONDE_MOINS[(i + 1) % 5]}`, `${h + 1} heures moins ${RONDE_MOINS[(i + 4) % 5]}`];
+    }
+    const choix = qcm(juste, cand).sort((x, y) => parseInt(x, 10) - parseInt(y, 10) || x.localeCompare(y, 'fr'));
+    const d = m === 30 ? 2 : m === 45 ? 3 : 4;
+    out.push(choixItem(d, 'Comment dit-on l’heure de cette horloge ?', choix, juste,
+      `La grande aiguille est sur le ${m / 5} : il est ${hm(h, m)}${m === 30 ? '' : `, et il manque ${60 - m} minutes pour arriver à ${h + 1} heures`}. ${fm.corrige.moins(juste, hm(h, m))}`, [],
+      { visuelEnonce: horlogeDe(h, m) }));
+  }
+  const PERIODE = { 'apres-midi': 'l’après-midi', soir: 'le soir' };
+  for (const { h, m, periode } of c.vingtQuatre) {
+    out.push(nombreItem(2, `Il est ${hm(h, m)} ${PERIODE[periode]}. Sur 24 heures, combien d’heures ?`, h + 12,
+      `${fm.corrige.vingtQuatre(hm(h, m), PERIODE[periode], hm(h + 12, m))} J’ajoute 12 heures : ${h} + 12 = ${h + 12}.`, [],
+      { visuelEnonce: horlogeDe(h, m) }));
+  }
+  return out;
+}
+
+/* Solides */
+const SOLIDES_LECON = {
+  cube: { faces: 6, sommets: 8, aretes: 12, nom: 'un cube', dessin: 'cube', variante: 0 },
+  pave: { faces: 6, sommets: 8, aretes: 12, nom: 'un pavé droit', dessin: 'pave', variante: 0 },
+  'pave-carre': { faces: 6, sommets: 8, aretes: 12, nom: 'un pavé droit à base carrée', dessin: 'pave', variante: 1 },
+  pyramide: { faces: 5, sommets: 5, aretes: 8, nom: 'une pyramide à base carrée', dessin: 'pyramide', variante: 0 },
+};
+const MOTS_SOLIDE = { faces: ['Combien de faces', 'faces'], sommets: ['Combien de sommets', 'sommets'], aretes: ['Combien d’arêtes', 'arêtes'] };
+const NOMS_DES_SOLIDES = { cube: 'cube', pave: 'pavé droit', pyramide: 'pyramide', boule: 'boule', cylindre: 'cylindre', cone: 'cône' };
+const CONFUSIONS_SOLIDE = { cube: ['pave', 'pyramide', 'cylindre'], pave: ['cube', 'pyramide', 'cylindre'], pyramide: ['cone', 'cube', 'pave'],
+  boule: ['cylindre', 'cone', 'cube'], cylindre: ['cone', 'boule', 'pave'], cone: ['pyramide', 'cylindre', 'boule'] };
+const DIFFICULTE_SOLIDE = { cube: 1, boule: 1, pave: 2, pyramide: 2, cylindre: 2, cone: 3 };
+function difficultePatron(numero) {
+  if (numero < 6) return 3;          // 1-4-1
+  if (numero < 11) return 4;         // les autres patrons
+  return numero < 13 ? 2 : 4;        // une ligne de six, un rectangle 2 × 3 : évidents ; les autres assemblages
+}
+function itemsSolides(c, fm) {
+  const out = [];
+  const ordre = Object.keys(NOMS_DES_SOLIDES);
+  for (const s of c.solides) {
+    const choix = qcm(s.nom, CONFUSIONS_SOLIDE[s.nom]).sort((x, y) => ordre.indexOf(x) - ordre.indexOf(y)).map((k) => NOMS_DES_SOLIDES[k]);
+    out.push(choixItem(DIFFICULTE_SOLIDE[s.nom], 'Quel est le nom de ce solide ?', choix, NOMS_DES_SOLIDES[s.nom],
+      `C’est ${s.nom === 'pyramide' || s.nom === 'boule' ? 'une' : 'un'} ${NOMS_DES_SOLIDES[s.nom]}. ${fm.corrige.justification[s.nom]}`, [],
+      { visuelEnonce: { type: 'solide', nom: s.nom, variante: s.variante, etiquette: 'Solide à nommer' } }));
+  }
+  const descriptions = fm.rappel.descriptions.map(texteBrut);
+  const rang = { cube: 0, pave: 1, 'pave-carre': 2, pyramide: 3 };
+  for (const id of c.tableau) {
+    const l = SOLIDES_LECON[id];
+    for (const prop of ['faces', 'sommets', 'aretes']) {
+      const d = (prop === 'faces' ? 1 : prop === 'sommets' ? 2 : 3) + (id === 'pyramide' ? 1 : 0);
+      out.push(nombreItem(d, `${MOTS_SOLIDE[prop][0]} a ${l.nom} ?`, l[prop],
+        `${descriptions[rang[id]]} Donc ${l.nom} a ${l[prop]} ${MOTS_SOLIDE[prop][1]}.`, [],
+        { visuelEnonce: { type: 'solide', nom: l.dessin, variante: l.variante, etiquette: 'Solide' } }));
+    }
+  }
+  for (const p of c.patrons) {
+    const { estPatron } = patronCube(p.numero, { quart: p.quart, miroir: p.miroir });
+    out.push(choixItem(difficultePatron(p.numero), 'Ces six carrés se plient-ils pour faire un cube ?', OUI_NON, ouiNon(estPatron),
+      estPatron ? `Oui : en pliant ces six carrés, on obtient un cube. C’est un des onze patrons du cube. ${texteBrut(fm.rappel.patrons)}`
+        : `En pliant ces six carrés, deux carrés tombent au même endroit, ou il reste une face sans place : on n’obtient pas un cube. ${texteBrut(fm.rappel.patrons)}`, [],
+      { visuelEnonce: { type: 'patron', numero: p.numero, quart: p.quart, miroir: p.miroir } }));
+  }
+  return out;
+}
+
+/* Polygones */
+const COTES_POLYGONE = { triangle: 3, quadrilatere: 4, pentagone: 5, hexagone: 6 };
+const NOM_POLYGONE = { triangle: 'triangle', quadrilatere: 'quadrilatère', pentagone: 'pentagone', hexagone: 'hexagone' };
+const LECON_POLYGONE = {
+  triangle: 'Un triangle est un polygone qui a trois côtés et trois sommets.',
+  quadrilatere: 'Un quadrilatère est un polygone qui a quatre côtés et quatre sommets.',
+  pentagone: 'Un pentagone a 5 côtés et 5 sommets.',
+  hexagone: 'Un hexagone a 6 côtés et 6 sommets.',
+};
+const RAISON_NON_POLYGONE = {
+  'ligne ouverte': 'Cette ligne n’est pas fermée : ce n’est pas un polygone.',
+  cercle: 'Cette figure est ronde : on ne peut pas la tracer avec une règle, ce n’est pas un polygone.',
+  ovale: 'Cette figure est ronde : on ne peut pas la tracer avec une règle, ce n’est pas un polygone.',
+  'courbe fermée': 'Cette figure a un contour courbe : on ne peut pas la tracer avec une règle, ce n’est pas un polygone.',
+  'demi-disque': 'Cette figure a un côté courbe : on ne peut pas la tracer entièrement avec une règle, ce n’est pas un polygone.',
+};
+const DIFFICULTE_FIGURE = { triangle: 1, quadrilatere: 1, pentagone: 2, hexagone: 2, 'ligne ouverte': 1, cercle: 1, ovale: 2, 'courbe fermée': 2, 'demi-disque': 3 };
+function itemsPolygones(c, fm) {
+  const out = [];
+  const figure = (f, etiquette) => ({ type: 'figure', nom: f.nom, variante: f.variante, etiquette });
+  for (const f of c.reconnaitre) {
+    const poly = COTES_POLYGONE[f.nom] !== undefined;
+    out.push(choixItem(DIFFICULTE_FIGURE[f.nom], 'Cette figure est-elle un polygone ?', OUI_NON, ouiNon(poly),
+      poly ? `Un polygone est une figure fermée qu’on peut tracer avec une règle. Cette figure est un ${NOM_POLYGONE[f.nom]} : c’est un polygone.` : RAISON_NON_POLYGONE[f.nom], [],
+      { visuelEnonce: figure(f, 'Figure à reconnaître') }));
+  }
+  const noms = Object.keys(NOM_POLYGONE);
+  for (const f of c.nommer) {
+    const n = COTES_POLYGONE[f.nom];
+    out.push(choixItem(DIFFICULTE_FIGURE[f.nom], 'Quel est le nom de ce polygone ?', noms.map((k) => NOM_POLYGONE[k]), NOM_POLYGONE[f.nom],
+      `Je compte les côtés : ${n}. ${LECON_POLYGONE[f.nom]}`, [], { visuelEnonce: figure(f, 'Polygone à nommer') }));
+    out.push(nombreItem(DIFFICULTE_FIGURE[f.nom] + 1, 'Combien de côtés ce polygone a-t-il ?', n,
+      `Je compte les côtés, un par un, sans en oublier : il y en a ${n}. ${LECON_POLYGONE[f.nom]}`, [], { visuelEnonce: figure(f, 'Polygone à nommer') }));
+  }
+  for (const k of c.cas) {
+    const rayon = k.sens === 'rayon';
+    out.push(nombreItem(rayon ? 2 : 3,
+      rayon ? `Le rayon d’un cercle mesure ${k.rayon}${NBSP}cm. Quel est son diamètre, en cm ?` : `Le diamètre d’un cercle mesure ${k.diametre}${NBSP}cm. Quel est son rayon, en cm ?`,
+      rayon ? k.diametre : k.rayon,
+      rayon ? `Le diamètre est égal au double du rayon : ${k.rayon} × 2 = ${k.diametre}.` : `Le rayon est la moitié du diamètre : ${k.diametre} ÷ 2 = ${k.rayon}.`,
+      [rayon ? k.rayon : k.diametre]));
+  }
+  return out;
+}
+
+/* Symétrie */
+const DIFFICULTE_RECONNAITRE_SYM = (nom) => (nbAxesFigure(nom) > 0 ? 1 : nom === 'parallélogramme' ? 3 : 2);
+function itemsSymetrie(c, fm) {
+  const out = [];
+  const axesTxt = (n) => `${n} axe${n > 1 ? 's' : ''} de symétrie`;
+  for (const nom of c.reconnaitre) {
+    const n = nbAxesFigure(nom);
+    out.push(choixItem(DIFFICULTE_RECONNAITRE_SYM(nom), 'Cette figure a-t-elle un axe de symétrie ?', OUI_NON, ouiNon(n > 0),
+      n > 0 ? `${fm.rappel.pliage} Ici, un pli convient : la figure a ${n === Infinity ? 'une infinité d’axes' : axesTxt(n)}.`
+        : `${fm.rappel.pliage} Ici, aucun pli ne superpose exactement les deux parties : la figure n’a pas d’axe de symétrie.`, [],
+      { visuelEnonce: { type: 'symetrie', nom } }));
+  }
+  for (const nom of c.compter) {
+    const n = nbAxesFigure(nom);
+    out.push(nombreItem(1 + Math.min(n, 4), 'Combien d’axes de symétrie cette figure a-t-elle ?', n,
+      `${fm.rappel.pliage} On cherche tous les plis qui conviennent : cette figure a ${axesTxt(n)}.`, [],
+      { visuelEnonce: { type: 'symetrie', nom } }));
+  }
+  return out;
+}
+
+/* Données : un tableau à double entrée et un diagramme en barres */
+function itemsDonnees(c, fm) {
+  const out = [];
+  const T = c.tableau, D = c.diagramme;
+  const g = c.grands ? 1 : 0;
+  const lire = texteBrut(fm.rappel.lire);
+  const tab = { type: 'tableau', coin: T.coin, colonnes: T.colonnes, lignes: T.lignes.map((l, r) => ({ cap: l.cap, valeurs: T.valeurs[r] })) };
+  const dia = { type: 'diagramme', categories: D.categories, valeurs: D.valeurs, pas: D.pas, titreY: D.titreY, hauteur: 168 };
+  const colonne = (j) => T.valeurs.map((r) => r[j]);
+  const caps = T.lignes.map((l) => l.cap);
+  for (const q of c.questionsTableau) {
+    if (q.type === 'case') {
+      out.push(nombreItem(1, q.texte, q.reponse, `${lire} Ligne « ${caps[q.ligne]} », colonne ${T.colonnes[q.col]} : ${q.reponse}.`, [], { visuelEnonce: tab }));
+    } else if (q.type === 'totalLigne') {
+      out.push(nombreItem(2 + g, q.texte, q.reponse, `Je lis toute la ligne « ${caps[q.ligne]} » et j’additionne : ${q.calcul} = ${q.reponse}.`, [], { visuelEnonce: tab }));
+    } else if (q.type === 'maxCol' || q.type === 'minCol') {
+      const plus = q.type === 'maxCol';
+      out.push(choixItem(2, q.texte, caps, q.reponse,
+        `En ${T.colonnes[q.col]}, je lis la colonne : ${caps.map((cap, r) => `${cap} ${colonne(q.col)[r]}`).join(', ')}. Le ${plus ? 'plus grand' : 'plus petit'} nombre est ${colonne(q.col)[caps.indexOf(q.reponse)]} : ${q.reponse}.`, [], { visuelEnonce: tab }));
+    } else {
+      out.push(choixItem(2, q.texte, T.colonnes, q.reponse,
+        `Je lis la ligne « ${caps[q.ligne]} » : ${T.colonnes.map((col, j) => `${col} ${T.valeurs[q.ligne][j]}`).join(', ')}. Le plus grand nombre est ${Math.max(...T.valeurs[q.ligne])} : ${q.reponse}.`, [], { visuelEnonce: tab }));
+    }
+  }
+  for (const q of c.questionsDiagramme) {
+    if (q.type === 'valeur') {
+      out.push(nombreItem(1, q.texte, q.reponse, `${lire} La barre de ${D.categories[q.i]} monte jusqu’à ${fmt(q.reponse)}.`, [], { visuelEnonce: dia }));
+    } else if (q.type === 'ecart') {
+      out.push(nombreItem(3, q.texte, q.reponse, `Je lis les deux barres : ${D.categories[q.a]} ${fmt(D.valeurs[q.a])} et ${D.categories[q.b]} ${fmt(D.valeurs[q.b])}. Calcul : ${q.calcul} = ${fmt(q.reponse)}.`, [], { visuelEnonce: dia }));
+    } else {
+      const plus = q.type === 'max';
+      const idx = D.categories.map((_, i) => i).sort((x, y) => (plus ? D.valeurs[y] - D.valeurs[x] : D.valeurs[x] - D.valeurs[y]));
+      const gardes = new Set(idx.slice(0, 4));
+      const choix = D.categories.filter((_, i) => gardes.has(i));
+      out.push(choixItem(2, q.texte, choix, q.reponse, `La barre la plus ${plus ? 'haute' : 'basse'} est celle de ${q.reponse} : ${fmt(D.valeurs[D.categories.indexOf(q.reponse)])}.`, [], { visuelEnonce: dia }));
+    }
+  }
+  for (const q of c.calculs) {
+    const d = (q.type === 'ecartCases' ? 3 : 2) + g;
+    out.push(nombreItem(d, q.texte, q.reponse, `Je lis le tableau, puis je calcule : ${q.calcul} = ${q.reponse}.`, [], { visuelEnonce: tab }));
+  }
+  return out;
+}
+
+/* Les restes du lot 1 : ranger, intercaler (nombres), composer une somme (monnaie), bandes (fractions) */
+function itemsRanger(c) {
+  const out = [];
+  const q = c.quatre ? 1 : 0;
+  const unSeul = (liste, plusPetit) => {
+    const rep = plusPetit ? Math.min(...liste) : Math.max(...liste);
+    const autres = liste.filter((x) => x !== rep).slice(0, 3);
+    const gardes = new Set([rep, ...autres]);
+    const choix = liste.filter((x) => gardes.has(x)).map(nb);
+    const tri = [...liste].sort((x, y) => (plusPetit ? x - y : y - x));
+    out.push(choixItem(2 + q, `Quel est le plus ${plusPetit ? 'petit' : 'grand'} de ces nombres ? ${liste.map(nb).join(' ; ')}`, choix, nb(rep),
+      `Je compare les nombres, chiffre par chiffre en commençant par la gauche. Rangés du plus ${plusPetit ? 'petit au plus grand' : 'grand au plus petit'} : ${tri.map(nb).join(plusPetit ? ' < ' : ' > ')}. Le plus ${plusPetit ? 'petit' : 'grand'} est ${nb(rep)}.`, liste.map(nb)));
+  };
+  unSeul(c.croissant, true);
+  unSeul(c.decroissant, false);
+  return out;
+}
+function itemsIntercaler(c) {
+  return c.intercaler.map(({ a, b }) => nombreItem(1 + (a % 10 === 0 ? 0 : 1) + (a % 10 === 9 ? 1 : 0),
+    `${nb(a)} < … < ${nb(b)}. Quel est le plus petit nombre entier qui convient ?`, a + 1,
+    `Un nombre entier qui convient est plus grand que ${nb(a)} et plus petit que ${nb(b)}. Le plus petit est le nombre qui vient juste après ${nb(a)} : ${nb(a)} + 1 = ${nb(a + 1)}.`, [nb(a), nb(b)]));
+}
+
+function itemsSommes(c) {
+  const valeurs = [...BILLETS_EURO, ...PIECES_EURO.filter((v) => c.centimes || v >= 100)].sort((x, y) => y - x);
+  const nomVal = (v) => (v >= 100 ? eur(v) : `${v}${NBSP}c`);
+  return c.sommes.map((s) => {
+    const compo = [];
+    let reste = s;
+    for (const v of valeurs) { const n = Math.floor(reste / v); if (n) { compo.push({ v, n }); reste -= n * v; } }
+    const total = compo.reduce((t, x) => t + x.n, 0);
+    return nombreItem(2 + (total >= 5 ? 1 : 0) + (c.centimes ? 1 : 0), `Quel est le plus petit nombre de pièces et de billets pour faire ${eur(s)} ?`, total,
+      `Je prends toujours la plus grande valeur possible : ${compo.map(({ v, n }) => `${n} × ${nomVal(v)}`).join(' + ')}. Cela fait ${total} pièces ou billets.`, [eurNu(s)],
+      { visuel: { type: 'monnaie', valeurs: compo.flatMap(({ v, n }) => Array(n).fill(v)) } });
+  });
+}
+
+function itemsBandes(c, fm) {
+  return c.mesures.map(({ n, d }) => nombreItem(MESURE_DIFFICILE(d), `Quelle est la longueur de la bande, en fraction d’unité ? Écris le numérateur : le dénominateur est ${d}.`, n,
+    `Chaque unité de la règle est partagée en ${d} parts égales : le dénominateur est ${d}. La bande couvre ${n} de ces parts : le numérateur est ${n}, et la bande mesure ${Fp(n, d)} d’unité. Comme dans l’exemple : ${texteBrut(fm.rappel.cartes(Fp)[0])}`, [n, d],
+    { visuelEnonce: { type: 'regle', unite: 1, parts: d, longueur: n } }));
+}
+
 const GENERATEURS = {
   'ce2-addition-posee': itemsAddition,
   'ce2-soustraction-posee': itemsSoustraction,
   'ce2-multiplication': itemsMultiplication,
   'ce2-nombres-lire-ecrire': itemsNombres,
   'ce2-nombres-comparer': itemsComparer,
-  'ce2-longueurs': itemsLongueurs,
-  'ce2-masses-contenances': itemsMasses,
-  'ce2-monnaie': itemsMonnaie,
-  'ce2-durees': itemsDurees,
+  'ce2-fractions-lire': itemsFractionsLire,
+  'ce2-fractions-comparer': itemsFractionsComparer,
   'ce2-fractions-calculer': itemsFractions,
+  'ce2-monnaie': itemsMonnaie,
+  'ce2-longueurs': itemsLongueurs,
+  'ce2-heures': itemsHeures,
+  'ce2-masses-contenances': itemsMasses,
+  'ce2-durees': itemsDurees,
+  'ce2-solides': itemsSolides,
+  'ce2-polygones': itemsPolygones,
+  'ce2-symetrie': itemsSymetrie,
+  'ce2-donnees': itemsDonnees,
 };
 
 // Combien d'items (les premiers de la liste) reprennent l'exercice 1 de la fiche imprimée.
@@ -507,7 +912,16 @@ const PREMIER_EXERCICE = {
   'ce2-multiplication': (c) => c.enligne.length,
   'ce2-nombres-lire-ecrire': (c) => c.lire.length,
   'ce2-nombres-comparer': (c) => c.paires.length,
+  'ce2-fractions-lire': (c) => c.lire.length,
+  'ce2-fractions-comparer': (c) => c.demi.slice(0, 8).length + c.un.slice(0, 8).length,
+  'ce2-fractions-calculer': (c) => c.mesures.length,
+  'ce2-monnaie': (c) => c.sommes.length,
   'ce2-longueurs': (c) => c.conversions.length,
+  'ce2-heures': (c) => c.lire.length,
+  'ce2-solides': (c) => c.solides.length,
+  'ce2-polygones': (c) => c.reconnaitre.length,
+  'ce2-symetrie': (c) => c.reconnaitre.length,
+  'ce2-donnees': (c) => c.questionsTableau.length,
   'ce2-masses-contenances': (c) => c.objets.length,
   'ce2-durees': (c) => c.egalites.reduce((s, e) => s + (e.reponses.length === 1 ? 1 : e.reponses.length), 0),
 };

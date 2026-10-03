@@ -1632,3 +1632,27 @@ svg.visuel {
   .pose--multiplication .pose__retenues--unites td, .pose--multiplication .pose__retenues--dizaines td,
   .methode .pose--multiplication .pose__retenues--unites td, .methode .pose--multiplication .pose__retenues--dizaines td { height: 3mm; font-size: 7.5pt; }
 }
+
+/* ---------- figures posées avec l'énoncé d'un item (banque d'items) ---------- */
+
+.visuel-fig {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+  margin: 10px auto;
+  background: #fff;
+  border-radius: 14px;
+  padding: 10px;
+}
+.visuel-fig svg { max-width: 100%; height: auto; }
+.visuel-tableau { border-collapse: collapse; margin: 0 auto; font-variant-numeric: tabular-nums; }
+.visuel-tableau th, .visuel-tableau td { border: 1.5px solid #333; text-align: center; padding: 6px 10px; min-width: 44px; font-size: 1rem; }
+.visuel-tableau th { background: #EFEFEF; font-weight: 800; }
+.visuel-tableau tbody th { text-align: left; }
+
+/* Figure posée avec l'énoncé (items en QCM : fraction coloriée, horloge, solide…). */
+.question__figure { margin: 12px auto 4px; max-width: 320px; }
+.question__figure svg { display: block; width: 100%; height: auto; max-height: 220px; }
+.question__figure table { margin: 0 auto; }

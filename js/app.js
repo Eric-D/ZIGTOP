@@ -1107,6 +1107,7 @@ function vueSession() {
     <div class="carte question">
       <div class="question__module">${source.etiquette(s, ex)} — question ${s.index - debut + 1} sur ${fin - debut}</div>
       <div class="question__texte">${echappe(ex.enonce)}</div>
+      ${ex.visuelEnonce && reglages.visuels !== 'non' ? `<div class="question__figure">${visuel(ex.visuelEnonce)}</div>` : ''}
       <button class="btn btn--fantome" id="ecouter" title="Écouter la question">🔊 Écouter</button>
     </div>
     ${s.retour ? blocRetour(s.retour, ex) : zoneReponse}`;

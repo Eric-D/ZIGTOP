@@ -111,6 +111,15 @@ function partage(total, parts) {
        aria-label="${total} partagé en ${parts} parts de ${parPart}">${paniers}</svg>`;
 }
 
+// Un dessin d'item : un conteneur centré, qui laisse la place à plusieurs figures côte à côte.
+const dessin = (html) => `<div class="visuel-fig">${html}</div>`;
+const echappeHtml = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+// Tableau à double entrée en HTML simple : { coin, colonnes: [..], lignes: [{ cap, valeurs: [..] }] }.
+function tableauHtml({ coin = '', colonnes, lignes }) {
+  return `<table class="visuel-tableau"><thead><tr><th scope="col">${echappeHtml(coin)}</th>${colonnes.map((c) => `<th scope="col">${echappeHtml(c)}</th>`).join('')}</tr></thead>`
+    + `<tbody>${lignes.map((l) => `<tr><th scope="row">${echappeHtml(l.cap)}</th>${l.valeurs.map((v) => `<td>${v}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+}
+
 export function visuel(spec) {
   if (!spec) return '';
   try {
@@ -123,6 +132,17 @@ export function visuel(spec) {
       // Schémas de la banque d'items (js/items.js), les mêmes que ceux des fiches.
       case 'polygone': return polygoneCote({ forme: spec.forme, cotes: spec.cotes, taille: spec.taille || 150 });
       case 'monnaie': return monnaie(spec.valeurs, { taille: spec.taille });
+      // Figures posées avec l'énoncé d'un item (js/items.js, `visuelEnonce`) : les mêmes dessins que la feuille de même code.
+      case 'fraction': return dessin(figureFraction({ forme: spec.forme, parts: spec.parts, coloriees: spec.coloriees, taille: spec.taille || 120 }));
+      case 'regle': return dessin(regleFractions({ unite: spec.unite, parts: spec.parts, longueur: spec.longueur, taille: spec.taille || 300 }));
+      case 'horloge': return dessin(horloge({ heures: spec.heures, minutes: spec.minutes, taille: spec.taille || 150, titre: spec.titre }));
+      case 'solide': return dessin(solide(spec.nom, { taille: spec.taille || 130, variante: spec.variante || 0, etiquette: spec.etiquette }));
+      case 'patron': return dessin(patronCube(spec.numero, { taille: spec.taille || 170, quart: spec.quart || 0, miroir: !!spec.miroir }).svg);
+      case 'figure': return dessin(figurePlane(spec.nom, { taille: spec.taille || 140, variante: spec.variante || 0, etiquette: spec.etiquette }).svg);
+      case 'symetrie': return dessin(figureSymetrie(spec.nom, { taille: spec.taille || 130 }).svg);
+      case 'diagramme': return dessin(diagrammeBarres({ categories: spec.categories, valeurs: spec.valeurs, pas: spec.pas, titreY: spec.titreY, taille: spec.taille || 340, hauteur: spec.hauteur || 168 }).svg);
+      case 'tableau': return dessin(tableauHtml(spec));
+      case 'figures': return dessin((spec.liste || []).map((s) => visuel(s).replace(/^<div class="visuel-fig">|<\/div>$/g, '')).join(''));
       default: return '';
     }
   } catch {
