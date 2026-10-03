@@ -4,7 +4,7 @@
 
 import { rnd, pick, shuffle, fmt, enLettres, setAlea, generateurAleatoire } from './utils.js';
 import { qrSVG } from './qr.js';
-import { demiDroite, figureFraction, regleFractions, monnaie, polygoneCote, horloge, ligneDuTemps, solide, patronCube, figurePlane, cercle, PX_PAR_CM, figureSymetrie, quadrillageSymetrie, nbAxesFigure, FIGURES_SYMETRIQUES, FIGURES_ASYMETRIQUES, FIGURES_POLYGONES, FIGURES_NON_POLYGONES, NB_VARIANTES_FIGURE, NB_PATRONS, NB_ASSEMBLAGES, PIECES_EURO, BILLETS_EURO } from './visuels.js';
+import { demiDroite, figureFraction, regleFractions, monnaie, polygoneCote, horloge, ligneDuTemps, solide, patronCube, figurePlane, cercle, PX_PAR_CM, figureSymetrie, quadrillageSymetrie, diagrammeBarres, nbAxesFigure, FIGURES_SYMETRIQUES, FIGURES_ASYMETRIQUES, FIGURES_POLYGONES, FIGURES_NON_POLYGONES, NB_VARIANTES_FIGURE, NB_PATRONS, NB_ASSEMBLAGES, PIECES_EURO, BILLETS_EURO } from './visuels.js';
 
 /* ------------------------------------------------------------------ */
 /* Outils de mise en page                                              */
@@ -3725,6 +3725,244 @@ const miseSymetrie = {
 };
 
 /* ------------------------------------------------------------------ */
+/* CE2 — gestion de données : tableaux et diagrammes en barres          */
+/* ------------------------------------------------------------------ */
+
+// Page 56 du livret : « Je sais lire et interpréter des données d’un tableau à double entrée ou d’un diagramme en barres. »
+// Le musée ouvert de lundi à samedi : le diagramme (axe « Nombre de visiteurs » gradué de 2 000 en 2 000) et le même
+// tableau à double entrée.
+const MUSEE = { categories: ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'], valeurs: [6000, 7000, 4000, 8000, 9000, 10000], pas: 2000, titreY: 'Nombre de visiteurs' };
+const CLASSES_DONNEES = ['CE1', 'CE2', 'CM1'];
+
+// Ex. 1 : un tableau à double entrée « sujet × classe » ; `action` est la fin de phrase de chaque ligne.
+const THEMES_TABLEAU = [
+  { id: 'sports', intro: 'Voici le sport préféré des élèves de trois classes.', coin: 'Sport préféré', nom: 'sport', plus: 'le plus choisi', moins: 'le moins choisi',
+    lignes: [['Football', 'préfèrent le football'], ['Natation', 'préfèrent la natation'], ['Judo', 'préfèrent le judo'], ['Basket', 'préfèrent le basket']] },
+  { id: 'animaux', intro: 'Voici l’animal préféré des élèves de trois classes.', coin: 'Animal préféré', nom: 'animal', plus: 'le plus choisi', moins: 'le moins choisi',
+    lignes: [['Chien', 'préfèrent le chien'], ['Chat', 'préfèrent le chat'], ['Lapin', 'préfèrent le lapin'], ['Cheval', 'préfèrent le cheval']] },
+  { id: 'fruits', intro: 'Voici le fruit préféré des élèves de trois classes.', coin: 'Fruit préféré', nom: 'fruit', plus: 'le plus choisi', moins: 'le moins choisi',
+    lignes: [['Pomme', 'préfèrent la pomme'], ['Banane', 'préfèrent la banane'], ['Fraise', 'préfèrent la fraise'], ['Orange', 'préfèrent l’orange']] },
+  { id: 'transports', intro: 'Comment les élèves viennent à l’école.', coin: 'Transport', nom: 'moyen de transport', plus: 'le plus utilisé', moins: 'le moins utilisé',
+    lignes: [['À pied', 'viennent à pied'], ['En vélo', 'viennent en vélo'], ['En bus', 'viennent en bus'], ['En voiture', 'viennent en voiture']] },
+];
+
+// Ex. 2 : un diagramme en barres à 5 catégories ; chaque thème donne ses phrases.
+const THEMES_DIAGRAMME = [
+  { id: 'livres', intro: 'Livres empruntés à la bibliothèque chaque jour.', titreY: 'Nombre de livres',
+    categories: [['Lundi', 'le lundi'], ['Mardi', 'le mardi'], ['Mercredi', 'le mercredi'], ['Jeudi', 'le jeudi'], ['Vendredi', 'le vendredi']], choisir: false,
+    valeur: (c) => `Combien de livres a-t-on empruntés ${c[1]} ?`,
+    max: 'Quel jour a-t-on emprunté le plus de livres ?', min: 'Quel jour a-t-on emprunté le moins de livres ?',
+    ecart: (a, b) => `Combien de livres de plus a-t-on empruntés ${a[1]} que ${b[1]} ?` },
+  { id: 'anniversaires', intro: 'Anniversaires des élèves de l’école, mois par mois.', titreY: 'Nombre d’élèves',
+    categories: [['Janvier', 'janvier'], ['Février', 'février'], ['Mars', 'mars'], ['Avril', 'avril'], ['Mai', 'mai'], ['Juin', 'juin'], ['Septembre', 'septembre'], ['Octobre', 'octobre'], ['Novembre', 'novembre'], ['Décembre', 'décembre']], choisir: true,
+    valeur: (c) => `Combien d’élèves ont leur anniversaire en ${c[1]} ?`,
+    max: 'Quel mois compte le plus d’anniversaires ?', min: 'Quel mois compte le moins d’anniversaires ?',
+    ecart: (a, b) => `Combien d’anniversaires de plus en ${a[1]} qu’en ${b[1]} ?` },
+  { id: 'arbres', intro: 'Les arbres du parc, par sorte.', titreY: 'Nombre d’arbres',
+    categories: [['Chênes', 'chênes'], ['Pins', 'pins'], ['Tilleuls', 'tilleuls'], ['Érables', 'érables'], ['Saules', 'saules']], choisir: false,
+    valeur: (c) => `Combien y a-t-il de ${c[1]} dans le parc ?`,
+    max: 'Quelle sorte d’arbre est la plus nombreuse ?', min: 'Quelle sorte d’arbre est la moins nombreuse ?',
+    ecart: (a, b) => `Combien y a-t-il de ${a[1]} de plus que de ${b[1]} ?` },
+  { id: 'fruits-vendus', intro: 'Fruits vendus au marché, en kilos.', titreY: 'Kilos vendus',
+    categories: [['Pommes', 'pommes'], ['Poires', 'poires'], ['Bananes', 'bananes'], ['Fraises', 'fraises'], ['Cerises', 'cerises']], choisir: false,
+    valeur: (c) => `Combien de kilos de ${c[1]} a-t-on vendus ?`,
+    max: 'Quel fruit a-t-on le plus vendu ?', min: 'Quel fruit a-t-on le moins vendu ?',
+    ecart: (a, b) => `Combien de kilos de ${a[1]} de plus que de ${b[1]} a-t-on vendus ?` },
+];
+
+// Ex. 3 : un petit tableau de 4 catégories à représenter sur un diagramme vide.
+const THEMES_CONSTRUCTION = [
+  { id: 'ferme', intro: 'Les animaux de la ferme.', coin: 'Animal', titreY: 'Nombre d’animaux', categories: ['Vaches', 'Moutons', 'Poules', 'Lapins', 'Chevaux', 'Canards'] },
+  { id: 'activites', intro: 'Élèves inscrits à chaque activité.', coin: 'Activité', titreY: 'Nombre d’élèves', categories: ['Danse', 'Théâtre', 'Dessin', 'Musique', 'Judo'] },
+  { id: 'billes', intro: 'Les billes de quatre enfants.', coin: 'Enfant', titreY: 'Nombre de billes', categories: ['Léa', 'Tom', 'Awa', 'Malo', 'Jade', 'Noé'] },
+];
+
+// Valeurs d’un diagramme : petits effectifs (jusqu’à 20) : pas de 1 (valeurs de 1 à 10) ou de 2 (valeurs paires de 2 à 20) ;
+// grands effectifs (jusqu’à 100) : pas de 10, valeurs multiples de 10. Toutes différentes, pour que « la plus grande » soit unique.
+function valeursDiagramme(n, grands) {
+  const pas = grands ? 10 : pick([1, 2]);
+  const reservoir = Array.from({ length: 10 }, (_, i) => (i + 1) * pas);
+  return { pas, valeurs: shuffle(reservoir).slice(0, n) };
+}
+
+const extremeUnique = (t, f) => t.filter((x) => x === f(...t)).length === 1;
+
+// Un tableau 3 × 3 (3 sujets × 3 classes) : valeurs bornées, totaux (lignes et colonnes) ≤ 20 ou ≤ 100,
+// plus grande valeur de chaque ligne et plus grande et plus petite de chaque colonne uniques.
+function tableauDonnees(grands) {
+  const theme = pick(THEMES_TABLEAU);
+  const lignes = shuffle(theme.lignes).slice(0, 3).map(([cap, action]) => ({ cap, action }));
+  const [min, max, borne] = grands ? [8, 45, 100] : [2, 10, 20];
+  for (let essai = 0; essai < 20000; essai++) {
+    const v = Array.from({ length: 3 }, () => Array.from({ length: 3 }, () => rnd(min, max)));
+    const col = (c) => v.map((r) => r[c]);
+    if (v.some((r) => r.reduce((a, b) => a + b, 0) > borne) || [0, 1, 2].some((c) => col(c).reduce((a, b) => a + b, 0) > borne)) continue;
+    if (!v.every((r) => extremeUnique(r, Math.max)) || ![0, 1, 2].every((c) => extremeUnique(col(c), Math.max) && extremeUnique(col(c), Math.min))) continue;
+    return { theme, lignes, valeurs: v };
+  }
+  throw new Error('tableauDonnees : aucun tirage valide');
+}
+
+const somme = (t) => t.reduce((a, b) => a + b, 0);
+
+function genererDonnees(options = {}) {
+  const grands = options.effectifs === 'grands';
+  // Ex. 1 : tableau + 6 questions (les 4 premières, avec le rappel, couvrent 4 sortes de lecture).
+  const { theme, lignes, valeurs: v } = tableauDonnees(grands);
+  const colonnes = CLASSES_DONNEES;
+  const totaux = v.map(somme);
+  const colonneDe = (c) => v.map((r) => r[c]);
+  const R = shuffle([0, 1, 2]), C = shuffle([0, 1, 2]);
+  const imax = (t) => t.indexOf(Math.max(...t)), imin = (t) => t.indexOf(Math.min(...t));
+  const caseQ = (r, c) => ({ type: 'case', ligne: r, col: c, texte: `Combien d’élèves de ${colonnes[c]} ${lignes[r].action} ?`, reponse: v[r][c] });
+  const questionsTableau = [
+    caseQ(R[0], C[1]),
+    { type: 'maxCol', col: C[0], texte: `Quel ${theme.nom} est ${theme.plus} en ${colonnes[C[0]]} ?`, reponse: lignes[imax(colonneDe(C[0]))].cap },
+    { type: 'totalLigne', ligne: R[1], texte: `Combien d’élèves en tout ${lignes[R[1]].action} ?`, reponse: totaux[R[1]], calcul: v[R[1]].join(' + ') },
+    { type: 'maxLigne', ligne: R[2], texte: `Dans quelle classe y a-t-il le plus d’élèves qui ${lignes[R[2]].action} ?`, reponse: colonnes[imax(v[R[2]])] },
+    { type: 'minCol', col: C[2], texte: `Quel ${theme.nom} est ${theme.moins} en ${colonnes[C[2]]} ?`, reponse: lignes[imin(colonneDe(C[2]))].cap },
+    caseQ(R[1], C[0]),
+  ];
+
+  // Ex. 4 : lecture et calcul dans le même tableau — un écart, une somme de colonne, une somme de deux cases.
+  const rE = rnd(0, 2);
+  let paire;
+  do { paire = shuffle([0, 1, 2]).slice(0, 2); } while (v[rE][paire[0]] === v[rE][paire[1]]);
+  const [cA, cB] = v[rE][paire[0]] > v[rE][paire[1]] ? paire : [paire[1], paire[0]];
+  const rS = (rE + rnd(1, 2)) % 3, cS = shuffle([0, 1, 2]).slice(0, 2).sort((a, b) => a - b);
+  const cT = rnd(0, 2);
+  const calculs = [
+    { type: 'ecartCases', ligne: rE, colA: cA, colB: cB, texte: `Combien d’élèves de plus en ${colonnes[cA]} qu’en ${colonnes[cB]} ${lignes[rE].action} ?`, reponse: v[rE][cA] - v[rE][cB], calcul: `${v[rE][cA]} − ${v[rE][cB]}` },
+    { type: 'totalColonne', col: cT, texte: `Combien d’élèves de ${colonnes[cT]} ont répondu en tout ?`, reponse: somme(colonneDe(cT)), calcul: colonneDe(cT).join(' + ') },
+    { type: 'sommeDeux', ligne: rS, cols: cS, texte: `Combien d’élèves de ${colonnes[cS[0]]} et de ${colonnes[cS[1]]} ${lignes[rS].action}, en tout ?`, reponse: v[rS][cS[0]] + v[rS][cS[1]], calcul: `${v[rS][cS[0]]} + ${v[rS][cS[1]]}` },
+  ];
+
+  // Ex. 2 : diagramme à 5 catégories, 6 questions (lire une valeur, la plus grande, la plus petite, un écart, puis une valeur et un écart).
+  const td = pick(THEMES_DIAGRAMME);
+  const cats = td.choisir ? shuffle(td.categories).slice(0, 5).sort((a, b) => td.categories.indexOf(a) - td.categories.indexOf(b)) : td.categories;
+  const { pas, valeurs: vd } = valeursDiagramme(5, grands);
+  const s = shuffle([0, 1, 2, 3, 4]);
+  const ecartQ = (i, j) => {
+    const [a, b] = vd[i] > vd[j] ? [i, j] : [j, i];
+    return { type: 'ecart', a, b, texte: td.ecart(cats[a], cats[b]), reponse: vd[a] - vd[b], calcul: `${fmt(vd[a])} − ${fmt(vd[b])}` };
+  };
+  const valQ = (i) => ({ type: 'valeur', i, texte: td.valeur(cats[i]), reponse: vd[i] });
+  const questionsDiagramme = [
+    valQ(s[0]),
+    { type: 'max', texte: td.max, reponse: cats[imax(vd)][0] },
+    { type: 'min', texte: td.min, reponse: cats[imin(vd)][0] },
+    ecartQ(s[1], s[2]),
+    valQ(s[3]),
+    ecartQ(s[4], s[0]),
+  ];
+
+  // Ex. 3 : 4 catégories à représenter.
+  const tc = pick(THEMES_CONSTRUCTION);
+  const dc = valeursDiagramme(4, grands);
+  const construction = { id: tc.id, intro: tc.intro, coin: tc.coin, titreY: tc.titreY, categories: shuffle(tc.categories).slice(0, 4), valeurs: dc.valeurs, pas: dc.pas };
+
+  return {
+    objectif: 'Je sais lire et interpréter des données d’un tableau à double entrée ou d’un diagramme en barres.',
+    grands,
+    tableau: { id: theme.id, intro: theme.intro, coin: theme.coin, colonnes, lignes, valeurs: v, totaux },
+    questionsTableau,
+    diagramme: { id: td.id, intro: td.intro, titreY: td.titreY, categories: cats.map((c) => c[0]), valeurs: vd, pas },
+    questionsDiagramme,
+    construction,
+    calculs,
+  };
+}
+
+const miseDonnees = {
+  signe: '',
+  combien: (contenu, methode) => ({
+    questionsTableau: contenu.questionsTableau.slice(0, methode ? 4 : 6),
+    questionsDiagramme: contenu.questionsDiagramme.slice(0, methode ? 4 : 6),
+    calculs: contenu.calculs.slice(0, methode ? 2 : 3),
+  }),
+  noteCorrige: 'réponses en rouge, colonne Total du tableau complétée, calculs détaillés, barres du diagramme de l’exercice 3 tracées.',
+  // Rappel : le diagramme du musée et le tableau à double entrée de la page 56, avec les phrases de la leçon.
+  rappel() {
+    const sep = (n) => fmt(n).replace(/ /g, NBSP);
+    const dessin = diagrammeBarres({ ...MUSEE, taille: 280, hauteur: 128 }).svg;
+    return `
+      <div class="rappel-do">
+        <div class="rappel-do__diagramme">${dessin}</div>
+        <div class="rappel-do__texte">
+          <p>Le diagramme représente le nombre de personnes ayant visité un musée pendant une semaine. Le musée est fermé le dimanche.</p>
+          <p><b>Ce diagramme donne une vision globale des données et permet des comparaisons rapides.</b></p>
+          <p>On peut représenter les mêmes données dans un <b>tableau à double entrée</b> :</p>
+        </div>
+        <table class="tab-do tab-do--exemple">
+          <colgroup><col class="c-etiquette">${MUSEE.categories.map(() => '<col>').join('')}</colgroup>
+          <tr><td class="tab-do__coin"></td>${MUSEE.categories.map((c) => `<th>${c}</th>`).join('')}</tr>
+          <tr><th>Nombre de visiteurs</th>${MUSEE.valeurs.map((x) => `<td>${sep(x)}</td>`).join('')}</tr>
+        </table>
+        <p class="rappel-do__lire">Dans le tableau, je cherche la <b>ligne</b>, puis la <b>colonne</b>. Pour une barre, je lis le nombre sur l’axe.</p>
+      </div>`;
+  },
+  exercices(contenu, methode, corrige = false) {
+    const { questionsTableau, questionsDiagramme, calculs } = this.combien(contenu, methode);
+    const { tableau, diagramme, construction } = contenu;
+    const trou = '<span class="pointilles pointilles--mini"></span>';
+    const ligneRep = '<span class="pointilles pointilles--rep"></span>';
+    const rep = (x) => (corrige ? `<span class="reponse rouge" data-reponse="${x}">${fmt(x)}</span>` : trou);
+    const repLongue = (x) => (corrige ? `<span class="reponse rouge" data-reponse="${x}">${x}</span>` : ligneRep);
+    const question = (q, i, avecCalcul) => {
+      const texteRep = typeof q.reponse === 'number' ? rep(q.reponse) : repLongue(q.reponse);
+      const calcul = avecCalcul
+        ? `<span class="q-do__calcul"><span class="q-do__lib">Calcul :</span> ${corrige ? `<span class="calcul rouge">${q.calcul}</span> =` : '<span class="pointilles pointilles--rep"></span> ='} ${texteRep}</span>`
+        : `<span class="q-do__rep"><span class="q-do__lib">Réponse :</span> ${corrige && q.calcul ? `<span class="q-do__suite"><span class="calcul rouge">${q.calcul} =</span> ${texteRep}</span>` : texteRep}</span>`;
+      return `<li class="q-do" data-type="${q.type}"${q.ligne !== undefined ? ` data-ligne="${q.ligne}"` : ''}${q.col !== undefined ? ` data-col="${q.col}"` : ''}${q.colA !== undefined ? ` data-col-a="${q.colA}" data-col-b="${q.colB}"` : ''}${q.cols ? ` data-cols="${q.cols.join(',')}"` : ''}${q.a !== undefined ? ` data-a="${q.a}" data-b="${q.b}"` : ''}${q.i !== undefined ? ` data-i="${q.i}"` : ''}><span class="q-do__texte"><b>${lettre(i)}.</b> ${q.texte}</span>${calcul}</li>`;
+    };
+    const liste = (qs, avecCalcul = () => false) => `<ul class="q-do-liste">${qs.map((q, i) => question(q, i, avecCalcul(q))).join('')}</ul>`;
+    const ecartAvecCalcul = (q) => q.type === 'ecart';
+    const tabEx1 = `<table class="tab-do tab-do--donnees">
+        <tr><th class="tab-do__coin">${tableau.coin}</th>${tableau.colonnes.map((c) => `<th>${c}</th>`).join('')}<th class="tab-do__total">Total</th></tr>
+        ${tableau.lignes.map((l, r) => `<tr><th>${l.cap}</th>${tableau.valeurs[r].map((x) => `<td>${x}</td>`).join('')}<td class="tab-do__total ${corrige ? 'rouge' : 'vide'}">${corrige ? tableau.totaux[r] : ''}</td></tr>`).join('')}
+      </table>`;
+    const dessin2 = diagrammeBarres({ categories: diagramme.categories, valeurs: diagramme.valeurs, pas: diagramme.pas, titreY: diagramme.titreY, taille: 290, hauteur: methode ? 144 : 168 }).svg;
+    const tabEx3 = `<table class="tab-do tab-do--construction">
+        <tr><th class="tab-do__coin">${construction.coin}</th>${construction.categories.map((c) => `<th>${c}</th>`).join('')}</tr>
+        <tr><th>Nombre</th>${construction.valeurs.map((x) => `<td>${x}</td>`).join('')}</tr>
+      </table>`;
+    const dessin3 = diagrammeBarres({ categories: construction.categories, valeurs: construction.valeurs, pas: construction.pas, titreY: construction.titreY, vide: !corrige, taille: 300, hauteur: methode ? 146 : 185 }).svg;
+
+    return `
+    <div class="bloc">
+      <h2>Exercice 1 — Complète la colonne Total du tableau, puis réponds aux questions.</h2>
+      <div class="ex-do ex-do--tableau">
+        <div class="ex-do__figure"><p class="ex-do__intro">${tableau.intro}</p>${tabEx1}</div>
+        ${liste(questionsTableau)}
+      </div>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 2 — Lis le diagramme en barres, puis réponds aux questions.</h2>
+      <div class="ex-do ex-do--diagramme">
+        <div class="ex-do__figure"><p class="ex-do__intro">${diagramme.intro}</p>${dessin2}</div>
+        ${liste(questionsDiagramme, ecartAvecCalcul)}
+      </div>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 3 — Construis le diagramme en barres avec les données du tableau.</h2>
+      <div class="ex-do ex-do--construction">
+        <div class="ex-do__figure"><p class="ex-do__intro">${construction.intro}</p>${tabEx3}<p class="ex-do__consigne">Trace une barre grise pour chaque colonne.</p></div>
+        <div class="ex-do__dessin">${dessin3}</div>
+      </div>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 4 — Avec le tableau de l’exercice 1, lis, puis calcule.</h2>
+      ${liste(calculs, () => true)}
+    </div>
+`;
+  },
+  corriges(contenu, methode) { return this.exercices(contenu, methode, true); },
+};
+
+/* ------------------------------------------------------------------ */
 
 export const FICHES = [
   {
@@ -3997,6 +4235,25 @@ export const FICHES = [
     ],
     generer: genererSymetrie,
     mise: miseSymetrie,
+  },
+  {
+    id: 'ce2-donnees',
+    classe: 'ce2',
+    domaine: 'Gestion de données',
+    titre: 'Les tableaux et les diagrammes en barres',
+    emoji: '📊',
+    options: [
+      {
+        id: 'effectifs', libelle: 'Effectifs',
+        valeurs: [
+          { v: 'petits', nom: 'Jusqu’à 20' },
+          { v: 'grands', nom: 'Jusqu’à 100' },
+        ],
+        defaut: 'petits',
+      },
+    ],
+    generer: genererDonnees,
+    mise: miseDonnees,
   },
 ];
 

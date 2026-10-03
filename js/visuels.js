@@ -886,3 +886,67 @@ export function quadrillageSymetrie({ cases = 8, figure = 0, axe = 'vertical', c
   const svg = `<svg class="quadrillage-symetrie" data-cases="${cases}" data-axe="${axe}" data-cote="${c}" data-complete="${complete ? 'oui' : 'non'}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${L} ${L}" width="${px}" height="${px}" role="img" aria-label="Quadrillage de ${cases} cases sur ${cases}, axe de symétrie ${vert ? 'vertical' : 'horizontal'}, figure à compléter">${corps}</svg>`;
   return { svg, cases, axe, cote: c, grises, ajoutees };
 }
+
+/* ------------------------------------------------------------------ */
+/* Diagramme en barres                                                  */
+/* ------------------------------------------------------------------ */
+
+const espaceMilliers = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+
+// `diagrammeBarres({ categories, valeurs, pas, titreY, vide, taille, hauteur })` : un diagramme en barres
+// verticales, en SVG, lisible en noir et blanc (barres d'un seul gris, bords nets). L'axe vertical est gradué de
+// `pas` en `pas` jusqu'au plus petit multiple de `pas` qui contient la plus grande valeur, avec une ligne de repère
+// fine à chaque graduation ; les catégories sont écrites sous les barres ; les valeurs ne sont PAS écrites sur les
+// barres (on les lit sur l'axe). `vide: true` ne dessine que les axes, les graduations et les catégories (l'élève
+// trace les barres). `taille` : largeur affichée en px (300 par défaut) ; `hauteur` : hauteur du dessin dans le
+// repère du SVG (largeur 300, hauteur 170 par défaut). `titreY` s'écrit en haut de l'axe vertical.
+// Retourne { svg, max, pas, graduations, hauteurMax }. Le `<svg>` porte `data-pas`, `data-max`, `data-vide` ;
+// chaque barre est un `<rect class="barre">` avec `data-categorie`, `data-valeur` et sa hauteur (`height`)
+// proportionnelle à la valeur ; chaque ligne de repère est un `<line class="repere">` avec `data-valeur`.
+export function diagrammeBarres({ categories, valeurs, pas, titreY = '', vide = false, taille = 300, hauteur = 170 } = {}) {
+  if (!Array.isArray(categories) || !categories.length || categories.length !== valeurs.length) throw new Error('diagrammeBarres : catégories et valeurs de même nombre attendues');
+  if (!(pas > 0)) throw new Error('diagrammeBarres : pas > 0 attendu');
+  const W = 300, H = hauteur;
+  const plusGrande = Math.max(...valeurs);
+  const max = Math.max(pas, Math.ceil(plusGrande / pas) * pas);
+  const graduations = max / pas;
+  const gauche = 46, droite = 8, haut = titreY ? 24 : 10, bas = 22;
+  const pw = W - gauche - droite, ph = H - haut - bas;
+  const base = haut + ph;
+  const n = categories.length, fente = pw / n, largeurBarre = Math.min(fente * 0.62, 40);
+  const unite = ph / max;
+  const dy = (v) => base - v * unite;
+  const fmtNum = (x) => String(+x.toFixed(2));
+  let corps = `<rect x="0" y="0" width="${W}" height="${H}" fill="#fff"/>`;
+  // lignes de repère et graduations
+  const taillePolice = graduations >= 10 ? 8.5 : 9.5;
+  for (let k = 1; k <= graduations; k++) {
+    const v = k * pas, y = fmtNum(dy(v));
+    corps += `<line class="repere" data-valeur="${v}" x1="${gauche}" y1="${y}" x2="${W - droite}" y2="${y}" stroke="#A8A8A8" stroke-width="0.8"/>`;
+  }
+  for (let k = 0; k <= graduations; k++) {
+    const v = k * pas, y = fmtNum(dy(v));
+    corps += `<line x1="${gauche - 4}" y1="${y}" x2="${gauche}" y2="${y}" stroke="#222" stroke-width="1.2"/>`
+      + `<text class="graduation" data-valeur="${v}" x="${gauche - 7}" y="${fmtNum(dy(v) + taillePolice * 0.35)}" font-size="${taillePolice}" text-anchor="end" fill="#222">${espaceMilliers(v)}</text>`;
+  }
+  // barres
+  if (!vide) {
+    categories.forEach((c, i) => {
+      const x = gauche + i * fente + (fente - largeurBarre) / 2, h = valeurs[i] * unite;
+      corps += `<rect class="barre" data-categorie="${String(c).replace(/"/g, '&quot;')}" data-valeur="${valeurs[i]}" x="${fmtNum(x)}" y="${fmtNum(dy(valeurs[i]))}" width="${fmtNum(largeurBarre)}" height="${fmtNum(h)}" fill="#8C8C8C" stroke="#222" stroke-width="1.2" shape-rendering="crispEdges"/>`;
+    });
+  }
+  // axes
+  corps += `<line x1="${gauche}" y1="${haut - 4}" x2="${gauche}" y2="${base}" stroke="#222" stroke-width="1.8"/>`
+    + `<line x1="${gauche}" y1="${base}" x2="${W - droite}" y2="${base}" stroke="#222" stroke-width="1.8"/>`;
+  // catégories sous les barres : la police rétrécit si le mot est long
+  const police = Math.min(10.5, ...categories.map((c) => (fente - 5) / (String(c).length * 0.56)));
+  categories.forEach((c, i) => {
+    const t = String(c), cx = gauche + i * fente + fente / 2;
+    corps += `<text class="categorie" x="${fmtNum(cx)}" y="${base + 13}" font-size="${fmtNum(police)}" text-anchor="middle" fill="#222">${t.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</text>`;
+  });
+  if (titreY) corps += `<text class="titre-axe" x="2" y="10" font-size="10" font-weight="700" fill="#222">${titreY.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</text>`;
+  const px = taille, py = Math.round(taille * H / W);
+  const svg = `<svg class="diagramme-barres" data-pas="${pas}" data-max="${max}" data-vide="${vide ? 'oui' : 'non'}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${px}" height="${py}" role="img" aria-label="Diagramme en barres${titreY ? ` : ${titreY.replace(/"/g, '')}` : ''}, ${n} catégories, axe gradué de ${pas} en ${pas}${vide ? ', à compléter' : ''}" font-family="inherit">${corps}</svg>`;
+  return { svg, max, pas, graduations, hauteurMax: ph };
+}

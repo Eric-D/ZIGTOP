@@ -4,7 +4,7 @@ import { JSDOM } from 'jsdom';
 import { FICHES, tirer, rendre, decoder, codeDe, optionsParDefaut } from '../js/fiches.js';
 import { matrice } from '../js/qr.js';
 import { fmt } from '../js/utils.js';
-import { figureFraction, monnaie, polygoneCote, horloge, ligneDuTemps, solide, patronCube, NB_ASSEMBLAGES, figurePlane, cercle, PX_PAR_CM, FIGURES_POLYGONES, FIGURES_NON_POLYGONES, NB_VARIANTES_FIGURE, figureSymetrie, quadrillageSymetrie, FIGURES_SYMETRIQUES, FIGURES_ASYMETRIQUES, TAILLES_QUADRILLAGE, NB_MOITIES_QUADRILLAGE } from '../js/visuels.js';
+import { figureFraction, monnaie, polygoneCote, horloge, ligneDuTemps, solide, patronCube, NB_ASSEMBLAGES, figurePlane, cercle, PX_PAR_CM, FIGURES_POLYGONES, FIGURES_NON_POLYGONES, NB_VARIANTES_FIGURE, figureSymetrie, quadrillageSymetrie, FIGURES_SYMETRIQUES, FIGURES_ASYMETRIQUES, TAILLES_QUADRILLAGE, NB_MOITIES_QUADRILLAGE, diagrammeBarres } from '../js/visuels.js';
 
 let echecs = 0;
 const verifier = (ok, message) => { if (!ok) echecs++; console.log(`${ok ? '✔' : '✘'} ${message}`); };
@@ -2802,6 +2802,221 @@ for (const opt of optionsMult) {
     .map(([id, o]) => somme(empreinte(FICHES.find((x) => x.id === id), o)));
   verifier(h.join() === '2857615915,841554819,1341628403,3247079376,2467628440,3671073380,178792032,2718432813,1534335352,750168435,1150851747,649082766,1335819493,11888257,1584605419,857785706,538954699,1652536371,2192490432,1573601925,237366352,3253221856,906907030,3321772385', `symétrie : les quinze fiches précédentes sont inchangées (${h.join()})`);
   verifier(FICHES.slice(0, 15).map((f) => f.id).join() === 'ce2-addition-posee,ce2-soustraction-posee,ce2-multiplication,ce2-nombres-lire-ecrire,ce2-nombres-comparer,ce2-fractions-lire,ce2-fractions-comparer,ce2-fractions-calculer,ce2-monnaie,ce2-longueurs,ce2-heures,ce2-masses-contenances,ce2-durees,ce2-solides,ce2-polygones', 'symétrie : ordre des quinze premières fiches inchangé');
+}
+
+/* Données : tableaux et diagrammes en barres ------------------------------------ */
+{
+  const fd = FICHES.find((f) => f.id === 'ce2-donnees');
+  console.log('— Données');
+  verifier(FICHES.indexOf(fd) === 16, 'données : fiche à l’index 16 de FICHES');
+  verifier(fd.titre === 'Les tableaux et les diagrammes en barres' && fd.emoji === '📊' && fd.options.length === 1 && fd.options[0].id === 'effectifs'
+    && fd.options[0].valeurs.map((v) => v.v).join() === 'petits,grands' && fd.options[0].valeurs[0].nom === 'Jusqu’à 20' && fd.options[0].valeurs[1].nom === 'Jusqu’à 100' && fd.options[0].defaut === 'petits', 'données : titre, emoji, option effectifs (petits, grands ; défaut petits)');
+
+  const fenetre = new JSDOM('<body></body>').window.document;
+  const conteneur = (html) => { const div = fenetre.createElement('div'); div.innerHTML = html; return div; };
+  const doc = (c, o) => conteneur(rendre(fd, c, o));
+  const texte = (el) => el.textContent.replace(/[  ]/g, ' ').replace(/\s+/g, ' ').trim();
+  const num = (s) => parseInt(String(s).replace(/[^\d]/g, ''), 10);
+
+  // diagrammeBarres : barres proportionnelles, graduation, valeurs non écrites
+  const lireDiagramme = (svg) => {
+    const max = +svg.getAttribute('data-max'), pas = +svg.getAttribute('data-pas');
+    const reperes = [...svg.querySelectorAll('line.repere')].map((l) => ({ v: +l.getAttribute('data-valeur'), y: +l.getAttribute('y1') }));
+    const barres = [...svg.querySelectorAll('rect.barre')].map((r) => ({ cat: r.getAttribute('data-categorie'), y: +r.getAttribute('y'), h: +r.getAttribute('height') }));
+    const base = barres.length ? barres[0].y + barres[0].h : null;
+    const haut = reperes.find((r) => r.v === max);
+    const unite = base !== null && haut ? (base - haut.y) / max : null;      // pixels par unité, lu sur le dessin
+    return { svg, max, pas, reperes, barres, base, unite, valeurs: barres.map((b) => Math.round(b.h / unite)),
+      graduations: [...svg.querySelectorAll('text.graduation')].map((x) => num(x.textContent)), categories: [...svg.querySelectorAll('text.categorie')].map((x) => texte(x)) };
+  };
+  {
+    const test = diagrammeBarres({ categories: ['A', 'B', 'C'], valeurs: [3, 7, 4], pas: 2, titreY: 'Nombre' });
+    const lu = lireDiagramme(conteneur(test.svg).querySelector('svg'));
+    verifier(lu.max === 8 && lu.reperes.length === 4 && lu.valeurs.join() === '3,7,4' && lu.graduations.join() === '0,2,4,6,8' && lu.categories.join() === 'A,B,C'
+      && lu.barres.every((b) => Math.abs(b.y + b.h - lu.base) < 0.02) && !/<text[^>]*>(3|7|4)<\/text>/.test(test.svg.replace(/<text class="graduation"[^>]*>\d+<\/text>/g, '')), 'diagrammeBarres : axe gradué jusqu’au multiple du pas, hauteurs proportionnelles, catégories dessous, valeurs non écrites sur les barres');
+    const vide = conteneur(diagrammeBarres({ categories: ['A', 'B', 'C'], valeurs: [3, 7, 4], pas: 2, vide: true }).svg).querySelector('svg');
+    verifier(vide.querySelectorAll('rect.barre').length === 0 && vide.querySelectorAll('line.repere').length === 4 && vide.getAttribute('data-vide') === 'oui', 'diagrammeBarres : vide = axes et lignes de repère sans barres');
+    const gris = new Set([...conteneur(test.svg).querySelectorAll('rect.barre')].map((r) => r.getAttribute('fill')));
+    verifier(gris.size === 1 && [...gris][0] === '#8C8C8C' && (test.svg.match(/#[0-9A-Fa-f]{3,6}\b/g) || []).every((m) => /^#(?:([0-9A-Fa-f])\1\1|([0-9A-Fa-f]{2})\2\2)$/.test(m)), 'diagrammeBarres : barres d’un seul gris, aucune couleur (noir et blanc)');
+  }
+
+  const exo4 = (page) => [...page.querySelectorAll('.bloc:not(.bloc--methode)')][3];
+  const sansMot = (d) => !/faux|erreur|✗|✘|✕|✖|raté/i.test(texte(d)) && !/\p{Extended_Pictographic}/u.test(texte(d));
+  const lireTableau = (table) => {
+    const lignes = [...table.querySelectorAll('tr')].map((tr) => [...tr.children]);
+    const colonnes = lignes[0].slice(1, 4).map(texte);
+    return { coin: texte(lignes[0][0]), colonnes, caps: lignes.slice(1).map((l) => texte(l[0])), valeurs: lignes.slice(1).map((l) => l.slice(1, 4).map((c) => num(texte(c)))), totaux: lignes.slice(1).map((l) => l[4]) };
+  };
+  let comptes = 0, vierge = 0, ton = 0, tabOk = 0, tabTot = 0, q1Ok = 0, q1Tot = 0, q2Ok = 0, q2Tot = 0, barOk = 0, barTot = 0, grad = 0, c3Ok = 0, q4Ok = 0, q4Tot = 0, types1 = new Set(), themes = new Set(), themes2 = new Set(), bornes = 0;
+  for (const effectifs of ['petits', 'grands']) for (let i = 0; i < 40; i++) {
+    const c = tirer(fd, { effectifs });
+    for (const methode of [true, false]) {
+      const d = doc(c, { corrige: true, methode });
+      const [eleve, corr] = d.querySelectorAll('.feuille');
+      const nbQ = (page) => [page.querySelectorAll('.ex-do--tableau .q-do').length, page.querySelectorAll('.ex-do--diagramme .q-do').length, exo4(page).querySelectorAll('.q-do').length].join();
+      const attendu = methode ? '4,4,2' : '6,6,3';
+      if (nbQ(eleve) === attendu && nbQ(corr) === attendu && eleve.querySelectorAll('.bloc:not(.bloc--methode) h2').length === 4 && corr.querySelectorAll('.bloc h2').length === 4) comptes++;
+      if (!methode && effectifs === 'petits') continue;   // les vérifications de fond portent sur la page complète puis sur la sans-rappel ci-dessous
+
+      // ex. 1 : tableau 3 × 3 et totaux
+      const tab = lireTableau(corr.querySelector('.tab-do--donnees'));
+      const tabE = lireTableau(eleve.querySelector('.tab-do--donnees'));
+      tabTot++;
+      const totaux = tab.valeurs.map((l) => l.reduce((a, b) => a + b, 0));
+      const borne = effectifs === 'petits' ? 20 : 100;
+      if (tab.totaux.map((x) => num(texte(x))).join() === totaux.join() && tab.totaux.every((x) => x.classList.contains('rouge')) && tabE.totaux.every((x) => texte(x) === '')
+        && JSON.stringify(tabE.valeurs) === JSON.stringify(tab.valeurs) && tab.colonnes.join() === 'CE1,CE2,CM1' && tab.valeurs.length === 3
+        && tab.valeurs.flat().every((x) => x >= 1 && x <= borne) && totaux.every((x) => x <= borne)
+        && [0, 1, 2].every((k) => tab.valeurs.reduce((a, l) => a + l[k], 0) <= borne)) tabOk++;
+      themes.add(tab.coin);
+      const col = (k) => tab.valeurs.map((l) => l[k]);
+      const total = (t) => t.reduce((a, b) => a + b, 0);
+      for (const li of corr.querySelectorAll('.ex-do--tableau .q-do')) {
+        q1Tot++;
+        const type = li.getAttribute('data-type'), r = +li.getAttribute('data-ligne'), k = +li.getAttribute('data-col');
+        const rep = li.querySelector('.reponse').getAttribute('data-reponse');
+        let attendue;
+        if (type === 'case') attendue = String(tab.valeurs[r][k]);
+        else if (type === 'totalLigne') attendue = String(total(tab.valeurs[r]));
+        else if (type === 'maxCol') attendue = tab.caps[col(k).indexOf(Math.max(...col(k)))];
+        else if (type === 'minCol') attendue = tab.caps[col(k).indexOf(Math.min(...col(k)))];
+        else if (type === 'maxLigne') attendue = tab.colonnes[tab.valeurs[r].indexOf(Math.max(...tab.valeurs[r]))];
+        // la question nomme bien la colonne / la ligne visée
+        const q = texte(li.querySelector('.q-do__texte'));
+        const nomOk = type === 'case' ? q.includes(`de ${tab.colonnes[k]} `) : type === 'maxCol' || type === 'minCol' ? q.includes(`en ${tab.colonnes[k]} ?`) : true;
+        types1.add(type);
+        if (attendue !== undefined && rep === attendue && nomOk) q1Ok++;
+      }
+
+      // ex. 2 : diagramme
+      const dg = lireDiagramme(corr.querySelector('.ex-do--diagramme svg'));
+      const dgE = lireDiagramme(eleve.querySelector('.ex-do--diagramme svg'));
+      barTot++;
+      const ok2 = dg.barres.length === 5 && dg.valeurs.length === 5 && dg.barres.every((b) => Math.abs(b.y + b.h - dg.base) < 0.02)
+        && dg.barres.every((b, k) => Math.abs(b.h - dg.valeurs[k] * dg.unite) < 0.02)               // hauteur = valeur × unité, valeur entière
+        && dg.valeurs.every((v) => v % dg.pas === 0 && v >= dg.pas) && new Set(dg.valeurs).size === 5
+        && dg.valeurs.join() === dgE.valeurs.join() && dg.categories.join() === dg.barres.map((b) => b.cat).join()
+        && dg.max === Math.ceil(Math.max(...dg.valeurs) / dg.pas) * dg.pas
+        && dg.graduations.join() === Array.from({ length: dg.max / dg.pas + 1 }, (_, k) => k * dg.pas).join() && dg.reperes.length === dg.max / dg.pas;
+      if (effectifs === 'petits' ? ok2 && [1, 2].includes(dg.pas) && dg.max <= 20 : ok2 && dg.pas === 10 && dg.max <= 100) barOk++;
+      if (effectifs === 'petits' ? [1, 2].includes(dg.pas) : dg.pas === 10) grad++;
+      themes2.add(texte(corr.querySelector('.ex-do--diagramme .ex-do__intro')));
+      const cats = dg.categories;
+      for (const li of corr.querySelectorAll('.ex-do--diagramme .q-do')) {
+        q2Tot++;
+        const type = li.getAttribute('data-type'), rep = li.querySelector('.reponse').getAttribute('data-reponse');
+        const mx = Math.max(...dg.valeurs), mn = Math.min(...dg.valeurs);
+        let attendue;
+        if (type === 'valeur') attendue = String(dg.valeurs[+li.getAttribute('data-i')]);
+        else if (type === 'max') attendue = cats[dg.valeurs.indexOf(mx)];
+        else if (type === 'min') attendue = cats[dg.valeurs.indexOf(mn)];
+        else if (type === 'ecart') { const a = +li.getAttribute('data-a'), b = +li.getAttribute('data-b'); attendue = String(dg.valeurs[a] - dg.valeurs[b]); if (dg.valeurs[a] <= dg.valeurs[b] || texte(li.querySelector('.calcul')) !== `${dg.valeurs[a]} − ${dg.valeurs[b]}`) attendue = undefined; }
+        if (attendue !== undefined && rep === attendue) q2Ok++;
+      }
+
+      // ex. 3 : le diagramme vide (élève) et le diagramme construit (corrigé) suivent le tableau
+      const t3 = lireTableau({ querySelectorAll: (s) => corr.querySelector('.tab-do--construction').querySelectorAll(s) });
+      const lignes3 = [...corr.querySelector('.tab-do--construction').querySelectorAll('tr')].map((tr) => [...tr.children].slice(1).map(texte));
+      const d3 = lireDiagramme(corr.querySelector('.ex-do--construction svg')), d3E = lireDiagramme(eleve.querySelector('.ex-do--construction svg'));
+      const valeurs3 = lignes3[1].map(num);
+      if (d3.barres.length === 4 && d3.valeurs.join() === valeurs3.join() && d3.categories.join() === lignes3[0].join() && d3E.categories.join() === lignes3[0].join()
+        && d3E.barres.length === 0 && eleve.querySelector('.ex-do--construction svg').getAttribute('data-vide') === 'oui' && d3E.pas === d3.pas && d3E.max === d3.max && d3E.reperes.length === d3.reperes.length
+        && new Set(valeurs3).size === 4 && valeurs3.every((v) => v % d3.pas === 0 && v >= d3.pas && v <= d3.max) && d3.max === Math.ceil(Math.max(...valeurs3) / d3.pas) * d3.pas
+        && (effectifs === 'petits' ? [1, 2].includes(d3.pas) && d3.max <= 20 : d3.pas === 10 && d3.max <= 100)
+        && d3.barres.every((b) => Math.abs(b.y + b.h - d3.base) < 0.02 && Math.abs(b.h - Math.round(b.h / d3.unite) * d3.unite) < 0.02)) c3Ok++;
+
+      // ex. 4 : lecture et calcul dans le tableau de l’exercice 1
+      for (const li of exo4(corr).querySelectorAll('.q-do')) {
+        q4Tot++;
+        const type = li.getAttribute('data-type'), rep = li.querySelector('.reponse').getAttribute('data-reponse'), calcul = texte(li.querySelector('.calcul'));
+        let attendue, calc;
+        if (type === 'ecartCases') { const r = +li.getAttribute('data-ligne'), a = +li.getAttribute('data-col-a'), b = +li.getAttribute('data-col-b'); attendue = tab.valeurs[r][a] - tab.valeurs[r][b]; calc = `${tab.valeurs[r][a]} − ${tab.valeurs[r][b]}`; if (attendue <= 0) attendue = NaN; }
+        else if (type === 'totalColonne') { const k = +li.getAttribute('data-col'); attendue = total(col(k)); calc = col(k).join(' + '); }
+        else if (type === 'sommeDeux') { const r = +li.getAttribute('data-ligne'), ks = li.getAttribute('data-cols').split(',').map(Number); attendue = ks.reduce((a, k) => a + tab.valeurs[r][k], 0); calc = ks.map((k) => tab.valeurs[r][k]).join(' + '); }
+        if (String(attendue) === rep && calc === calcul) q4Ok++;
+      }
+
+      // page élève : aucune réponse hors exemple du rappel
+      const hors = (page) => { const copie = page.cloneNode(true); copie.querySelectorAll('.bloc--methode').forEach((x) => x.remove()); return copie; };
+      const nu = hors(eleve).querySelectorAll('.rouge, .reponse, .calcul, .case-vf--cochee').length === 0 && eleve.querySelectorAll('.ex-do--construction rect.barre').length === 0;
+      if (nu) vierge++;
+      if (sansMot(d)) ton++;
+      // valeurs de l'axe ou du tableau jamais écrites dans le dessin (le dessin du corrigé non plus : l'élève lit l'axe)
+      if (corr.querySelectorAll('.ex-do svg text').length === dg.graduations.length + dg.categories.length + 1 + d3.graduations.length + d3.categories.length + 1) bornes++;
+    }
+  }
+  verifier(comptes === 160, 'données : mêmes comptes élève / corrigé, avec et sans méthode (6 + 6 questions, 3 calculs ; 4 + 4 et 2 avec le rappel)');
+  verifier(tabOk === tabTot, `données : tableau 3 × 3, totaux recalculés, valeurs et totaux dans la borne de l’option (${tabOk}/${tabTot})`);
+  verifier(q1Ok === q1Tot && ['case', 'maxCol', 'totalLigne', 'maxLigne', 'minCol'].every((t) => types1.has(t)), `données : réponses de l’exercice 1 recalculées sur le tableau (${q1Ok}/${q1Tot})`);
+  verifier(barOk === barTot && grad === barTot, `données : barres du diagramme proportionnelles aux valeurs, graduation conforme à l’option (${barOk}/${barTot})`);
+  verifier(q2Ok === q2Tot, `données : réponses de l’exercice 2 recalculées sur la hauteur des barres (${q2Ok}/${q2Tot})`);
+  verifier(c3Ok === barTot, `données : diagramme vide de l’exercice 3 et barres du corrigé conformes au tableau (${c3Ok}/${barTot})`);
+  verifier(q4Ok === q4Tot, `données : exercice 4, calculs et réponses recalculés (${q4Ok}/${q4Tot})`);
+  verifier(vierge === barTot && ton === barTot, 'données : aucune réponse sur la page élève (hors rappel) ; pas de mot négatif ni d’emoji');
+  verifier(bornes === barTot, 'données : aucune valeur écrite sur les barres (seuls l’axe, les catégories et le titre sont du texte)');
+  verifier(themes.size >= 3 && themes2.size >= 3, `données : thèmes variés (${themes.size} tableaux, ${themes2.size} diagrammes)`);
+
+  // Sans le rappel, les mêmes vérifications sur la page complète du corrigé : 6 + 6 questions et 3 calculs, toutes exactes
+  let sansOk = 0;
+  for (const effectifs of ['petits', 'grands']) for (let i = 0; i < 30; i++) {
+    const c = tirer(fd, { effectifs });
+    const corr = doc(c, { corrige: true, methode: false }).querySelectorAll('.feuille')[1];
+    const tab = lireTableau(corr.querySelector('.tab-do--donnees'));
+    const dg = lireDiagramme(corr.querySelector('.ex-do--diagramme svg'));
+    const bonnes = [...corr.querySelectorAll('.q-do')].every((li) => {
+      const t = li.getAttribute('data-type'), rep = li.querySelector('.reponse').getAttribute('data-reponse');
+      const r = +li.getAttribute('data-ligne'), k = +li.getAttribute('data-col');
+      const col = (x) => tab.valeurs.map((l) => l[x]);
+      if (t === 'case') return rep === String(tab.valeurs[r][k]);
+      if (t === 'totalLigne') return rep === String(tab.valeurs[r].reduce((a, b) => a + b, 0));
+      if (t === 'maxCol') return rep === tab.caps[col(k).indexOf(Math.max(...col(k)))];
+      if (t === 'minCol') return rep === tab.caps[col(k).indexOf(Math.min(...col(k)))];
+      if (t === 'maxLigne') return rep === tab.colonnes[tab.valeurs[r].indexOf(Math.max(...tab.valeurs[r]))];
+      if (t === 'valeur') return rep === String(dg.valeurs[+li.getAttribute('data-i')]);
+      if (t === 'max') return rep === dg.categories[dg.valeurs.indexOf(Math.max(...dg.valeurs))];
+      if (t === 'min') return rep === dg.categories[dg.valeurs.indexOf(Math.min(...dg.valeurs))];
+      if (t === 'ecart') return rep === String(dg.valeurs[+li.getAttribute('data-a')] - dg.valeurs[+li.getAttribute('data-b')]) && dg.valeurs[+li.getAttribute('data-a')] > dg.valeurs[+li.getAttribute('data-b')];
+      if (t === 'ecartCases') return rep === String(tab.valeurs[r][+li.getAttribute('data-col-a')] - tab.valeurs[r][+li.getAttribute('data-col-b')]) && +rep > 0;
+      if (t === 'totalColonne') return rep === String(col(k).reduce((a, b) => a + b, 0));
+      if (t === 'sommeDeux') return rep === String(li.getAttribute('data-cols').split(',').reduce((a, x) => a + tab.valeurs[r][+x], 0));
+      return false;
+    });
+    if (bonnes && corr.querySelectorAll('.q-do').length === 15) sansOk++;
+  }
+  verifier(sansOk === 60, 'données : sans le rappel, 15 questions (6 + 6 + 3) toutes exactes');
+
+  // Le rappel : les phrases de la leçon, le diagramme et le tableau du musée
+  const c0 = tirer(fd, {});
+  const sans = doc(c0, { corrige: false, methode: false }), avec = doc(c0, { corrige: false, methode: true });
+  verifier(avec.textContent.includes('Je me souviens de la méthode') && !sans.textContent.includes('Je me souviens de la méthode'), 'données : le rappel se masque');
+  const rap = avec.querySelector('.rappel-do'), tr = texte(rap);
+  verifier(['Le diagramme représente le nombre de personnes ayant visité un musée pendant une semaine. Le musée est fermé le dimanche.', 'Ce diagramme donne une vision globale des données et permet des comparaisons rapides.', 'On peut représenter les mêmes données dans un tableau à double entrée', 'Nombre de visiteurs'].every((m) => tr.includes(m)), 'données : le rappel reprend les phrases de la leçon');
+  const dm = lireDiagramme(rap.querySelector('svg'));
+  verifier(dm.valeurs.join() === '6000,7000,4000,8000,9000,10000' && dm.pas === 2000 && dm.max === 10000 && dm.categories.join() === 'Lundi,Mardi,Mercredi,Jeudi,Vendredi,Samedi'
+    && [...rap.querySelectorAll('td')].map((x) => num(texte(x))).filter((x) => !isNaN(x)).join() === '6000,7000,4000,8000,9000,10000', 'données : rappel = diagramme du musée (axe de 2 000 en 2 000) et même tableau');
+
+  // Reproductibilité par le code
+  for (const effectifs of ['petits', 'grands']) for (let i = 0; i < 10; i++) {
+    const c = tirer(fd, { effectifs });
+    const r = decoder(c.code);
+    if (!(r && r.fiche === fd && r.options.effectifs === effectifs && JSON.stringify(tirer(r.fiche, r.options, r.graine)) === JSON.stringify(c))) { verifier(false, `données : le code ${c.code} ne redonne pas la même fiche`); break; }
+  }
+  verifier(true, 'données : le code redonne la même fiche (et l’option)');
+  verifier(rendre(fd, tirer(fd, { effectifs: 'grands' }, 77), { corrige: true }) === rendre(fd, tirer(fd, { effectifs: 'grands' }, 77), { corrige: true }), 'données : même graine, même HTML');
+  const vus = new Set(); for (let i = 0; i < 200; i++) vus.add(tirer(fd, {}).code);
+  verifier(vus.size > 190, `données : codes variés (${vus.size} sur 200)`);
+
+  // Les seize fiches précédentes inchangées
+  const empreinte = (f, o) => { const t = tirer(f, o, 424242); return JSON.stringify(t) + rendre(f, t, { corrige: true, base: 'http://x/' }); };
+  const somme = (x) => { let h = 5381; for (const ch of x) h = ((h * 33) ^ ch.charCodeAt(0)) >>> 0; return h; };
+  const h = [['ce2-addition-posee', { taille: 'mix' }], ['ce2-soustraction-posee', { taille: 'mix' }], ['ce2-multiplication', { facteur: '2' }], ['ce2-nombres-lire-ecrire', { taille: '1000' }], ['ce2-nombres-lire-ecrire', { taille: '10000' }],
+    ['ce2-nombres-comparer', { taille: '1000' }], ['ce2-nombres-comparer', { taille: '10000' }], ['ce2-fractions-lire', {}], ['ce2-fractions-comparer', {}], ['ce2-fractions-calculer', { denominateur: '4' }], ['ce2-fractions-calculer', { denominateur: '10' }],
+    ['ce2-monnaie', { centimes: 'non' }], ['ce2-monnaie', { centimes: 'oui' }], ['ce2-longueurs', { km: 'non' }], ['ce2-longueurs', { km: 'oui' }], ['ce2-heures', { minutes: 'quarts' }], ['ce2-heures', { minutes: 'cinq' }],
+    ['ce2-masses-contenances', { grandeur: 'masses' }], ['ce2-masses-contenances', { grandeur: 'contenances' }], ['ce2-masses-contenances', { grandeur: 'deux' }], ['ce2-durees', { secondes: 'non' }], ['ce2-durees', { secondes: 'oui' }], ['ce2-solides', {}], ['ce2-polygones', {}],
+    ['ce2-symetrie', { axes: 'vertical' }], ['ce2-symetrie', { axes: 'deux' }]]
+    .map(([id, o]) => somme(empreinte(FICHES.find((x) => x.id === id), o)));
+  verifier(h.join() === '2857615915,841554819,1341628403,3247079376,2467628440,3671073380,178792032,2718432813,1534335352,750168435,1150851747,649082766,1335819493,11888257,1584605419,857785706,538954699,1652536371,2192490432,1573601925,237366352,3253221856,906907030,3321772385,3670825682,1245069007', `données : les seize fiches précédentes sont inchangées (${h.join()})`);
+  verifier(FICHES.slice(0, 16).map((f) => f.id).join() === 'ce2-addition-posee,ce2-soustraction-posee,ce2-multiplication,ce2-nombres-lire-ecrire,ce2-nombres-comparer,ce2-fractions-lire,ce2-fractions-comparer,ce2-fractions-calculer,ce2-monnaie,ce2-longueurs,ce2-heures,ce2-masses-contenances,ce2-durees,ce2-solides,ce2-polygones,ce2-symetrie', 'données : ordre des seize premières fiches inchangé');
 }
 
 process.exit(echecs ? 1 : 0);

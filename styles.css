@@ -1433,3 +1433,58 @@ svg.visuel {
   .feuille--corrige .affirmations--sy .affirmation { min-height: 0; }
   .feuille--corrige .affirmations--sy .affirmation__justif { font-size: 7.5pt; line-height: 1.15; }
 }
+
+/* Fiche CE2 · Les tableaux et les diagrammes en barres */
+.tab-do { border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.tab-do th, .tab-do td { border: 1.5px solid #333; text-align: center; padding: 0 3px; height: 9mm; min-width: 11mm; font-size: .95rem; }
+.tab-do th { background: #EFEFEF; font-weight: 800; font-size: .85rem; }
+.tab-do .tab-do__coin { background: #fff; }
+.tab-do--donnees th:first-child { text-align: left; padding-left: 5px; }
+.tab-do .vide { background: #fff; }
+.tab-do--exemple { width: 100%; table-layout: fixed; }
+.tab-do--exemple th, .tab-do--exemple td { height: 8mm; min-width: 0; font-size: .8rem; padding: 0 2px; }
+.tab-do--exemple td { font-weight: 700; }
+.tab-do--exemple col.c-etiquette { width: 36mm; }
+.tab-do--exemple th:first-child { text-align: left; padding-left: 4px; }
+.rappel-do { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2mm 5mm; align-items: center; font-size: .86rem; line-height: 1.3; }
+.rappel-do p { margin: 0 0 3px; }
+.rappel-do svg { display: block; }
+.rappel-do .tab-do, .rappel-do__lire { grid-column: 1 / -1; }
+.rappel-do__lire { font-size: .8rem; color: #333; margin: 0 !important; }
+.ex-do { display: grid; gap: 1mm 6mm; align-items: start; grid-template-columns: auto minmax(0, 1fr); }
+.ex-do--construction { align-items: start; }
+.ex-do__figure { min-width: 0; }
+.ex-do__intro { margin: 0 0 3px; font-size: .84rem; max-width: 84mm; }
+.ex-do__consigne { margin: 4px 0 0; font-size: .84rem; max-width: 84mm; }
+.ex-do__figure svg, .ex-do__dessin svg { display: block; }
+.q-do-liste { list-style: none; margin: 0; padding: 0; }
+.q-do { display: flex; flex-wrap: wrap; align-items: flex-end; column-gap: 6px; padding: 1px 0 2px; border-bottom: 1px dotted #BBB; font-size: .9rem; line-height: 1.25; }
+.q-do__texte { flex: 0 1 auto; }
+.q-do__rep, .q-do__calcul { display: flex; align-items: flex-end; gap: 4px; font-size: .86rem; min-height: 6mm; }
+.q-do__rep { flex: 1 1 26mm; }
+.q-do__calcul { flex: 1 1 100%; }
+.q-do .pointilles--rep { flex: 1; min-width: 12mm; height: 1.3em; }
+.q-do .pointilles--mini { min-width: 14mm; }
+.q-do .reponse { white-space: nowrap; }
+.bloc > .q-do-liste { display: grid; grid-template-columns: 1fr 1fr; gap: 0 8mm; }
+@media print {
+  .rappel-do { font-size: 8.5pt; line-height: 1.15; gap: 1mm 5mm; }
+  .bloc--methode:has(.rappel-do) { padding: 4px 9px; }
+  .bloc--methode:has(.rappel-do) h2 { margin-bottom: 2px; }
+  .rappel-do__lire { font-size: 8.2pt; }
+  .tab-do th, .tab-do td { height: 8mm; font-size: 10.5pt; }
+  .tab-do th { font-size: 9.5pt; }
+  .tab-do--exemple th, .tab-do--exemple td { height: 7mm; font-size: 8.5pt; }
+  .ex-do__intro, .ex-do__consigne { font-size: 9pt; }
+  .q-do { font-size: 9pt; line-height: 1.18; padding: 0; }
+  .q-do__rep, .q-do__calcul { font-size: 9pt; min-height: 4.3mm; }
+  .q-do .pointilles--rep, .q-do .pointilles--mini { height: 1.15em; }
+  .feuille:has(.ex-do) .bloc { margin-bottom: 4px; }
+  .feuille:has(.ex-do) .bloc h2 { margin-bottom: 3px; }
+}
+.q-do__suite { white-space: nowrap; }
+.q-do__texte { text-wrap: pretty; }
+.q-do__texte { flex: 1 1 100%; }
+.q-do__rep, .q-do__calcul { flex: 1 1 100%; }
+.q-do__rep > :first-child, .q-do__calcul > :first-child { white-space: nowrap; }
+.q-do__lib { white-space: nowrap; flex: none; }

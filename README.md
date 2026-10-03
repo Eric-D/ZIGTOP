@@ -37,6 +37,10 @@ et le **corrigé sur une deuxième page** pour l'adulte.
 
 Fiches disponibles (le plan complet est dans [`programme/ce2/PLAN-FICHES.md`](programme/ce2/PLAN-FICHES.md)) :
 
+- **CE2 — Les tableaux et les diagrammes en barres** (p. 56 du livret) : lire un tableau à
+  double entrée et un diagramme en barres dans les mots de la leçon ; tableau à compléter
+  et questions, diagramme à lire, diagramme à construire, questions mêlant lecture et
+  calcul. Option : effectifs jusqu'à 20, ou jusqu'à 100.
 - **CE2 — La symétrie : axes et figures symétriques** (p. 55 du livret) : le pliage dans les
   mots de la leçon (« le pli est un axe de symétrie »), « Ce carré a 4 axes de symétrie » ;
   figures avec ou sans axe, nombre d'axes, figures à compléter par symétrie sur quadrillage,
