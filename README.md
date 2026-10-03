@@ -35,8 +35,14 @@ Depuis l'accueil, **🖨️ Fiches à imprimer** fabrique une fiche A4 prête à
 l'imprimante, régénérée à chaque clic : la leçon rappelée en haut, puis des exercices,
 et le **corrigé sur une deuxième page** pour l'adulte.
 
-Première fiche disponible : **CE2 — Opérations : addition posée**, calquée sur la
-progression du manuel (unités, puis dizaines, puis centaines, puis milliers) :
+Fiches disponibles (le plan complet est dans [`programme/ce2/PLAN-FICHES.md`](programme/ce2/PLAN-FICHES.md)) :
+
+- **CE2 — Opérations : soustraction posée** (p. 16–18 du livret) : méthode en 4 étapes avec
+  l'exemple `4 268 − 1 951`, retenues notées comme dans le livret (le chiffre qui prête est
+  barré et réécrit au-dessus, la colonne qui reçoit note « 1 » devant son chiffre), 4
+  soustractions à calculer, 3 à poser, 3 vérifications par l'addition, 2 problèmes.
+- **CE2 — Opérations : addition posée**, calquée sur la progression du manuel (unités, puis
+  dizaines, puis centaines, puis milliers) :
 
 1. rappel de la méthode, avec l'exemple `685 + 267` entièrement posé ;
 2. quatre additions déjà posées à calculer, de la plus simple (sans retenue) aux plus

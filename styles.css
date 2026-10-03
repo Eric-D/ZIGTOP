@@ -644,6 +644,9 @@ svg.visuel {
 .pose__nombre--derniere .case { border-bottom: 2.5px solid #111; }
 .pose__resultat td { height: 32px; }
 .pose .reponse { color: #C0392B; }
+/* Soustraction corrigée : chiffre barré, et « 1 » devant le chiffre qui reçoit 10 unités. */
+.pose .barre { text-decoration: line-through; text-decoration-thickness: 2px; text-decoration-color: #C0392B; }
+.pose .un { color: #C0392B; }
 .pose .retenue { color: #C0392B; }
 
 .estimations { list-style: none; margin: 0; padding: 0; }
@@ -664,6 +667,8 @@ svg.visuel {
   font-weight: 700;
 }
 .pastille-choix--bonne { border-color: #C0392B; color: #C0392B; }
+.verification { font-weight: 600; }
+.verification--corrigee { color: #C0392B; }
 .estimation__exact { font-size: .85rem; color: #666; }
 
 /* Deux problèmes côte à côte : la fiche tient ainsi sur une seule page A4. */

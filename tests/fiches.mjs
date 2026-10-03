@@ -3,6 +3,7 @@
 import { JSDOM } from 'jsdom';
 import { FICHES, tirer, rendre, decoder, codeDe, optionsParDefaut } from '../js/fiches.js';
 import { matrice } from '../js/qr.js';
+import { fmt } from '../js/utils.js';
 
 let echecs = 0;
 const verifier = (ok, message) => { if (!ok) echecs++; console.log(`${ok ? '✔' : '✘'} ${message}`); };
@@ -161,5 +162,173 @@ verifier((avecBase.match(/class=\"qr\"/g) || []).length === 2, 'un QR code sur l
 const m = matrice(`https://eric-d.github.io/ZIGTOP/?fiche=${contenu.code}`);
 verifier(m && m.length === 33, `matrice QR de ${m ? m.length : 0} modules (version 4)`);
 verifier(JSON.stringify(matrice('MATHOO')) === JSON.stringify(matrice('MATHOO')), 'l’encodage QR est déterministe');
+
+
+/* ================================================================== */
+/* Soustraction posée                                                  */
+/* ================================================================== */
+
+const sous = FICHES.find((f) => f.id === 'ce2-soustraction-posee');
+verifier(FICHES.indexOf(sous) === 1 && FICHES.indexOf(fiche) === 0, 'la soustraction est ajoutée après l’addition (les codes imprimés ne bougent pas)');
+
+// Colonnes (gauche → droite) où il faut casser une unité, recalculées indépendamment.
+const colonnesAEmprunt = (a, b) => {
+  const A = String(a).split('').reverse().map(Number), B = String(b).split('').reverse().map(Number);
+  const res = []; let dette = 0;
+  for (let k = 0; k < A.length; k++) {
+    const v = A[k] - dette - (B[k] || 0);
+    dette = v < 0 ? 1 : 0;
+    res.push(dette ? k : -1);
+  }
+  return res.filter((k) => k >= 0).map((k) => A.length - 1 - k);   // index depuis la gauche
+};
+
+/* S1. Programme et progressivité */
+{
+  let hors = 0, sansEmprunt = 0, uneRet = 0, plusieursRet = 0, quatre = 0, tir = 0;
+  for (const taille of ['3', '4', 'mix']) {
+    for (let i = 0; i < 40; i++) {
+      const c = tirer(sous, { taille });
+      tir++;
+      for (const o of [...c.posees, ...c.aposer, ...c.verifications, ...c.problemes]) {
+        if (o.a <= o.b || o.a > 9999 || o.b < 100) hors++;
+      }
+      if (colonnesAEmprunt(c.posees[0].a, c.posees[0].b).length === 0) sansEmprunt++;
+      if (colonnesAEmprunt(c.posees[1].a, c.posees[1].b).length === 1) uneRet++;
+      if (colonnesAEmprunt(c.posees[2].a, c.posees[2].b).length >= 2) plusieursRet++;
+      if (String(c.posees[3].a).length === 4) quatre++;
+    }
+  }
+  verifier(hors === 0, `soustractions : toujours un grand nombre moins un plus petit, sous 10 000 (${tir} tirages)`);
+  verifier(sansEmprunt === tir, 'la 1re soustraction est sans retenue');
+  verifier(uneRet === tir, 'la 2e a exactement une retenue');
+  verifier(plusieursRet === tir, 'la 3e a plusieurs retenues');
+  verifier(quatre >= 80 && quatre <= tir, `la 4e a 4 chiffres (${quatre} fois sur ${tir}, toujours avec « Jusqu’à 9 999 » et « Les deux »)`);
+}
+
+/* S2. Corrigé exact, retenues selon la leçon */
+const cs = tirer(sous, optionsParDefaut(sous));
+const ds = new JSDOM(`<div>${rendre(sous, cs, { corrige: true })}</div>`).window.document;
+verifier(ds.querySelectorAll('.feuille').length === 2, 'soustraction : page élève + corrigé');
+const corrigeS = ds.querySelector('.feuille--corrige');
+const attendusS = [...cs.posees.slice(0, 4), ...cs.aposer.slice(0, 3)].map((o) => o.a - o.b);
+const trouvesS = [...corrigeS.querySelectorAll('.operations .op')].map((op) =>
+  nombre([...op.querySelectorAll('.pose__resultat .reponse')].map((td) => td.textContent).join('')));
+verifier(JSON.stringify(trouvesS) === JSON.stringify(attendusS), `soustraction : les ${attendusS.length} résultats du corrigé sont exacts`);
+
+// Le signe de chaque opération est bien « − ».
+verifier([...ds.querySelectorAll('.feuille .operations .pose__nombre--derniere .signe')].every((td) => td.textContent === '−'),
+  'toutes les opérations portent le signe −');
+
+// Notation de la leçon : on lit les trois lignes (retenues / nombre du haut / nombre du bas) du corrigé
+// et on vérifie que, colonne par colonne, les chiffres « cassés » redonnent bien le résultat.
+{
+  let toutBon = true, vus = 0;
+  const ops = [...corrigeS.querySelectorAll('.operations .op')];
+  ops.forEach((op) => {
+    const lire = (sel) => [...op.querySelectorAll(`${sel} td`)].slice(1);
+    const haut = lire('.pose__retenues').map((td) => td.textContent.trim());
+    const cellulesHaut = lire('.pose__nombre:not(.pose__nombre--derniere)');
+    const bas = lire('.pose__nombre--derniere').map((td) => +td.textContent || 0);
+    const res = lire('.pose__resultat').map((td) => +td.textContent || 0);
+    const n = res.length;
+    // valeur utilisée pour la soustraction dans chaque colonne : le nouveau chiffre écrit au-dessus
+    // si la colonne a prêté, sinon ce qui est écrit dans la cellule (« 12 » = 10 + 2).
+    const valeurs = cellulesHaut.map((td, i) => haut[i] !== '' ? +haut[i] : +td.textContent || 0);
+    for (let i = 0; i < n; i++) {
+      vus++;
+      if (valeurs[i] - bas[i] !== res[i]) toutBon = false;
+      // une cellule barrée a toujours un chiffre au-dessus, et inversement
+      if (cellulesHaut[i].classList.contains('barre') !== (haut[i] !== '')) toutBon = false;
+    }
+  });
+  verifier(toutBon && vus > 0, `retenues du corrigé cohérentes avec la leçon : chiffre barré + nouveau chiffre au-dessus, ${vus} colonnes lues`);
+}
+
+// Placement exact : on rejoue l'exemple de la leçon (4 268 − 1 951) et un cas à retenues enchaînées.
+{
+  const rendu = (a, b) => {
+    const html = rendre(sous, { ...cs, posees: [{ a, b, largeur: String(a).length }], aposer: [], verifications: [], problemes: [], methode: { ...cs.methode } }, { corrige: true, methode: true });
+    const doc = new JSDOM(`<div>${html}</div>`).window.document;
+    const op = doc.querySelector('.feuille--corrige .operations .op');
+    return {
+      haut: [...op.querySelectorAll('.pose__retenues td')].slice(1).map((td) => td.textContent.trim()),
+      depart: [...op.querySelectorAll('.pose__nombre:not(.pose__nombre--derniere) td')].slice(1).map((td) => td.textContent.trim()),
+      barres: [...op.querySelectorAll('.pose__nombre:not(.pose__nombre--derniere) td')].slice(1).map((td) => td.classList.contains('barre')),
+    };
+  };
+  const ex = rendu(4268, 1951);
+  verifier(JSON.stringify(ex.haut) === JSON.stringify(['3', '', '', '']) && JSON.stringify(ex.depart) === JSON.stringify(['4', '12', '6', '8'])
+    && JSON.stringify(ex.barres) === JSON.stringify([true, false, false, false]),
+    `4 268 − 1 951 noté comme dans le livret : 3 au-dessus du 4 barré, 12 dans la colonne des centaines (${ex.haut} / ${ex.depart})`);
+  const ex2 = rendu(736, 482);
+  verifier(JSON.stringify(ex2.haut) === JSON.stringify(['6', '', '']) && JSON.stringify(ex2.depart) === JSON.stringify(['7', '13', '6']),
+    `736 − 482 noté comme dans le livret : 6 au-dessus du 7 barré, 13 dizaines (${ex2.haut} / ${ex2.depart})`);
+  const ex3 = rendu(62, 27);
+  verifier(JSON.stringify(ex3.haut) === JSON.stringify(['5', '']) && JSON.stringify(ex3.depart) === JSON.stringify(['6', '12']),
+    `62 − 27 noté comme dans le livret : 5 au-dessus du 6 barré, 12 unités (${ex3.haut} / ${ex3.depart})`);
+  const ex4 = rendu(534, 276);   // retenues enchaînées : la colonne des dizaines reçoit puis prête
+  verifier(JSON.stringify(ex4.haut) === JSON.stringify(['4', '12', '']) && JSON.stringify(ex4.depart) === JSON.stringify(['5', '13', '14']),
+    `534 − 276 : retenues enchaînées notées (${ex4.haut} / ${ex4.depart})`);
+}
+
+// Vérifications par l'addition et problèmes.
+verifier(cs.verifications.length === 3 && cs.verifications.every((v) => v.r === v.a - v.b && v.r + v.b === v.a),
+  'les 3 vérifications : résultat + nombre retiré = nombre de départ');
+verifier([...corrigeS.querySelectorAll('.verification--corrigee strong')].map((e) => nombre(e.textContent)).join() === cs.verifications.map((v) => v.a).join(),
+  'le corrigé des vérifications redonne les nombres de départ');
+verifier(cs.problemes.length === 2 && cs.problemes.every((p) => p.phrase.includes(String(p.a - p.b).replace(/\B(?=(\d{3})+(?!\d))/g, ' '))),
+  'les phrases réponses des problèmes donnent la bonne différence');
+
+/* S3. Stabilité, options d'impression */
+verifier(rendre(sous, cs, { corrige: true }) === rendre(sous, cs, { corrige: true }), 'soustraction : un même contenu donne toujours la même fiche');
+verifier(!rendre(sous, cs, { corrige: false }).includes('feuille--corrige'), 'soustraction : sans corrigé, une seule page');
+{
+  const av = rendre(sous, cs, { corrige: false, methode: true });
+  const sa = rendre(sous, cs, { corrige: false, methode: false });
+  verifier(av.includes('Je me souviens de la méthode') && !sa.includes('Je me souviens de la méthode'), 'soustraction : rappel de méthode masquable');
+  verifier(compter(sa, /class="op"/g) > compter(av, /class="op"/g), `soustraction : sans la méthode, plus d’opérations (${compter(sa, /class="op"/g)} contre ${compter(av, /class="op"/g)})`);
+  verifier(av.includes(`${fmt(4268)} − ${fmt(1951)} = ${fmt(2317)}`), 'l’exemple du livret (4 268 − 1 951 = 2 317) est rappelé');
+  verifier((av.match(/<ol class="methode__etapes">(.*?)<\/ol>/s)[1].match(/<li>/g) || []).length === 4, 'la méthode compte 4 étapes');
+}
+for (const methode of [true, false]) {
+  const doc = new JSDOM(`<div>${rendre(sous, cs, { corrige: true, methode })}</div>`).window.document;
+  const [pe, pc] = doc.querySelectorAll('.feuille');
+  const nbE = pe.querySelectorAll('.operations .op').length, nbC = pc.querySelectorAll('.operations .op').length;
+  verifier(nbE === nbC && nbE === (methode ? 7 : 12), `soustraction ${methode ? 'avec' : 'sans'} la méthode : ${nbE} opérations imprimées, ${nbC} corrigées`);
+  const nbProbE = pe.querySelectorAll('.probleme').length, nbProbC = pc.querySelectorAll('.probleme').length;
+  const nbVerE = pe.querySelectorAll('.verification').length, nbVerC = pc.querySelectorAll('.verification').length;
+  verifier(nbProbE === 2 && nbProbC === 2 && nbVerE === 3 && nbVerC === 3, `soustraction ${methode ? 'avec' : 'sans'} la méthode : 3 vérifications et 2 problèmes des deux côtés`);
+}
+verifier(!rendre(sous, cs, { identite: false }).includes('Nom :'), 'soustraction : ligne Nom / Date retirable');
+verifier(!rendre(sous, cs, { identite: true }).split('feuille--corrige')[1].includes('Nom :'), 'soustraction : pas de Nom / Date sur le corrigé');
+
+/* S4. Rien d'écrit sur la page élève, ton positif */
+{
+  const eleve = ds.querySelectorAll('.feuille')[0];
+  verifier(eleve.querySelectorAll('.operations .pose__resultat .reponse').length === 0
+    && eleve.querySelectorAll('.operations .retenue:not(:empty), .operations .barre, .operations .un').length === 0,
+    'soustraction : la page élève ne contient ni réponse, ni retenue');
+  verifier(eleve.querySelectorAll('.methode .pose__resultat .reponse').length === 4 && eleve.querySelectorAll('.methode .barre').length === 1,
+    'soustraction : l’exemple de la méthode est corrigé (4 chiffres, une colonne barrée)');
+  const texte = ds.body.textContent.toLowerCase();
+  verifier(!/\b(faux|erreur|raté|nul|négatif)\b/.test(texte) && !texte.includes('✘') && !texte.includes('❌'), 'aucun mot négatif sur la feuille');
+}
+
+/* S5. Code et graine */
+{
+  const rej = decoder(cs.code);
+  verifier(!!rej && rej.fiche === sous, `le code ${cs.code} désigne la fiche de soustraction`);
+  verifier(JSON.stringify(tirer(rej.fiche, rej.options, rej.graine)) === JSON.stringify(cs), 'soustraction : le code redonne exactement les mêmes exercices');
+  for (const taille of ['3', '4', 'mix']) {
+    const c = tirer(sous, { taille }), d2 = decoder(c.code);
+    verifier(d2.fiche === sous && d2.options.taille === taille, `soustraction : option « ${taille} » conservée dans le code`);
+  }
+  const vus = new Set();
+  for (let i = 0; i < 200; i++) vus.add(tirer(sous, { taille: 'mix' }).code);
+  verifier(vus.size > 190, `soustraction : codes variés (${vus.size} sur 200)`);
+  // l'ancien code d'addition désigne toujours l'addition
+  verifier(decoder(contenu.code).fiche === fiche, 'un code d’addition déjà imprimé désigne toujours l’addition');
+}
 
 process.exit(echecs ? 1 : 0);
