@@ -453,7 +453,6 @@ function pastillesVu(r) {
 
 /* --- Raccourcis de révision (pas 1) -------------------------------------- */
 
-const PAGE_MIN = 3;
 const NB_SEMAINE = 4;
 const DOMAINES_COURTS = { 'Gestion de données': 'Données' };
 const nomDomaine = (d) => DOMAINES_COURTS[d] || d;
@@ -467,16 +466,37 @@ const fichesVisibles = () => {
   const d = fichesDe(classeCourante().id);
   return d.length ? d : FICHES;
 };
-const bornePage = (n) => Math.min(P.PAGE_MAX, Math.max(PAGE_MIN, Math.round(n)));
+// Dernière notion « vue », mémorisée par identifiant de fiche. Ancienne sauvegarde : un numéro de
+// page (`pageVue`) -> la dernière notion de FICHES dont la première page est ≤ ce numéro ;
+// ensuite `pageVue` est supprimé. Les numéros de page ne servent qu'à cette migration.
+function notionVue() {
+  const etat = P.get();
+  if (etat.pageVue !== undefined) {
+    const page = Number(etat.pageVue);
+    if (!etat.notionVue && Number.isFinite(page) && etat.pageVue !== null) {
+      const vues = FICHES.filter((f) => premierePage(f.pages) <= page);
+      if (vues.length) etat.notionVue = vues[vues.length - 1].id;
+    }
+    delete etat.pageVue;
+    P.sauvegarder();
+  }
+  const visibles = fichesVisibles();
+  return visibles.some((f) => f.id === etat.notionVue) ? etat.notionVue : visibles[visibles.length - 1].id;
+}
+const libelleNotion = (f) => { const t = f.court || f.titre; return t.charAt(0).toUpperCase() + t.slice(1); };
+// Les notions jusqu'à celle-ci incluse, dans l'ordre de FICHES.
+const notionsJusqua = (id) => {
+  const visibles = fichesVisibles();
+  const i = visibles.findIndex((f) => f.id === id);
+  return visibles.slice(0, i + 1).map((f) => f.id);
+};
 
-// Lit le champ « page », le borne et le mémorise.
-function lirePage() {
-  const champ = app.querySelector('#page-vue');
-  const n = champ ? Number(champ.value) : NaN;
-  const page = Number.isFinite(n) && champ.value !== '' ? bornePage(n) : P.pageVue();
-  if (champ) champ.value = page;
-  P.setRaccourcis({ pageVue: page });
-  return page;
+// Lit la liste « jusqu'à… » et mémorise le choix.
+function lireNotion() {
+  const liste = app.querySelector('#notion-vue');
+  const id = liste && fichesVisibles().some((f) => f.id === liste.value) ? liste.value : notionVue();
+  P.setRaccourcis({ notionVue: id });
+  return id;
 }
 
 // Met la sélection comme si l'élève avait coché à la main.
@@ -493,7 +513,7 @@ function tirerSemaine() {
   const visibles = fichesVisibles().map((f) => f.id);
   const dernieres = P.derniereSelection().filter((id) => visibles.includes(id));
   let permis = dernieres;
-  if (!permis.length) permis = fichesVisibles().filter((f) => premierePage(f.pages) <= P.pageVue()).map((f) => f.id);
+  if (!permis.length) permis = notionsJusqua(notionVue());
   if (!permis.length) permis = visibles;
   const compteurs = P.tirages();
   const carnet = Carnet.resume();
@@ -510,19 +530,19 @@ function tirerSemaine() {
 }
 
 function blocRaccourcis(liste) {
-  const page = P.pageVue();
+  const jusqua = notionVue();
   const ids = [...fiche.selection].sort().join();
   return `
       <div class="raccourcis">
         <div class="section-titre raccourcis__titre">Raccourcis</div>
         <div class="raccourci">
-          <label class="reglage__libelle" for="page-vue">Tout ce qu’on a vu jusqu’à la page…</label>
+          <label class="reglage__libelle" for="notion-vue">Tout ce qu’on a vu jusqu’à…</label>
           <div class="raccourci__page">
-            <button class="btn btn--fantome raccourci__pas" data-page-pas="-1" aria-label="Page précédente">−</button>
-            <input class="champ raccourci__champ" id="page-vue" type="number" inputmode="numeric"
-                   min="${PAGE_MIN}" max="${P.PAGE_MAX}" step="1" value="${page}" />
-            <button class="btn btn--fantome raccourci__pas" data-page-pas="1" aria-label="Page suivante">+</button>
-            <button class="btn btn--jaune" data-cocher-page>Cocher</button>
+            <select class="champ raccourci__liste" id="notion-vue">${DOMAINES.map((dom) => {
+              const siennes = liste.filter((f) => f.domaine === dom);
+              return siennes.length ? `<optgroup label="${dom}">${siennes.map((f) => `<option value="${f.id}"${f.id === jusqua ? ' selected' : ''}>${libelleNotion(f)}</option>`).join('')}</optgroup>` : '';
+            }).join('')}</select>
+            <button class="btn btn--jaune" data-cocher-notion>Cocher</button>
           </div>
         </div>
         <div class="raccourci">
@@ -536,7 +556,7 @@ function blocRaccourcis(liste) {
         <div class="raccourci">
           <div class="reglage__libelle">La révision de la semaine</div>
           <button class="btn btn--vert" data-semaine>Tirer ${NB_SEMAINE} notions au sort</button>
-          <div class="reglage__aide">Parmi celles de la dernière fois, ou celles jusqu’à la page ${page} ; on commence par celles à revoir, puis par les plus anciennes.</div>
+          <div class="reglage__aide">Parmi celles de la dernière fois, ou celles jusqu’à « ${libelleNotion(ficheParId(jusqua))} » ; on commence par celles à revoir, puis par les plus anciennes.</div>
         </div>
       </div>`;
 }
@@ -563,12 +583,11 @@ function pasReviser(c, liste, disponibles) {
               <span class="fiche__emoji">${f.emoji}</span>
               <span class="fiche__texte">
                 <span class="fiche__titre">${f.titre}</span>
-                <span class="fiche__pages">p. ${f.pages}</span>
                 ${pastillesVu(carnet[f.id])}
                 <span class="fiche__objectif">${f.objectif}</span>
               </span>
             </label>
-            <a class="fiche__lecon" href="${URL_DEPOT}${f.lecon}" target="_blank" rel="noopener">leçon</a>
+            <a class="fiche__lecon" href="${URL_DEPOT}${f.lecon}" target="_blank" rel="noopener">voir la leçon</a>
             ${coche && (f.options || []).length ? `
             <div class="fiche__options">${f.options.map((o) => `
               <div class="reglage">
@@ -662,7 +681,7 @@ function pasImprimer() {
       <div class="section-titre">Réglages de la fiche</div>
       <div class="carte reglages">
         ${bascule('identite', 'Ligne « Nom / Date »', 'Avec', 'Sans', '')}
-        ${bascule('corrige', 'Corrigé', 'Avec', 'Sans', 'Les corrigés s’impriment après les pages élève, à garder par l’adulte.')}
+        ${bascule('corrige', 'Corrigé', 'Avec', 'Sans', 'Les corrigés s’impriment après les feuilles élève, à garder par l’adulte.')}
       </div>
 
       <div class="barre-fiche">
@@ -716,7 +735,7 @@ function pasImprimer() {
         </div>
       </div>
       <p class="note">Aperçu ci-dessous : c’est exactement ce qui sortira de l’imprimante
-        (${n} page${n > 1 ? 's' : ''}).</p>
+        (${n} feuille${n > 1 ? 's' : ''} imprimée${n > 1 ? 's' : ''}).</p>
       <div class="pied-page"><button class="btn btn--fantome" data-aller="accueil">← Retour à l’île</button></div>`;
 }
 
@@ -1211,11 +1230,11 @@ function majArdoise() {
 }
 
 app.addEventListener('change', (ev) => {
-  if (ev.target.id === 'page-vue') lirePage();
+  if (ev.target.id === 'notion-vue') lireNotion();
 });
 
 app.addEventListener('click', (ev) => {
-  const cible = ev.target.closest('[data-aller],[data-jouer],[data-touche],[data-choix],[data-decor],[data-reglage],[data-pas],[data-fiche],[data-fiche-option],[data-page-pas],[data-cocher-page],[data-domaine],[data-semaine],[data-affichage],[data-nb-feuilles],[data-compo],[data-appreciation],[data-corrige],#regenerer,#suivant,#ecouter');
+  const cible = ev.target.closest('[data-aller],[data-jouer],[data-touche],[data-choix],[data-decor],[data-reglage],[data-pas],[data-fiche],[data-fiche-option],[data-cocher-notion],[data-domaine],[data-semaine],[data-affichage],[data-nb-feuilles],[data-compo],[data-appreciation],[data-corrige],#regenerer,#suivant,#ecouter');
   if (!cible) return;
 
   if (cible.dataset.appreciation) return apprecier(cible.dataset.code, cible.dataset.appreciation);
@@ -1228,15 +1247,8 @@ app.addEventListener('click', (ev) => {
     if (vue.pas === 1 && Number(cible.dataset.pas) > 1 && fiche.selection.length) P.setRaccourcis({ derniereSelection: idsCoches() });
     return allerPas(Number(cible.dataset.pas));
   }
-  if (cible.dataset.pagePas !== undefined) {
-    const champ = app.querySelector('#page-vue');
-    const n = Number(champ.value);
-    champ.value = bornePage((Number.isFinite(n) && champ.value !== '' ? n : P.pageVue()) + Number(cible.dataset.pagePas));
-    return P.setRaccourcis({ pageVue: Number(champ.value) });
-  }
-  if (cible.dataset.cocherPage !== undefined) {
-    const page = lirePage();
-    return selectionner(fichesVisibles().filter((f) => premierePage(f.pages) <= page).map((f) => f.id));
+  if (cible.dataset.cocherNotion !== undefined) {
+    return selectionner(notionsJusqua(lireNotion()));
   }
   if (cible.dataset.domaine) {
     const siens = fichesVisibles().filter((f) => f.domaine === cible.dataset.domaine).map((f) => f.id);
@@ -1244,7 +1256,7 @@ app.addEventListener('click', (ev) => {
     return selectionner(dejaTout ? [] : siens);
   }
   if (cible.dataset.semaine !== undefined) {
-    lirePage();
+    lireNotion();
     return selectionner(tirerSemaine());
   }
   if (cible.dataset.fiche) {

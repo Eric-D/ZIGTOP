@@ -60,7 +60,7 @@ réviser*, *composer* et *imprimer*, et permet des feuilles qui panachent les no
 | # | Sujet | Issue | État |
 | --- | --- | --- | --- |
 | 24 | Aperçu des fiches à l'échelle sur téléphone | [#24](https://github.com/Eric-D/ZIGTOP/issues/24) | ⬜ à faire |
-| 25 | Ne plus parler de numéros de page dans l'interface ; raccourci « jusqu'à telle notion » | [#25](https://github.com/Eric-D/ZIGTOP/issues/25) | ⬜ à faire |
+| 25 | Ne plus parler de numéros de page dans l'interface ; raccourci « jusqu'à telle notion » | [#25](https://github.com/Eric-D/ZIGTOP/issues/25) | ✅ en ligne |
 | 26 | Séparer la notion de sa formulation : définitions communes, méthodes interchangeables | [#26](https://github.com/Eric-D/ZIGTOP/issues/26) | ⬜ à faire |
 
 ## Phase 9 — répondre dans l'application et mesurer ce qui est acquis

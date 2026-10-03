@@ -2,7 +2,8 @@
 import { JSDOM } from 'jsdom';
 import fs from 'fs';
 import path from 'path';
-import { FICHES, DOMAINES } from '../js/fiches.js';
+import { FICHES, DOMAINES, tirer, rendre } from '../js/fiches.js';
+import { composer, rendrePanache } from '../js/panache.js';
 
 const RACINE = new URL('..', import.meta.url).pathname;
 const HTML = fs.readFileSync(path.join(RACINE, 'index.html'), 'utf8');
@@ -50,12 +51,31 @@ let liensOk = true;
 for (const l of lignes) {
   const a = l.querySelector('a.fiche__lecon');
   const href = a && a.getAttribute('href');
-  const ok = a && a.textContent.trim() === 'leçon' && href.startsWith(base)
+  const ok = a && a.textContent.trim() === 'voir la leçon' && href.startsWith(base)
     && a.target === '_blank' && a.rel.includes('noopener')
     && fs.existsSync(path.join(RACINE, href.slice(base.length)));
   if (!ok) { liensOk = false; console.log('  lien invalide :', href); }
 }
-verifier(liensOk, 'chaque ligne a un lien « leçon » vers un fichier existant');
+verifier(liensOk, 'chaque ligne a un lien « voir la leçon » vers un fichier existant');
+
+// Balayage : ni « page », ni « p. », ni « livret » dans l'écran ni sur les feuilles.
+const INTERDIT = { test: (t) => /\b(pages?|livret)\b/i.test(t) || /(^|\s)p\.\s/.test(t) };   // « p. » en minuscule : « centre P. » est un point
+const visible = (html) => { const t = new JSDOM(`<body>${html}</body>`).window.document; let s = t.body.textContent; t.querySelectorAll('[alt],[aria-label],[title]').forEach((e) => { s += ' ' + (e.getAttribute('alt') || '') + (e.getAttribute('aria-label') || '') + (e.getAttribute('title') || ''); }); return s; };
+const texteEcran = d.querySelector('.tunnel').textContent + [...d.querySelectorAll('[aria-label]')].map((e) => e.getAttribute('aria-label')).join(' ');
+verifier(!INTERDIT.test(texteEcran), 'pas 1 : aucun mot « page », « p. » ou « livret »');
+verifier(!d.querySelector('.fiche__pages'), 'pas 1 : plus de numéros de page sur les lignes');
+const mauvais = [];
+for (const f of FICHES) {
+  const options = {}; (f.options || []).forEach((o) => { options[o.id] = o.valeurs[0].v; });
+  for (const methode of [true, false]) {
+    const t = visible(rendre(f, tirer(f, options, 424242), { methode, corrige: true, base: 'http://x/' }));
+    if (INTERDIT.test(t)) mauvais.push(`${f.id}${methode ? '' : ' (sans méthode)'}`);
+  }
+}
+verifier(mauvais.length === 0, `les ${FICHES.length} fiches, élève et corrigé : aucun mot interdit${mauvais.length ? ' : ' + mauvais.join(', ') : ''}`);
+const panaches = [true, false].every((mini) => !INTERDIT.test(visible(rendrePanache(
+  composer({ notions: FICHES.map((f) => ({ id: f.id })), graine: 424242, miniRappel: mini }), { corrige: true, base: 'http://x/' }))));
+verifier(panaches, 'feuilles panachées (17 notions, avec et sans mini-rappel), élève et corrigé : aucun mot interdit')
 
 // Une case cochée = une notion choisie ; Continuer ×2 mène à la fiche, au pas 3.
 const cocher = (id) => clic(d.querySelector(`[data-fiche="${id}"]`));

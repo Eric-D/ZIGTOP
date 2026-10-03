@@ -27,7 +27,9 @@ du livret de leçons de mathématiques de CE2 (nombres et calculs, grandeurs et 
 géométrie, gestion de données), une leçon par fichier, avec un index qui liste les pages
 couvertes, celles qui manquent et les passages à vérifier. C'est la **source des fiches de
 révision** : chaque fiche à venir s'appuie sur la leçon correspondante, dans les mêmes
-termes que ceux que l'enfant a vus en classe.
+termes que ceux que l'enfant a vus en classe. Les numéros de page ne sont qu'une référence
+de transcription : l'application et les feuilles n'en parlent jamais, car tous les enfants
+n'ont pas le même support.
 
 ## Fiches de révision à imprimer
 
@@ -37,12 +39,12 @@ et le **corrigé sur une deuxième page** pour l'adulte.
 
 L'écran des fiches est un tunnel en trois pas : **que réviser** (les notions, regroupées par
 domaine dans l'ordre du livret, à cocher — une seule donne la fiche complète, plusieurs une
-feuille panachée — avec pour chacune les pages, l'objectif « Je sais… », un lien vers la
+feuille panachée — avec pour chacune l'objectif « Je sais… », un lien vers la
 leçon transcrite et ses options), **composer** (rappel, nombre de feuilles, feuilles
 identiques ou qui tournent sur les notions, le code de la composition), puis **imprimer et
 partager**. Le pas courant est dans l'adresse (`?pas=2`), le bouton retour du navigateur
 marche, et un lien ou un QR arrive directement au dernier pas. Trois raccourcis cochent
-pour vous : « tout ce qu'on a vu jusqu'à la page N » (la page est mémorisée), un domaine
+pour vous : « tout ce qu'on a vu jusqu'à… » (une liste de notions ; le choix est mémorisé), un domaine
 entier, ou « la révision de la semaine » — quatre notions tirées au sort parmi celles de la
 dernière fois, en favorisant les moins tirées. Dix-sept fiches sont
 disponibles (le plan complet est dans [`programme/ce2/PLAN-FICHES.md`](programme/ce2/PLAN-FICHES.md)) :
@@ -128,7 +130,7 @@ Réglages de la fiche :
 
 - **nombres utilisés** : jusqu'à 999, jusqu'à 9 999, ou les deux ;
 - **nombre de feuilles** : 1, 2, 4 ou 6 d'un coup — chacune a ses propres exercices et
-  son propre code. À l'impression, toutes les pages élève sortent d'abord, les corrigés
+  son propre code. À l'impression, toutes les feuilles élève sortent d'abord, les corrigés
   ensuite : on donne la pile du dessus à l'enfant et on garde le reste ;
 - **rappel de la méthode** : avec ou sans. Sans le rappel, la place libérée sert à
   quatre additions et une opération à poser de plus (8 et 4 au lieu de 4 et 3) ;

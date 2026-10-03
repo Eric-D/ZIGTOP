@@ -15,7 +15,7 @@ const vide = () => ({
   etoilesDepensees: 0,
   son: true,
   reglages: {},         // accessibilité : voir js/accessibilite.js
-  pageVue: null,        // fiches : dernière « page jusqu'où on a vu » saisie (null = 56)
+  notionVue: null,      // fiches : identifiant de la dernière notion « jusqu'où on a vu » (null = la dernière)
   derniereSelection: [],// fiches : notions cochées en quittant le pas 1
   tirages: {},          // fiches : identifiant de notion -> fois tirée par « la révision de la semaine »
   carnet: [],           // journal d'événements, on n'écrase jamais : voir js/carnet.js
@@ -73,13 +73,11 @@ export function setReglage(id, valeur) {
 }
 
 // Raccourcis de révision (écran des fiches) : on ne change que les champs fournis.
-export const PAGE_MAX = 56;
-export const pageVue = () => (Number.isInteger(etat.pageVue) ? etat.pageVue : PAGE_MAX);
 export const derniereSelection = () => (Array.isArray(etat.derniereSelection) ? etat.derniereSelection : []);
 export const tirages = () => (etat.tirages && typeof etat.tirages === 'object' ? etat.tirages : {});
 
-export function setRaccourcis({ pageVue: page, derniereSelection: sel, tirages: t }) {
-  if (page !== undefined) etat.pageVue = page;
+export function setRaccourcis({ notionVue: notion, derniereSelection: sel, tirages: t }) {
+  if (notion !== undefined) etat.notionVue = notion;
   if (sel !== undefined) etat.derniereSelection = [...sel];
   if (t !== undefined) etat.tirages = { ...t };
   sauver();

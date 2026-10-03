@@ -90,7 +90,7 @@ verifier(pastilles.length === 2, `pastille « à revoir » sous les 2 notions ($
 verifier(/vu le \d{1,2} /.test(d.querySelector(`[data-fiche="${ids[0]}"]`).closest('.fiche').textContent), 'et « vu le … »');
 verifier(!MOTS.test(d.body.textContent), 'pas 1 : aucun mot négatif');
 // la semaine : les deux notions à revoir sont toujours tirées, même parmi toutes
-w.localStorage.setItem('mathoo.v1', JSON.stringify({ ...sauvegarde(), derniereSelection: [], pageVue: 56, tirages: {} }));
+w.localStorage.setItem('mathoo.v1', JSON.stringify({ ...sauvegarde(), derniereSelection: [], notionVue: null, tirages: {} }));
 let tousPris = true;
 for (let k = 0; k < 6; k++) {
   ({ window: w, Carnet } = await ouvrir(JSON.parse(w.localStorage.getItem('mathoo.v1'))));

@@ -355,8 +355,8 @@ function problemesSoustraction(chif) {
     () => {
       const { a, b } = soustractionAvec(chif, 'plusieurs');
       return {
-        enonce: `Le livre a ${fmt(a)} pages. ${q} en a lu ${fmt(b)}. Combien de pages lui reste-t-il à lire ?`,
-        a, b, phrase: `Il reste ${fmt(a - b)} pages à lire à ${q}.`,
+        enonce: `Le puzzle a ${fmt(a)} pièces. ${q} en a posé ${fmt(b)}. Combien de pièces lui reste-t-il à poser ?`,
+        a, b, phrase: `Il reste ${fmt(a - b)} pièces à poser à ${q}.`,
       };
     },
     () => {
@@ -746,7 +746,7 @@ const miseSoustraction = {
     posees: contenu.posees.slice(0, methode ? 4 : 8),
     aposer: contenu.aposer.slice(0, methode ? 3 : 4),
   }),
-  noteCorrige: 'comme dans le livret, le chiffre qui prête est barré et le nouveau chiffre s’écrit au-dessus ; la colonne qui reçoit 10 unités les note devant son chiffre (2 devient 12).',
+  noteCorrige: 'comme dans la leçon, le chiffre qui prête est barré et le nouveau chiffre s’écrit au-dessus ; la colonne qui reçoit 10 unités les note devant son chiffre (2 devient 12).',
   exercices(contenu, methode) {
     const { posees, aposer } = this.combien(contenu, methode);
     return `
@@ -833,7 +833,7 @@ const miseMultiplication = {
     posees1: contenu.posees1.slice(0, methode ? 3 : 6),
     posees2: contenu.posees2.slice(0, methode ? 2 : (contenu.deux ? 3 : 4)),
   }),
-  noteCorrige: 'les retenues de chaque multiplication sont notées, comme dans le livret, en petit à droite de la ligne du facteur, l’une après l’autre, la précédente barrée (avec deux chiffres : celles de a × unités, puis, après un point-virgule, celles de a × dizaines) ; avec deux chiffres, les deux lignes partielles (a × unités, puis a × dizaines décalé d’une colonne, avec son 0) sont additionnées, et les petites retenues de cette addition sont notées entre les deux lignes.',
+  noteCorrige: 'les retenues de chaque multiplication sont notées, comme dans la leçon, en petit à droite de la ligne du facteur, l’une après l’autre, la précédente barrée (avec deux chiffres : celles de a × unités, puis, après un point-virgule, celles de a × dizaines) ; avec deux chiffres, les deux lignes partielles (a × unités, puis a × dizaines décalé d’une colonne, avec son 0) sont additionnées, et les petites retenues de cette addition sont notées entre les deux lignes.',
   // Rappel de méthode : les deux façons de calculer en ligne (Mila, Enzo), puis les étapes
   // de la multiplication posée, avec les exemples du livret.
   rappel(contenu) {
@@ -977,7 +977,7 @@ const miseNombres = {
     combien: contenu.combien.slice(0, methode ? 4 : 6),
     tableau: contenu.tableau.slice(0, methode ? 4 : 6),
   }),
-  noteCorrige: 'les écritures attendues sont en rouge : les nombres en lettres s’écrivent avec des traits d’union ; le nombre de dizaines (ou de centaines) est celui qu’on compte en tout dans le nombre, comme « 32 centaines » pour 3 258 dans le livret ; les colonnes du tableau sont m (milliers), c (centaines), d (dizaines) et u (unités).',
+  noteCorrige: 'les écritures attendues sont en rouge : les nombres en lettres s’écrivent avec des traits d’union ; le nombre de dizaines (ou de centaines) est celui qu’on compte en tout dans le nombre, comme « 32 centaines » pour 3 258 dans la leçon ; les colonnes du tableau sont m (milliers), c (centaines), d (dizaines) et u (unités).',
   // Rappel : tableau de numération avec l'exemple du livret, façons de représenter le nombre.
   rappel(contenu) {
     const { exemple, lignes } = contenu.methode;
