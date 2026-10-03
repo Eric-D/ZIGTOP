@@ -1887,7 +1887,7 @@ svg.visuel {
   .feuille--corrige .affirmations--sy .affirmation__justif { line-height: 1.1; padding-bottom: 1px; }
 }
 @media print {
-  .feuille--corrige:has(.figs-sy) .bloc { margin-bottom: 1px; }
+  .feuille--corrige:has(.figs-sy) .bloc { margin-bottom: 2px; }
   .feuille--corrige:has(.figs-sy) .grille-sy svg { max-height: 162px; width: auto; }
   .feuille--corrige:has(.figs-sy) .figs-ax { gap: 0 3mm; }
 }
@@ -1922,4 +1922,35 @@ svg.visuel {
   .feuille:not(.feuille--corrige) .case-fr { height: 8.2mm; }
   .feuille:not(.feuille--corrige) .pose__resultat td, .feuille:not(.feuille--corrige) .pose td.case { height: 8.2mm; }
   .feuille:has(.pose--multiplication) .bloc { margin-bottom: 3px; }
+}
+
+/* ---------- #33 : polygones et multiplication, items regagnés par la mise en page ---------- */
+/* polygones : « … côtés, … sommets » sur une seule ligne d'écriture (une rangée de moins par figure) */
+@media print {
+  .feuille .fig-nom { position: relative; gap: 3px; }
+  .feuille .fig-nom > b { position: absolute; left: 0; top: 0; z-index: 1; }
+  .feuille .fig-nom svg { margin-left: 12px; }
+  .feuille:has(.figs-pc) .bloc h2 { font-size: 9.5pt; }
+  .feuille .fig-nom__lignes { font-size: 9pt; }
+  .feuille .fig-nom__ligne--nb { gap: 3px; overflow: visible; }
+  .feuille .fig-nom__ligne--nb .pointilles--mini { min-width: 6mm; }
+}
+/* multiplication : rappel compact. Exemple simple | méthodes en ligne (sur une seule rangée) | grand exemple à droite,
+   sur deux rangées ; les étapes passent sous les deux premiers, en 8 pt. */
+@media print {
+  .feuille .methode--multiplication.methode--livret { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 1mm 3mm; align-items: start; }
+  .feuille .methode--multiplication.methode--livret .methode__exemples, .feuille .methode--multiplication.methode--livret .methode__droite { display: contents; }
+  .feuille .methode--multiplication.methode--livret .methode__exemple:nth-child(1) { grid-column: 1; grid-row: 1; }
+  .feuille .methode--multiplication.methode--livret .methode__exemple:nth-child(2) { grid-column: 3; grid-row: 1 / span 2; }
+  .feuille .methode--multiplication.methode--livret .enligne { grid-column: 2; grid-row: 1; margin-bottom: 0; }
+  .feuille .methode--multiplication.methode--livret .methode__etapes { grid-column: 1 / span 2; grid-row: 2; font-size: 8pt; line-height: 1.2; padding-left: 5mm; }
+  /* grilles du rappel (pas des zones d'écriture) : cellules de 7 mm */
+  .feuille .methode .pose--multiplication td { width: 7mm; height: 7mm; }
+  .feuille .methode .pose--multiplication td.signe { width: 6mm; }
+  .feuille .methode .pose--multiplication td.note { width: auto; height: auto; }
+}
+@media print {
+  .feuille:has(.pose--multiplication) .bloc h2 { font-size: 10pt; }
+  .feuille:has(.pose--multiplication) .bloc { margin-bottom: 2px; }
+  .feuille .methode--multiplication.methode--commune .methode__etapes { font-size: 8pt; }
 }

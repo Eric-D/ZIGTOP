@@ -1036,7 +1036,7 @@ const miseSoustraction = {
 const miseMultiplication = {
   signe: '×',
   combien: (contenu, methode) => ({
-    enligne: contenu.enligne.slice(0, methode ? 1 : 4),   // #32 : lignes à 8 mm, deux items de moins
+    enligne: contenu.enligne.slice(0, methode ? 2 : 4),   // #33 : rappel compact
     posees1: contenu.posees1.slice(0, methode ? 3 : 6),
     posees2: contenu.posees2.slice(0, methode ? 2 : (contenu.deux ? 3 : 4)),
   }),
@@ -1049,7 +1049,7 @@ const miseMultiplication = {
     const exemplesHtml = exemples.map((e) => `
           <div class="methode__exemple">${multiplicationPosee({ ...e, mode: 'corrige', numero: '', formulation: fm.nom })}</div>`).join('');
     return `
-      <div class="methode methode--multiplication">
+      <div class="methode methode--multiplication methode--${fm.nom}">
         <div class="methode__exemples">${exemplesHtml}
         </div>
         <div class="methode__droite">
@@ -4241,10 +4241,10 @@ const misePolygones = {
   signe: '',
   combien: (contenu, methode) => ({
     reconnaitre: contenu.reconnaitre.slice(0, methode ? 8 : 10),
-    nommer: contenu.nommer.slice(0, methode ? 3 : 8),   // #32 : lignes et cases à 8 mm
+    nommer: contenu.nommer.slice(0, methode ? 6 : 8),   // #33 : « côtés, sommets » sur une même ligne
     cas: contenu.cas.slice(0, methode ? 4 : 6),
     tracer: contenu.tracer.slice(0, 1),
-    phrases: contenu.phrases.slice(0, 2),
+    phrases: contenu.phrases.slice(0, methode ? 3 : 6),
   }),
   // Rappel : la définition et les exemples de la page 48, les phrases de la page 49, le cercle de la page 50.
   rappel(contenu, fm = FORMULATIONS_POLYGONES.livret) {
@@ -4287,7 +4287,7 @@ const misePolygones = {
       const n = NOMBRE_COTES[f.nom];
       const rep = (x) => (corrige ? `<span class="reponse rouge">${x}</span>` : ligne);
       const nb = (x, mot) => (corrige ? `<span class="reponse rouge">${x}</span>` : trou);
-      return `<div class="fig-nom fig-nom--${nommer.length}"><b>${lettre(i)}.</b>${fig(f, 'Polygone à nommer', methode ? 54 : 48).svg}<span class="fig-nom__lignes"><span class="fig-nom__ligne">${corrige && nommer.length === 8 ? '' : 'Nom : '}${rep(NOM_POLYGONE[f.nom])}</span><span class="fig-nom__ligne">${nb(n)} côtés</span><span class="fig-nom__ligne">${nb(n)} sommets</span></span></div>`;
+      return `<div class="fig-nom fig-nom--${nommer.length}"><b>${lettre(i)}.</b>${fig(f, 'Polygone à nommer', methode ? 54 : 48).svg}<span class="fig-nom__lignes"><span class="fig-nom__ligne">${corrige && nommer.length === 8 ? '' : 'Nom : '}${rep(NOM_POLYGONE[f.nom])}</span><span class="fig-nom__ligne fig-nom__ligne--nb">${nb(n)} côtés, ${nb(n)} sommets</span></span></div>`;
     };
 
     const casCercle = (c, i) => {

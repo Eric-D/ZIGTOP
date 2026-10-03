@@ -9,7 +9,7 @@
 export const HAUTEURS_BLOCS = {
   'ce2-addition-posee': { eleve: [177,178,154,216], corrige: [173,173,154,155] },
   'ce2-soustraction-posee': { eleve: [177,178,142,216], corrige: [173,173,110,155] },
-  'ce2-multiplication': { eleve: [73,146,256,191], corrige: [58,143,248,155] },
+  'ce2-multiplication': { eleve: [107,143,234,188], corrige: [77,140,226,155] },
   'ce2-nombres-lire-ecrire': { eleve: [309,140,125,130], corrige: [203,121,112,130] },
   'ce2-nombres-comparer': { eleve: [117,174,155,194], corrige: [117,135,136,153] },
   'ce2-fractions-lire': { eleve: [186,178,175,131], corrige: [156,178,151,131] },
@@ -21,7 +21,7 @@ export const HAUTEURS_BLOCS = {
   'ce2-masses-contenances': { eleve: [140,105,197,145], corrige: [140,105,178,109] },
   'ce2-durees': { eleve: [105,105,264,125], corrige: [97,97,245,89] },
   'ce2-solides': { eleve: [150,203,116,132], corrige: [154,203,116,195] },
-  'ce2-polygones': { eleve: [187,152,214,125], corrige: [160,111,214,110] },
+  'ce2-polygones': { eleve: [165,187,214,157], corrige: [138,155,214,133] },
   'ce2-symetrie': { eleve: [190,153,250,146], corrige: [187,139,250,209] },
   'ce2-donnees': { eleve: [198,170,176,100], corrige: [198,170,176,86] },
 };

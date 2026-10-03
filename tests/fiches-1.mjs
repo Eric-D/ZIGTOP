@@ -465,14 +465,14 @@ for (const opt of optionsMult) {
     const nbE = pe.querySelectorAll('.operations .op').length, nbC = pc.querySelectorAll('.operations .op').length;
     verifier(nbE === nbC && nbE === aTraiter.length, `${nom} : ${nbE} multiplications posées côté élève, ${nbC} côté corrigé`);
     verifier(pe.querySelectorAll('.decompositions li').length === pc.querySelectorAll('.decompositions li').length
-      && pe.querySelectorAll('.decompositions li').length === (methode ? 1 : 4), `${nom} : produits en ligne identiques des deux côtés`);
+      && pe.querySelectorAll('.decompositions li').length === (methode ? 2 : 4), `${nom} : produits en ligne identiques des deux côtés`);
     verifier(pe.querySelectorAll('.probleme').length === 2 && pc.querySelectorAll('.probleme').length === 2, `${nom} : 2 problèmes des deux côtés`);
     // Grilles vides des problèmes : même structure que les autres.
     verifier([...pe.querySelectorAll('.pose')].every((t) => new Set([...t.querySelectorAll('tr')].map((tr) => tr.children.length)).size === 1),
       `${nom} : grilles de la page élève rectangulaires`);
     // Corrigé en ligne détaillé : a × b = a × 10 + a × u = a×10 + a×u = produit
     const lignesEnligne = [...pc.querySelectorAll('.decompositions li')].map((li) => li.textContent.replace(/\s+/g, ' ').trim());
-    const attenduEnligne = cm.enligne.slice(0, methode ? 1 : 4).map((o, i) =>
+    const attenduEnligne = cm.enligne.slice(0, methode ? 2 : 4).map((o, i) =>
       `${lettre(i)}. ${o.a} × ${o.b} = ${o.a} × 10 + ${o.a} × ${o.b - 10} = ${o.a * 10} + ${o.a * (o.b - 10)} = ${o.a * o.b}`);
     verifier(JSON.stringify(lignesEnligne) === JSON.stringify(attenduEnligne), `${nom} : calculs en ligne détaillés et exacts`);
     // Problèmes
@@ -673,7 +673,7 @@ for (const opt of optionsMult) {
   const verif = [['ce2-addition-posee', 'mix'], ['ce2-soustraction-posee', 'mix'], ['ce2-multiplication', '2']].map(([id, v]) => {
     const f = FICHES.find((x) => x.id === id); return somme(empreinte(f, f.options[0].id === 'taille' ? { taille: v } : { facteur: v }));
   });
-  verifier(verif.join() === '2789614763,218167992,2256291172', `addition, soustraction, multiplication : rendu inchangé (${verif.join()})`);
+  verifier(verif.join() === '2789614763,218167992,3047715505', `addition, soustraction, multiplication : rendu inchangé (${verif.join()})`);
 }
 
 /* Nombres : comparer, ranger, encadrer ------------------------------- */
@@ -1039,7 +1039,7 @@ for (const opt of optionsMult) {
   const somme = (s) => { let h = 5381; for (const ch of s) h = ((h * 33) ^ ch.charCodeAt(0)) >>> 0; return h; };
   const h = [['ce2-addition-posee', { taille: 'mix' }], ['ce2-soustraction-posee', { taille: 'mix' }], ['ce2-multiplication', { facteur: '2' }], ['ce2-nombres-lire-ecrire', { taille: '1000' }], ['ce2-nombres-lire-ecrire', { taille: '10000' }],
     ['ce2-nombres-comparer', { taille: '1000' }], ['ce2-nombres-comparer', { taille: '10000' }]].map(([id, o]) => somme(empreinte(FICHES.find((x) => x.id === id), o)));
-  verifier(h.join() === '2789614763,218167992,2256291172,1270504235,369606179,1228745252,281949600', `fractions : les cinq fiches précédentes sont inchangées (${h.join()})`);
+  verifier(h.join() === '2789614763,218167992,3047715505,1270504235,369606179,1228745252,281949600', `fractions : les cinq fiches précédentes sont inchangées (${h.join()})`);
   verifier(FICHES.slice(0, 5).map((f) => f.id).join() === 'ce2-addition-posee,ce2-soustraction-posee,ce2-multiplication,ce2-nombres-lire-ecrire,ce2-nombres-comparer', 'fractions : ordre des cinq premières fiches inchangé');
 }
 
@@ -1194,7 +1194,7 @@ for (const opt of optionsMult) {
   const somme = (s) => { let h = 5381; for (const ch of s) h = ((h * 33) ^ ch.charCodeAt(0)) >>> 0; return h; };
   const h = [['ce2-addition-posee', { taille: 'mix' }], ['ce2-soustraction-posee', { taille: 'mix' }], ['ce2-multiplication', { facteur: '2' }], ['ce2-nombres-lire-ecrire', { taille: '1000' }], ['ce2-nombres-lire-ecrire', { taille: '10000' }],
     ['ce2-nombres-comparer', { taille: '1000' }], ['ce2-nombres-comparer', { taille: '10000' }], ['ce2-fractions-lire', {}]].map(([id, o]) => somme(empreinte(FICHES.find((x) => x.id === id), o)));
-  verifier(h.join() === '2789614763,218167992,2256291172,1270504235,369606179,1228745252,281949600,2247076005', `fractions égales : les six fiches précédentes sont inchangées (${h.join()})`);
+  verifier(h.join() === '2789614763,218167992,3047715505,1270504235,369606179,1228745252,281949600,2247076005', `fractions égales : les six fiches précédentes sont inchangées (${h.join()})`);
   verifier(FICHES.slice(0, 6).map((f) => f.id).join() === 'ce2-addition-posee,ce2-soustraction-posee,ce2-multiplication,ce2-nombres-lire-ecrire,ce2-nombres-comparer,ce2-fractions-lire', 'fractions égales : ordre des six premières fiches inchangé');
 }
 
@@ -1380,7 +1380,7 @@ for (const opt of optionsMult) {
   const somme = (s) => { let h = 5381; for (const ch of s) h = ((h * 33) ^ ch.charCodeAt(0)) >>> 0; return h; };
   const h = [['ce2-addition-posee', { taille: 'mix' }], ['ce2-soustraction-posee', { taille: 'mix' }], ['ce2-multiplication', { facteur: '2' }], ['ce2-nombres-lire-ecrire', { taille: '1000' }], ['ce2-nombres-lire-ecrire', { taille: '10000' }],
     ['ce2-nombres-comparer', { taille: '1000' }], ['ce2-nombres-comparer', { taille: '10000' }], ['ce2-fractions-lire', {}], ['ce2-fractions-comparer', {}]].map(([id, o]) => somme(empreinte(FICHES.find((x) => x.id === id), o)));
-  verifier(h.join() === '2789614763,218167992,2256291172,1270504235,369606179,1228745252,281949600,2247076005,1567635576', `fractions calculer : les sept fiches précédentes sont inchangées (${h.join()})`);
+  verifier(h.join() === '2789614763,218167992,3047715505,1270504235,369606179,1228745252,281949600,2247076005,1567635576', `fractions calculer : les sept fiches précédentes sont inchangées (${h.join()})`);
   verifier(FICHES.slice(0, 7).map((f) => f.id).join() === 'ce2-addition-posee,ce2-soustraction-posee,ce2-multiplication,ce2-nombres-lire-ecrire,ce2-nombres-comparer,ce2-fractions-lire,ce2-fractions-comparer', 'fractions calculer : ordre des sept premières fiches inchangé');
 }
 
@@ -1559,7 +1559,7 @@ for (const opt of optionsMult) {
   const h = [['ce2-addition-posee', { taille: 'mix' }], ['ce2-soustraction-posee', { taille: 'mix' }], ['ce2-multiplication', { facteur: '2' }], ['ce2-nombres-lire-ecrire', { taille: '1000' }], ['ce2-nombres-lire-ecrire', { taille: '10000' }],
     ['ce2-nombres-comparer', { taille: '1000' }], ['ce2-nombres-comparer', { taille: '10000' }], ['ce2-fractions-lire', {}], ['ce2-fractions-comparer', {}], ['ce2-fractions-calculer', { denominateur: '4' }], ['ce2-fractions-calculer', { denominateur: '10' }]]
     .map(([id, o]) => somme(empreinte(FICHES.find((x) => x.id === id), o)));
-  verifier(h.join() === '2789614763,218167992,2256291172,1270504235,369606179,1228745252,281949600,2247076005,1567635576,4158694318,2606603336', `monnaie : les huit fiches précédentes sont inchangées (${h.join()})`);
+  verifier(h.join() === '2789614763,218167992,3047715505,1270504235,369606179,1228745252,281949600,2247076005,1567635576,4158694318,2606603336', `monnaie : les huit fiches précédentes sont inchangées (${h.join()})`);
   verifier(FICHES.slice(0, 8).map((f) => f.id).join() === 'ce2-addition-posee,ce2-soustraction-posee,ce2-multiplication,ce2-nombres-lire-ecrire,ce2-nombres-comparer,ce2-fractions-lire,ce2-fractions-comparer,ce2-fractions-calculer', 'monnaie : ordre des huit premières fiches inchangé');
 }
 
