@@ -21,7 +21,7 @@ l'enfant a vus en classe.
 | 2 | Multiplication (en ligne et posée) | [05-multiplication.md](01-nombres-et-calculs/05-multiplication.md) (19–21) | [#2](https://github.com/Eric-D/ZIGTOP/issues/2) | ✅ en ligne |
 | 3 | Nombres : lire, écrire, décomposer | [02-nombres-jusqu-a-10000.md](01-nombres-et-calculs/02-nombres-jusqu-a-10000.md) (3–8) | [#3](https://github.com/Eric-D/ZIGTOP/issues/3) | ✅ en ligne |
 | 4 | Nombres : comparer, ranger, encadrer, droite graduée | [02-nombres-jusqu-a-10000.md](01-nombres-et-calculs/02-nombres-jusqu-a-10000.md) (9–13) | [#4](https://github.com/Eric-D/ZIGTOP/issues/4) | ✅ en ligne |
-| 5 | Fractions : lire, écrire, représenter | [06-fractions.md](01-nombres-et-calculs/06-fractions.md) (22–25) | [#5](https://github.com/Eric-D/ZIGTOP/issues/5) | ⬜ à faire |
+| 5 | Fractions : lire, écrire, représenter | [06-fractions.md](01-nombres-et-calculs/06-fractions.md) (22–25) | [#5](https://github.com/Eric-D/ZIGTOP/issues/5) | ✅ en ligne |
 | 6 | Fractions : égales et comparaison | [06-fractions.md](01-nombres-et-calculs/06-fractions.md) (26–29) | [#6](https://github.com/Eric-D/ZIGTOP/issues/6) | ⬜ à faire |
 | 7 | Fractions : mesurer, additionner, soustraire | [06-fractions.md](01-nombres-et-calculs/06-fractions.md) (30–31) | [#7](https://github.com/Eric-D/ZIGTOP/issues/7) | ⬜ à faire |
 | 8 | Monnaie : composer une somme, rendre la monnaie | [01-monnaie.md](02-grandeurs-et-mesures/01-monnaie.md) (32) | [#8](https://github.com/Eric-D/ZIGTOP/issues/8) | ⬜ à faire |

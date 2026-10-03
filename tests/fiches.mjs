@@ -4,6 +4,7 @@ import { JSDOM } from 'jsdom';
 import { FICHES, tirer, rendre, decoder, codeDe, optionsParDefaut } from '../js/fiches.js';
 import { matrice } from '../js/qr.js';
 import { fmt } from '../js/utils.js';
+import { figureFraction } from '../js/visuels.js';
 
 let echecs = 0;
 const verifier = (ok, message) => { if (!ok) echecs++; console.log(`${ok ? '✔' : '✘'} ${message}`); };
@@ -514,7 +515,7 @@ for (const opt of optionsMult) {
 {
   const nb = FICHES.find((f) => f.id === 'ce2-nombres-lire-ecrire');
   console.log('— Nombres : lire, écrire, décomposer');
-  verifier(FICHES.indexOf(nb) === 3 && FICHES.length === 5, 'nombres : fiche à son rang dans FICHES (index 3)');
+  verifier(FICHES.indexOf(nb) === 3 && FICHES.length >= 5, 'nombres : fiche à son rang dans FICHES (index 3)');
   verifier(nb.options[0].valeurs.map((v) => v.v).join() === '1000,10000' && nb.options[0].defaut === '10000', 'nombres : option taille 1000 / 10000, défaut 10000');
 
   // Écriture en lettres recalculée par une autre méthode que enLettres (nombres sans 0).
@@ -654,7 +655,7 @@ for (const opt of optionsMult) {
   const cp = FICHES.find((f) => f.id === 'ce2-nombres-comparer');
   const nbl = FICHES.find((f) => f.id === 'ce2-nombres-lire-ecrire');
   console.log('— Nombres : comparer, ranger, encadrer');
-  verifier(FICHES.indexOf(cp) === FICHES.length - 1 && FICHES.length === 5, 'comparer : fiche ajoutée en fin de FICHES');
+  verifier(FICHES.indexOf(cp) === 4 && FICHES.length >= 5, 'comparer : fiche à son rang dans FICHES (index 4)');
   verifier(cp.titre === 'Les nombres : comparer, ranger, encadrer' && cp.emoji === '⚖️', 'comparer : titre et emoji');
   verifier(cp.options[0].id === 'taille' && cp.options[0].valeurs.map((v) => v.v).join() === '1000,10000' && cp.options[0].defaut === '10000'
     && cp.options[0].valeurs[0].nom === 'Jusqu’à 999' && cp.options[0].valeurs[1].nom === 'Jusqu’à 9 999', 'comparer : option taille 1000 / 10000, défaut 10000');
@@ -802,6 +803,218 @@ for (const opt of optionsMult) {
   const somme = (s) => { let h = 5381; for (const ch of s) h = ((h * 33) ^ ch.charCodeAt(0)) >>> 0; return h; };
   const h4 = ['1000', '10000'].map((t) => somme(empreinte(nbl, { taille: t })));
   verifier(h4.join() === '3247079376,2467628440', `nombres (lire, écrire) : rendu inchangé (${h4.join()})`);
+}
+
+/* Fractions : lire, écrire, représenter ------------------------------- */
+{
+  const fr = FICHES.find((f) => f.id === 'ce2-fractions-lire');
+  console.log('— Fractions : lire, écrire, représenter');
+  verifier(FICHES.indexOf(fr) === FICHES.length - 1 && FICHES.length === 6 && FICHES.indexOf(fr) === 5, 'fractions : fiche ajoutée en fin de FICHES (index 5)');
+  verifier(fr.titre === 'Les fractions : lire, écrire, représenter' && fr.emoji === '🍰' && Array.isArray(fr.options) && fr.options.length === 0, 'fractions : titre, emoji, aucune option propre');
+
+  // Références indépendantes de la fiche : noms des fractions et nombres en lettres.
+  const NOMS = { 2: 'demi', 3: 'tiers', 4: 'quart', 5: 'cinquième', 6: 'sixième', 7: 'septième', 8: 'huitième', 9: 'neuvième', 10: 'dixième' };
+  const NUM = ['', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf'];
+  const motsDe = (n, d) => `${NUM[n]} ${NOMS[d]}${n > 1 && d !== 3 ? 's' : ''}`;
+  const lireMots = (t) => {    // « trois quarts » → { n: 3, d: 4 }
+    const [a, ...reste] = t.trim().split(' ');
+    const nom = reste.join(' ');
+    const d = Object.keys(NOMS).map(Number).find((k) => nom === NOMS[k] || nom === NOMS[k] + 's');
+    return { n: NUM.indexOf(a), d };
+  };
+  verifier(motsDe(3, 4) === 'trois quarts' && motsDe(1, 2) === 'un demi' && motsDe(2, 3) === 'deux tiers' && motsDe(7, 8) === 'sept huitièmes', 'fractions : les noms de référence redonnent ceux de la leçon');
+
+  const txt = (el) => el.textContent.replace(/\s+/g, ' ').trim();
+  const nd = (f) => ({ n: +f.querySelector('.fraction__num').textContent, d: +f.querySelector('.fraction__den').textContent });
+  const GRILLES = [4, 6, 8, 9, 10];
+  const doc = (c, o) => new JSDOM(`<div>${rendre(fr, c, o)}</div>`).window.document;
+  // Texte d'une affirmation, les fractions écrites « n/d ».
+  const phrase = (li) => {
+    const t = li.querySelector('.affirmation__texte').cloneNode(true);
+    t.querySelectorAll('.fraction').forEach((f) => { const { n, d } = nd(f); f.replaceWith(`${n}/${d}`); });
+    return t.textContent.replace(/\s+/g, ' ').replace(/^[a-z]\.\s*/, '').trim();
+  };
+  const FIXES = {
+    'Le dénominateur indique en combien de parts égales on partage l’unité.': true,
+    'Le dénominateur indique combien de parts on a coloriées.': false,
+    'Le numérateur indique combien de parts on a coloriées.': true,
+    'Le numérateur indique en combien de parts égales on partage l’unité.': false,
+  };
+  const verite = (t) => {
+    let m;
+    if (t in FIXES) return FIXES[t];
+    if ((m = t.match(/^Dans (\d+)\/(\d+), le dénominateur est (\d+)\.$/))) return +m[3] === +m[2];
+    if ((m = t.match(/^Dans (\d+)\/(\d+), le numérateur est (\d+)\.$/))) return +m[3] === +m[1];
+    if ((m = t.match(/^(\d+)\/(\d+), c’est un (.+)\.$/))) return +m[1] === 1 && m[3] === NOMS[+m[2]];
+    if ((m = t.match(/^(.+) s’écrit (\d+)\/(\d+)\.$/))) { const r = lireMots(m[1]); return r.n === +m[2] && r.d === +m[3]; }
+    if ((m = t.match(/^(\d+)\/(\d+), c’est (.+) fois 1\/(\d+)\.$/))) return NUM.indexOf(m[3]) === +m[1] && +m[2] === +m[4];
+    return null;
+  };
+
+  for (const methode of [true, false]) {
+    const nom = `fractions ${methode ? 'avec' : 'sans'} méthode`;
+    const k = methode ? { lire: 6, lettres: 4, aff: 4 } : { lire: 8, lettres: 6, aff: 6 };
+    for (const graine of [987654, 1, 2, 3, 4, 5]) {
+      const c = tirer(fr, {}, graine);
+      const d = doc(c, { corrige: true, methode });
+      const [pe, pc] = d.querySelectorAll('.feuille');
+      const tag = `${nom} (graine ${graine})`;
+      const quiet = graine !== 987654;   // le détail n'est affiché que pour la première graine
+
+      // Comptes identiques élève / corrigé
+      const compte = (page, sel) => page.querySelectorAll(sel).length;
+      const comptesOk = compte(pe, '.figures-lire .figure-cellule') === k.lire && compte(pc, '.figures-lire .figure-cellule') === k.lire
+        && compte(pe, '.figures-colorier .figure-cellule') === 4 && compte(pc, '.figures-colorier .figure-cellule') === 4
+        && compte(pe, '.ecriture--lettres') === k.lettres && compte(pc, '.ecriture--lettres') === k.lettres
+        && compte(pe, '.ecriture--chiffres') === k.lettres && compte(pc, '.ecriture--chiffres') === k.lettres
+        && compte(pe, '.affirmation') === k.aff && compte(pc, '.affirmation') === k.aff
+        && compte(pe, '.bloc:not(.bloc--methode)') === 4 && compte(pc, '.bloc') === 4;
+      if (!quiet || !comptesOk) verifier(comptesOk, `${tag} : ${k.lire} figures, 4 figures vierges, ${k.lettres} + ${k.lettres} écritures, ${k.aff} affirmations (élève et corrigé)`);
+
+      // Ex. 1 : fraction du corrigé = parts grisées sur parts de la figure
+      let ok1 = true, den = [];
+      pc.querySelectorAll('.figures-lire .figure-cellule').forEach((cel, i) => {
+        const svg = cel.querySelector('svg'), f = nd(cel.querySelector('.fraction'));
+        const parts = svg.querySelectorAll('.part').length, gris = svg.querySelectorAll('.part--coloriee').length;
+        den.push(f.d);
+        if (parts !== f.d || gris !== f.n || f.n >= f.d || f.n < 1 || f.d < 2 || f.d > 10) ok1 = false;
+        const eleve = pe.querySelectorAll('.figures-lire .figure-cellule')[i].querySelector('svg');
+        if (eleve.querySelectorAll('.part').length !== parts || eleve.querySelectorAll('.part--coloriee').length !== gris) ok1 = false;
+      });
+      const formes = [...pc.querySelectorAll('.figures-lire svg')].map((s) => s.dataset.forme);
+      if (!quiet || !ok1) verifier(ok1, `${tag} : exercice 1, fraction = parts grisées sur parts égales, numérateur < dénominateur`);
+      verifier(quiet || (new Set(formes).size === 2 && formes.every((f) => f === 'disque' || f === 'bande') && new Set(den).size === den.length), `${tag} : disques et bandes mélangés, dénominateurs tous différents (${den})`);
+      // les cases à remplir de la page élève sont vides
+      verifier(compte(pe, '.figures-lire .fraction--vide') === k.lire && compte(pe, '.figures-lire .fraction--vide .case-fr') === 2 * k.lire && !pe.querySelector('.figures-lire .fraction--reponse'), `${tag} : fractions de l’exercice 1 à écrire (cases vides) sur la page élève`);
+
+      // Ex. 2 : figures vierges à l'élève, grisées au corrigé
+      let ok2 = true;
+      pc.querySelectorAll('.figures-colorier .figure-cellule').forEach((cel, i) => {
+        const svg = cel.querySelector('svg'), f = nd(cel.querySelector('.fraction'));
+        const parts = svg.querySelectorAll('.part').length;
+        if (parts !== f.d || svg.querySelectorAll('.part--coloriee').length !== f.n || f.n >= f.d || f.n < 1) ok2 = false;
+        if (svg.dataset.forme === 'carre' && !GRILLES.includes(parts)) ok2 = false;
+        const ev = pe.querySelectorAll('.figures-colorier .figure-cellule')[i];
+        const f2 = nd(ev.querySelector('.fraction'));
+        if (f2.n !== f.n || f2.d !== f.d || ev.querySelectorAll('.part').length !== parts || ev.querySelectorAll('.part--coloriee').length !== 0 || ev.querySelector('svg').dataset.forme !== svg.dataset.forme) ok2 = false;
+      });
+      if (!quiet || !ok2) verifier(ok2, `${tag} : exercice 2, figures vierges (fraction écrite dessous) et corrigé grisé du bon nombre de parts`);
+
+      // Ex. 3 : lettres et chiffres recalculés
+      let ok3 = true;
+      const motsEleve = [...pe.querySelectorAll('.ecriture--lettres .mots')].length;
+      pc.querySelectorAll('.ecriture--lettres').forEach((li, i) => {
+        const f = nd(li.querySelector('.fraction'));
+        if (txt(li.querySelector('.mots')) !== motsDe(f.n, f.d) || f.n >= f.d || !NOMS[f.d]) ok3 = false;
+        const fe = nd(pe.querySelectorAll('.ecriture--lettres')[i].querySelector('.fraction'));
+        if (fe.n !== f.n || fe.d !== f.d) ok3 = false;
+      });
+      const vues = new Set();
+      pc.querySelectorAll('.ecriture--lettres').forEach((li) => { const f = nd(li.querySelector('.fraction')); vues.add(`${f.n}/${f.d}`); });
+      pc.querySelectorAll('.ecriture--chiffres').forEach((li, i) => {
+        const f = nd(li.querySelector('.fraction'));
+        const lu = lireMots(txt(li.querySelector('.mots')).replace(/\s*=$/, ''));
+        if (lu.n !== f.n || lu.d !== f.d || f.n >= f.d) ok3 = false;
+        if (vues.has(`${f.n}/${f.d}`)) ok3 = false;
+        const ev = pe.querySelectorAll('.ecriture--chiffres')[i];
+        if (txt(ev.querySelector('.mots')) !== txt(li.querySelector('.mots')) || ev.querySelector('.fraction--reponse') || ev.querySelectorAll('.case-fr').length !== 2) ok3 = false;
+      });
+      if (motsEleve !== 0) ok3 = false;
+      if (!quiet || !ok3) verifier(ok3, `${tag} : exercice 3, lettres et chiffres exacts, fractions toutes différentes, réponses absentes de la page élève`);
+
+      // Ex. 4 : chaque affirmation recalculée, case cochée = bonne case
+      let ok4 = true, vrais = 0, frOk = true;
+      const lis = [...pc.querySelectorAll('.affirmation')];
+      lis.forEach((li, i) => {
+        const v = verite(phrase(li));
+        if (v === null) { ok4 = false; return; }
+        const cochees = [...li.querySelectorAll('.case-vf--cochee')].map((e) => e.dataset.choix);
+        if (cochees.length !== 1 || cochees[0] !== (v ? 'V' : 'F')) ok4 = false;
+        if (v) vrais++;
+        const ev = pe.querySelectorAll('.affirmation')[i];
+        if (phrase(ev) !== phrase(li) || ev.querySelector('.case-vf--cochee') || ev.querySelectorAll('.case-vf').length !== 2) ok4 = false;
+        [...li.querySelectorAll('.fraction')].forEach((f) => { const r = nd(f); if (r.n >= r.d) frOk = false; });
+      });
+      if (!quiet || !ok4) verifier(ok4, `${tag} : exercice 4, ${k.aff} affirmations, case cochée = bonne case, cases vides à l’élève`);
+      verifier(frOk, `${tag} : fractions des affirmations avec numérateur < dénominateur`);
+      verifier(quiet || vrais === k.aff / 2, `${tag} : autant d’affirmations vraies que d’autres (${vrais} sur ${k.aff})`);
+      const premiers = lis.slice(0, 4).filter((li) => verite(phrase(li))).length;
+      verifier(quiet || premiers === 2, `${tag} : 2 vraies parmi les 4 premières`);
+      verifier(quiet || [...pe.querySelectorAll('.case-vf')].every((e) => e.textContent === 'V' || e.textContent === 'F'), `${tag} : cases V et F en petites cases`);
+
+      // Page élève : aucune réponse hors exemple du rappel ; ton ; emoji
+      const corps = [...pe.querySelectorAll('.bloc:not(.bloc--methode)')];
+      verifier(!corps.some((b) => b.querySelector('.rouge, .fraction--reponse, .coche, .case-vf--cochee')) && !pe.querySelector('.mots.reponse'), `${tag} : aucune réponse sur la page élève`);
+      verifier(corps[1].querySelectorAll('.part--coloriee').length === 0, `${tag} : figures de l’exercice 2 vierges`);
+      verifier(methode ? txt(pe).includes('Je me souviens de la méthode') : !txt(pe).includes('Je me souviens'), `${tag} : rappel présent / masqué`);
+      verifier(!/\b(faux|fausse|erreur|raté|nul|négatif)\b/i.test(d.body.textContent) && !/[✘❌✖✗×]/.test(d.body.textContent), `${tag} : aucun mot ni signe négatif`);
+      const brut = rendre(fr, c, { corrige: true, methode }).replace(/<h1[^>]*>.*?<\/h1>/gs, '');
+      verifier(!/[\u{1F300}-\u{1FAFF}]/u.test(brut) && !corps.some((b) => /[\u{1F300}-\u{1FAFF}]/u.test(b.textContent)), `${tag} : pas d’emoji sur la feuille`);
+    }
+  }
+
+  // Vraies fractions : numérateur sur dénominateur, avec un trait
+  { const d = doc(tirer(fr, {}, 5), { corrige: true });
+    verifier(d.querySelectorAll('.fraction .fraction__num').length > 20 && !/\d\/\d/.test(d.body.textContent), 'fractions : écrites en numérateur sur dénominateur, jamais « n/d »'); }
+
+  // Rappel : les phrases de la leçon (pages 22 à 25)
+  {
+    const d = doc(tirer(fr, {}, 1), { corrige: false });
+    const h = txt(d.querySelector('.bloc--methode'));
+    verifier(['La bande de papier correspond à une unité, c’est-à-dire à 1.', 'partagée en quatre parts égales', 'on a donc des quarts', 'Chaque part représente un quart',
+      'c’est quand il en faut 4 pour faire 1', 'On a colorié trois parts. Cela représente trois quarts', 'Trois quarts, c’est trois fois un quart', 'Trois quarts s’écrit',
+      'le nombre du bas indique qu’on a des quarts et le nombre du haut qu’on a trois quarts', '4 est le dénominateur : il indique qu’on a partagé l’unité en 4 parts égales.',
+      '3 est le numérateur : il indique qu’on a colorié 3 fois une part.',
+      ': un demi', ': un tiers', ': un quart', ': un cinquième', ': un sixième', ': un huitième', ': un dixième'].every((m) => h.includes(m)), 'fractions : le rappel reprend les phrases et les noms du livret');
+    verifier(d.querySelectorAll('.bloc--methode svg.figure-fraction').length === 2 && d.querySelectorAll('.bloc--methode .rappel-frac__noms li').length === 7, 'fractions : rappel avec ses 2 figures et ses 7 noms');
+  }
+
+  // figureFraction : générale, nombre de parts et de parts grisées pour toutes les formes
+  {
+    let casse = 0;
+    const cas = [];
+    for (const forme of ['disque', 'bande']) for (let p = 2; p <= 12; p++) for (let g = 0; g <= p; g++) cas.push({ forme, parts: p, coloriees: g });
+    for (const p of GRILLES) for (let g = 0; g <= p; g++) cas.push({ forme: 'carre', parts: p, coloriees: g });
+    for (const spec of cas) {
+      const svg = new JSDOM(`<div>${figureFraction({ ...spec, taille: 84 })}</div>`).window.document.querySelector('svg');
+      if (!svg || svg.querySelectorAll('.part').length !== spec.parts || svg.querySelectorAll('.part--coloriee').length !== spec.coloriees || svg.getAttribute('width') !== '84') casse++;
+    }
+    verifier(casse === 0, `figureFraction : parts et parts grisées exactes (${cas.length} figures)`);
+    let leve = 0;
+    for (const spec of [{ forme: 'carre', parts: 7, coloriees: 1 }, { forme: 'triangle', parts: 3, coloriees: 1 }]) { try { figureFraction(spec); } catch { leve++; } }
+    verifier(leve === 2, 'figureFraction : grille impossible et forme inconnue refusées');
+    // Parts égales : angles des secteurs, largeurs des cases
+    const s = new JSDOM(`<div>${figureFraction({ forme: 'bande', parts: 8, coloriees: 3 })}</div>`).window.document;
+    const larg = [...s.querySelectorAll('.part')].map((r) => +r.getAttribute('width'));
+    verifier(larg.every((w) => Math.abs(w - larg[0]) < 0.01) && Math.abs(larg[0] * 8 - 100) < 0.05, 'figureFraction : cases de la bande égales');
+  }
+
+  // Codes reproductibles
+  const c = tirer(fr, {});
+  const r = decoder(c.code);
+  verifier(r && r.fiche === fr && JSON.stringify(tirer(r.fiche, r.options, r.graine)) === JSON.stringify(c), `fractions : le code ${c.code} redonne la même fiche`);
+  verifier(rendre(fr, tirer(fr, {}, 77), { corrige: true }) === rendre(fr, tirer(fr, {}, 77), { corrige: true }), 'fractions : même graine, même HTML');
+  const vus = new Set(); for (let i = 0; i < 200; i++) vus.add(tirer(fr, {}).code);
+  verifier(vus.size > 190, `fractions : codes variés (${vus.size} sur 200)`);
+
+  // Robustesse : numérateur < dénominateur et contraintes sur 300 tirages
+  let casse = 0;
+  for (let i = 0; i < 300; i++) {
+    const t = tirer(fr, {}, 5000 + i);
+    const tous = [...t.lire.map((f) => [f.n, f.parts]), ...t.colorier.map((f) => [f.n, f.parts]), ...t.lettres.map((f) => [f.n, f.d]), ...t.chiffres.map((f) => [f.n, f.d])];
+    const cle = [...t.lettres, ...t.chiffres].map((f) => `${f.n}/${f.d}`);
+    if (tous.some(([n, d]) => n < 1 || n >= d) || new Set(cle).size !== 12 || t.colorier.some((f) => f.forme === 'carre' && !GRILLES.includes(f.parts))
+      || t.affirmations.some((a) => a.n !== undefined && a.modele !== 'den' && a.modele !== 'num' && a.x !== undefined && a.modele === 'ecrit' && a.x <= a.n)) casse++;
+  }
+  verifier(casse === 0, 'fractions : contraintes tenues sur 300 tirages');
+
+  // Les cinq fiches précédentes inchangées : empreinte du HTML à graine fixe, mesurée avant l’ajout
+  const empreinte = (f, o) => { const t = tirer(f, o, 424242); return JSON.stringify(t) + rendre(f, t, { corrige: true, base: 'http://x/' }); };
+  const somme = (s) => { let h = 5381; for (const ch of s) h = ((h * 33) ^ ch.charCodeAt(0)) >>> 0; return h; };
+  const h = [['ce2-addition-posee', { taille: 'mix' }], ['ce2-soustraction-posee', { taille: 'mix' }], ['ce2-multiplication', { facteur: '2' }], ['ce2-nombres-lire-ecrire', { taille: '1000' }], ['ce2-nombres-lire-ecrire', { taille: '10000' }],
+    ['ce2-nombres-comparer', { taille: '1000' }], ['ce2-nombres-comparer', { taille: '10000' }]].map(([id, o]) => somme(empreinte(FICHES.find((x) => x.id === id), o)));
+  verifier(h.join() === '2857615915,841554819,1341628403,3247079376,2467628440,3671073380,178792032', `fractions : les cinq fiches précédentes sont inchangées (${h.join()})`);
+  verifier(FICHES.slice(0, 5).map((f) => f.id).join() === 'ce2-addition-posee,ce2-soustraction-posee,ce2-multiplication,ce2-nombres-lire-ecrire,ce2-nombres-comparer', 'fractions : ordre des cinq premières fiches inchangé');
 }
 
 process.exit(echecs ? 1 : 0);

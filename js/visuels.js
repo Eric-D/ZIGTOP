@@ -160,3 +160,54 @@ export function demiDroite({ max, grand, petit, points = [], corrige = false }) 
     ${traits}${marques}
   </svg>`;
 }
+
+// Figure partagée en `parts` parts égales dont les `coloriees` premières sont grisées, pour
+// représenter une fraction de l'unité. Gris moyen et traits noirs : la feuille s'imprime en noir
+// et blanc. Aucun style externe : tout est en attributs, donc la figure se place où l'on veut.
+//   forme    : 'disque' (secteurs, le premier part du haut, sens des aiguilles d'une montre),
+//              'bande' (rectangle en cases, de gauche à droite),
+//              'carre' (grille, ligne par ligne) — seulement pour 4, 6, 8, 9 et 10 parts ;
+//   taille   : largeur de la figure à l'écran, en pixels (96 px = 25,4 mm) ; la hauteur suit.
+// Chaque part est un élément `.part` ; celles qui sont grisées portent aussi `.part--coloriee`.
+const GRILLES_CARRE = { 4: [2, 2], 6: [2, 3], 8: [2, 4], 9: [3, 3], 10: [2, 5] };
+const GRIS_PART = '#A9A9A9';
+
+export function figureFraction({ forme, parts, coloriees = 0, taille = 84, titre } = {}) {
+  const trait = '#222';
+  const part = (i, balise, attributs) => {
+    const coloree = i < coloriees;
+    return `<${balise} class="part${coloree ? ' part--coloriee' : ''}" data-rang="${i}" ${attributs} fill="${coloree ? GRIS_PART : '#fff'}" stroke="${trait}" stroke-width="2" stroke-linejoin="round"/>`;
+  };
+  let largeur, hauteur, dessin = '';
+  if (forme === 'disque') {
+    largeur = hauteur = 104;
+    const c = 52, r = 48;
+    if (parts === 1) {
+      dessin = part(0, 'circle', `cx="${c}" cy="${c}" r="${r}"`);
+    } else {
+      const point = (a) => `${(c + r * Math.cos(a)).toFixed(2)} ${(c + r * Math.sin(a)).toFixed(2)}`;
+      for (let i = 0; i < parts; i++) {
+        const a1 = -Math.PI / 2 + (2 * Math.PI * i) / parts, a2 = -Math.PI / 2 + (2 * Math.PI * (i + 1)) / parts;
+        dessin += part(i, 'path', `d="M${c} ${c} L${point(a1)} A${r} ${r} 0 0 1 ${point(a2)} Z"`);
+      }
+    }
+  } else if (forme === 'bande') {
+    const w = 100 / parts;
+    largeur = 104; hauteur = 34;
+    for (let i = 0; i < parts; i++) dessin += part(i, 'rect', `x="${(2 + i * w).toFixed(3)}" y="2" width="${w.toFixed(3)}" height="30"`);
+  } else if (forme === 'carre') {
+    const grille = GRILLES_CARRE[parts];
+    if (!grille) throw new Error(`figureFraction : pas de grille pour ${parts} parts`);
+    const [lignes, colonnes] = grille;
+    const cote = 100 / Math.max(lignes, colonnes);
+    largeur = colonnes * cote + 4; hauteur = lignes * cote + 4;
+    for (let i = 0; i < parts; i++) {
+      dessin += part(i, 'rect', `x="${(2 + (i % colonnes) * cote).toFixed(3)}" y="${(2 + Math.floor(i / colonnes) * cote).toFixed(3)}" width="${cote.toFixed(3)}" height="${cote.toFixed(3)}"`);
+    }
+  } else {
+    throw new Error(`figureFraction : forme inconnue « ${forme} »`);
+  }
+  const etiquette = titre || `Figure partagée en ${parts} parts égales`;
+  return `<svg class="figure-fraction" data-forme="${forme}" data-parts="${parts}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${largeur} ${hauteur}"
+    width="${taille}" height="${Math.round((taille * hauteur) / largeur)}" role="img" aria-label="${etiquette}">${dessin}</svg>`;
+}

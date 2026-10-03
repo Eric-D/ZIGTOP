@@ -4,7 +4,7 @@
 
 import { rnd, pick, shuffle, fmt, enLettres, setAlea, generateurAleatoire } from './utils.js';
 import { qrSVG } from './qr.js';
-import { demiDroite } from './visuels.js';
+import { demiDroite, figureFraction } from './visuels.js';
 
 /* ------------------------------------------------------------------ */
 /* Outils de mise en page                                              */
@@ -1315,6 +1315,227 @@ const miseComparer = {
   },
 };
 
+/* ------------------------------------------------------------------ */
+/* CE2 — fractions : lire, écrire, représenter                          */
+/* ------------------------------------------------------------------ */
+
+// Les noms du livret (pages 22 et 23), puis 7 et 9 pour les figures seulement.
+const NOM_FRACTION = { 2: 'demi', 3: 'tiers', 4: 'quart', 5: 'cinquième', 6: 'sixième', 7: 'septième', 8: 'huitième', 9: 'neuvième', 10: 'dixième' };
+const DEN_LIVRET = [2, 3, 4, 5, 6, 8, 10];
+const DEN_CARRE = [4, 6, 8, 9, 10];   // dénominateurs qu'une grille partage en cases égales
+// « trois quarts », « un demi » : le nom prend un s quand il y en a plusieurs.
+const enMots = (n, d) => `${enLettres(n)} ${NOM_FRACTION[d]}${n > 1 && d !== 3 ? 's' : ''}`;   // « deux tiers » : tiers ne change pas
+
+// Une vraie fraction : le numérateur sur le dénominateur, séparés par un trait.
+const fraction = (n, d, classe = '') =>
+  `<span class="fraction${classe ? ` ${classe}` : ''}" data-n="${n}" data-d="${d}"><span class="fraction__num">${n}</span><span class="fraction__den">${d}</span></span>`;
+const fractionVide = () =>
+  '<span class="fraction fraction--vide"><span class="fraction__num"><span class="case-fr"></span></span><span class="fraction__den"><span class="case-fr"></span></span></span>';
+const fractionRouge = (n, d) => fraction(n, d, 'fraction--reponse rouge');
+
+// Les affirmations du vrai-ou-faux : une par modèle, vraie ou non. Les phrases viennent de la leçon.
+const MODELES_AFFIRMATION = ['den', 'num', 'nom', 'ecrit', 'parts', 'colorie', 'fois'];
+
+function affirmationDe(modele, vrai) {
+  // Un autre dénominateur, plus grand que le numérateur : la fausse écriture reste une vraie fraction.
+  const autre = (d, n) => pick(DEN_LIVRET.filter((x) => x !== d && x > n));
+  const unitaire = modele === 'nom' || modele === 'ecrit';   // ces deux modèles acceptent 1/2
+  const d = pick(unitaire ? DEN_LIVRET : DEN_LIVRET.filter((x) => x >= 3));
+  const n = modele === 'nom' ? 1 : modele === 'ecrit' ? rnd(1, Math.min(d - 1, 5)) : rnd(2, d - 1);
+  if (modele === 'parts' || modele === 'colorie') return { modele, vrai };
+  let x;
+  if (modele === 'den') x = vrai ? d : n;
+  else if (modele === 'num') x = vrai ? n : d;
+  else if (modele === 'fois') x = vrai ? n : d;
+  else x = vrai ? d : autre(d, n);   // 'nom' et 'ecrit' : le dénominateur annoncé
+  return { modele, n, d, x, vrai };
+}
+
+function genererFractions() {
+  // Ex. 1 : figures partagées, dénominateurs tous différents, numérateur < dénominateur.
+  const depart = rnd(0, 1);
+  const lire = shuffle([2, 3, 4, 5, 6, 7, 8, 9, 10]).slice(0, 8)
+    .map((d, i) => ({ forme: (i + depart) % 2 ? 'bande' : 'disque', parts: d, n: rnd(1, d - 1) }));
+
+  // Ex. 2 : figures vierges, dont une grille ; la grille a un dénominateur qu'elle sait partager.
+  const formes = shuffle(['disque', 'bande', 'carre', pick(['disque', 'bande', 'carre'])]);
+  const pris = new Set();
+  const colorier = formes.map((forme) => {
+    const permis = (forme === 'carre' ? DEN_CARRE : [2, 3, 4, 5, 6, 7, 8, 9, 10]).filter((d) => !pris.has(d));
+    const d = pick(permis);
+    pris.add(d);
+    return { forme, parts: d, n: rnd(1, d - 1) };
+  });
+
+  // Ex. 3 : 6 fractions à écrire en lettres, 6 à écrire en chiffres, jamais la même des deux côtés.
+  const six = (premiereUnitaire) => shuffle(DEN_LIVRET).slice(0, 6).map((d, i) => ({ d, n: premiereUnitaire && i === 0 ? 1 : rnd(1, d - 1) }));
+  const lettres = six(true);
+  let chiffres;
+  do { chiffres = six(false); } while (chiffres.some((c) => lettres.some((l) => l.n === c.n && l.d === c.d)));
+
+  // Ex. 4 : 6 affirmations, autant de vraies que de non vraies parmi les 4 premières, puis 1 de chaque.
+  const vrais = [...shuffle([true, true, false, false]), ...shuffle([true, false])];
+  const affirmations = shuffle(MODELES_AFFIRMATION).slice(0, 6).map((m, i) => affirmationDe(m, vrais[i]));
+
+  return {
+    objectif: 'Je sais lire et écrire une fraction.',
+    lire, colorier, lettres, chiffres, affirmations,
+  };
+}
+
+const case_ = (lettreCase, cochee) => `<span class="case-vf${cochee ? ' case-vf--cochee' : ''}" data-choix="${lettreCase}">${lettreCase}${cochee ? '<span class="coche rouge">✓</span>' : ''}</span>`;
+
+function texteAffirmation(a) {
+  const F = (n, d) => fraction(n, d);
+  switch (a.modele) {
+    case 'den': return `Dans ${F(a.n, a.d)}, le dénominateur est ${a.x}.`;
+    case 'num': return `Dans ${F(a.n, a.d)}, le numérateur est ${a.x}.`;
+    case 'nom': return `${F(1, a.d)}, c’est un ${NOM_FRACTION[a.x]}.`;
+    case 'ecrit': return `${enMots(a.n, a.d)} s’écrit ${F(a.n, a.x)}.`;
+    case 'fois': return `${F(a.n, a.d)}, c’est ${enLettres(a.x)} fois ${F(1, a.d)}.`;
+    case 'parts': return a.vrai
+      ? 'Le dénominateur indique en combien de parts égales on partage l’unité.'
+      : 'Le dénominateur indique combien de parts on a coloriées.';
+    default: return a.vrai
+      ? 'Le numérateur indique combien de parts on a coloriées.'
+      : 'Le numérateur indique en combien de parts égales on partage l’unité.';
+  }
+}
+
+// Largeur des figures à l'écran, en pixels : 22 mm pour un disque, plus large pour une bande en cases.
+const LARGEUR_FIGURE = { disque: 84, bande: 112, carre: 84 };
+const LARGEUR_FIGURE_GRANDE = { disque: 90, bande: 130, carre: 90 };
+
+const miseFractions = {
+  signe: '',
+  combien: (contenu, methode) => ({
+    lire: contenu.lire.slice(0, methode ? 6 : 8),
+    colorier: contenu.colorier.slice(0, 4),
+    lettres: contenu.lettres.slice(0, methode ? 4 : 6),
+    chiffres: contenu.chiffres.slice(0, methode ? 4 : 6),
+    affirmations: contenu.affirmations.slice(0, methode ? 4 : 6),
+  }),
+  noteCorrige: 'les réponses attendues sont en rouge ; sur les figures de l’exercice 2, les parts à colorier sont grisées. Dans l’exercice 4, la case cochée est la bonne.',
+  // Rappel : les phrases et les figures de la leçon (pages 22 à 25 du livret).
+  rappel() {
+    const noms = [[1, 2], [1, 3], [1, 4], [1, 5], [1, 6], [1, 8], [1, 10]]
+      .map(([n, d]) => `<li>${fraction(n, d)} : <b>un ${NOM_FRACTION[d]}</b></li>`).join('');
+    return `
+      <div class="rappel-frac">
+        <div class="rappel-frac__col">
+          ${figureFraction({ forme: 'bande', parts: 4, coloriees: 3, taille: 120 })}
+          <p>La bande de papier correspond à une unité, c’est-à-dire à 1. Elle est partagée en quatre parts égales : on a donc des quarts. Chaque part représente un quart.
+          ${fraction(1, 4)}, c’est quand il en faut 4 pour faire 1.</p>
+          <p>On a colorié trois parts. Cela représente trois quarts. Trois quarts, c’est trois fois un quart. Trois quarts s’écrit ${fraction(3, 4)}.</p>
+        </div>
+        <div class="rappel-frac__col">
+          <div class="rappel-frac__vedette">
+            ${figureFraction({ forme: 'disque', parts: 4, coloriees: 3, taille: 70 })}
+            ${fraction(3, 4, 'fraction--grande')}
+          </div>
+          <p>Dans la fraction ${fraction(3, 4)}, le nombre du bas indique qu’on a des quarts et le nombre du haut qu’on a trois quarts.</p>
+          <p><b>4 est le dénominateur</b> : il indique qu’on a partagé l’unité en 4 parts égales.<br>
+          <b>3 est le numérateur</b> : il indique qu’on a colorié 3 fois une part.</p>
+        </div>
+        <ul class="rappel-frac__noms">${noms}</ul>
+      </div>`;
+  },
+  exercices(contenu, methode) {
+    const { lire, colorier, lettres, chiffres, affirmations } = this.combien(contenu, methode);
+    return `
+    <div class="bloc">
+      <h2>Exercice 1 — Écris la fraction représentée par chaque figure.</h2>
+      <div class="figures-lire figures-lire--${lire.length}">
+        ${lire.map((f, i) => `<div class="figure-cellule"><b class="figure-cellule__lettre">${lettre(i)}.</b>
+          <div class="figure-cellule__dessin">${figureFraction({ forme: f.forme, parts: f.parts, coloriees: f.n, taille: LARGEUR_FIGURE[f.forme] })}</div>
+          ${fractionVide()}</div>`).join('')}
+      </div>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 2 — Colorie la fraction demandée.</h2>
+      <div class="figures-colorier">
+        ${colorier.map((f, i) => `<div class="figure-cellule"><b class="figure-cellule__lettre">${lettre(i)}.</b>
+          <div class="figure-cellule__dessin">${figureFraction({ forme: f.forme, parts: f.parts, coloriees: 0, taille: LARGEUR_FIGURE_GRANDE[f.forme] })}</div>
+          ${fraction(f.n, f.parts, 'fraction--demandee')}</div>`).join('')}
+      </div>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 3 — Écris chaque fraction en lettres, puis chaque fraction en chiffres.</h2>
+      <div class="ecritures">
+        <div>
+          <div class="sous-titre">En lettres</div>
+          <ul class="lignes lignes--lettres">
+            ${lettres.map((f, i) => `<li class="ecriture ecriture--lettres"><b>${lettre(i)}.</b> ${fraction(f.n, f.d)}<span class="pointilles pointilles--ligne"></span></li>`).join('')}
+          </ul>
+        </div>
+        <div>
+          <div class="sous-titre">En chiffres</div>
+          <ul class="lignes lignes--chiffres lignes--n${chiffres.length}">
+            ${chiffres.map((f, i) => `<li class="ecriture ecriture--chiffres"><b>${lettre(i)}.</b> <span class="mots">${enMots(f.n, f.d)}</span> =${fractionVide()}</li>`).join('')}
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 4 — Coche la bonne case : V si c’est vrai, F sinon.</h2>
+      <ul class="affirmations">
+        ${affirmations.map((a, i) => `<li class="affirmation"><span class="affirmation__texte"><b>${lettre(i)}.</b> ${texteAffirmation(a)}</span><span class="cases-vf">${case_('V', false)}${case_('F', false)}</span></li>`).join('')}
+      </ul>
+    </div>
+`;
+  },
+  corriges(contenu, methode) {
+    const { lire, colorier, lettres, chiffres, affirmations } = this.combien(contenu, methode);
+    return `
+    <div class="bloc">
+      <h2>Exercice 1</h2>
+      <div class="figures-lire figures-lire--${lire.length}">
+        ${lire.map((f, i) => `<div class="figure-cellule"><b class="figure-cellule__lettre">${lettre(i)}.</b>
+          <div class="figure-cellule__dessin">${figureFraction({ forme: f.forme, parts: f.parts, coloriees: f.n, taille: LARGEUR_FIGURE[f.forme] })}</div>
+          ${fractionRouge(f.n, f.parts)}</div>`).join('')}
+      </div>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 2</h2>
+      <div class="figures-colorier">
+        ${colorier.map((f, i) => `<div class="figure-cellule"><b class="figure-cellule__lettre">${lettre(i)}.</b>
+          <div class="figure-cellule__dessin">${figureFraction({ forme: f.forme, parts: f.parts, coloriees: f.n, taille: LARGEUR_FIGURE_GRANDE[f.forme] })}</div>
+          ${fraction(f.n, f.parts, 'fraction--demandee')}</div>`).join('')}
+      </div>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 3</h2>
+      <div class="ecritures ecritures--corrigees">
+        <div>
+          <div class="sous-titre">En lettres</div>
+          <ul class="lignes lignes--lettres lignes--corrigees">
+            ${lettres.map((f, i) => `<li class="ecriture ecriture--lettres"><b>${lettre(i)}.</b> ${fraction(f.n, f.d)}<span class="mots reponse">${rouge(enMots(f.n, f.d))}</span></li>`).join('')}
+          </ul>
+        </div>
+        <div>
+          <div class="sous-titre">En chiffres</div>
+          <ul class="lignes lignes--chiffres lignes--n${chiffres.length} lignes--corrigees">
+            ${chiffres.map((f, i) => `<li class="ecriture ecriture--chiffres"><b>${lettre(i)}.</b> <span class="mots">${enMots(f.n, f.d)}</span> =${fractionRouge(f.n, f.d)}</li>`).join('')}
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 4</h2>
+      <ul class="affirmations">
+        ${affirmations.map((a, i) => `<li class="affirmation"><span class="affirmation__texte"><b>${lettre(i)}.</b> ${texteAffirmation(a)}</span><span class="cases-vf">${case_('V', a.vrai)}${case_('F', !a.vrai)}</span></li>`).join('')}
+      </ul>
+    </div>
+`;
+  },
+};
+
 function pageExercices(fiche, contenu, { base = '', methode = true, identite = true } = {}) {
   const { signe } = fiche.mise;
   if (fiche.mise.rappel) return pageExercicesLibre(fiche, contenu, { base, methode, identite });
@@ -1468,6 +1689,16 @@ export const FICHES = [
     generer: genererNombresComparer,
     mise: miseComparer,
   },
+  {
+    id: 'ce2-fractions-lire',
+    classe: 'ce2',
+    domaine: 'Nombres et calculs',
+    titre: 'Les fractions : lire, écrire, représenter',
+    emoji: '🍰',
+    options: [],
+    generer: genererFractions,
+    mise: miseFractions,
+  },
 ];
 
 export const fichesDe = (classeId) => FICHES.filter((f) => f.classe === classeId);
@@ -1501,9 +1732,11 @@ export function codeDe(fiche, options, graine) {
 // Renvoie { fiche, options, graine } ou null si le code n'est pas reconnu.
 export function decoder(code) {
   const brut = String(code || '').toUpperCase().replace(/[^0-9A-Z]/g, '');
-  if (brut.length < 8) return null;
+  if (brut.length < 7) return null;
   const fiche = FICHES[parseInt(brut[0], 36)];
   if (!fiche) return null;
+  // index + une valeur par option + 6 caractères de graine (une fiche sans option fait 7 caractères)
+  if (brut.length < 1 + (fiche.options || []).length + 6) return null;
   const options = {};
   let i = 1;
   for (const o of fiche.options || []) {

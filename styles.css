@@ -908,3 +908,94 @@ svg.visuel {
   .rangs { gap: 2.5mm; }
   .consigne-droite { font-size: 9.5pt; }
 }
+
+/* ---------- fiche fractions : lire, écrire, représenter ---------- */
+.fraction { display: inline-flex; flex-direction: column; align-items: stretch; vertical-align: middle; line-height: 1.15; font-weight: 700; margin: 0 2px; text-align: center; font-variant-numeric: tabular-nums; }
+.fraction__num { border-bottom: 1.6px solid currentColor; padding: 0 5px 1px; min-width: 1em; }
+.fraction__den { padding: 1px 5px 0; min-width: 1em; }
+.fraction--grande { font-size: 1.9rem; }
+.fraction--vide .fraction__num { padding-bottom: 2px; }
+.fraction--vide .fraction__den { padding-top: 2px; }
+.case-fr { display: block; width: 6.5mm; height: 5.5mm; border: 1.5px solid #333; border-radius: 3px; background: #fff; }
+.fraction--reponse { color: #C0392B; }
+.fraction--reponse .fraction__num { border-bottom-color: #C0392B; }
+.figure-fraction { display: block; max-width: 100%; height: auto; }
+.rappel-frac { display: grid; grid-template-columns: 1fr 1fr; gap: 2mm 4mm; font-size: .82rem; line-height: 1.3; }
+.rappel-frac p { margin: 3px 0 0; }
+.rappel-frac__vedette { display: flex; align-items: center; gap: 10px; }
+.rappel-frac__noms { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 2px 9px; font-size: .78rem; margin: 2px 0 0; padding: 4px 0 0; list-style: none; border-top: 1px dashed #CFC9BC; }
+.rappel-frac__noms li { display: flex; align-items: center; gap: 3px; white-space: nowrap; }
+.figure-cellule { display: flex; flex-direction: column; align-items: center; gap: 2mm; position: relative; }
+.figure-cellule__lettre { position: absolute; left: 0; top: 0; }
+.figure-cellule__dessin { display: flex; align-items: center; justify-content: center; }
+.figures-lire { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 3mm 2mm; }
+.figures-lire--8 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.figures-lire .figure-cellule__dessin { min-height: 22mm; }
+.figures-colorier { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 3mm 2mm; }
+.figures-colorier .figure-cellule__dessin { min-height: 27mm; }
+.figures-colorier .fraction { font-size: 1.15rem; }
+.sous-titre { font-weight: 800; font-size: .9rem; }
+.ecritures { display: flex; flex-direction: column; gap: 1mm; }
+.lignes--lettres { display: grid; grid-template-columns: 1fr 1fr; gap: 0 8mm; }
+.lignes--chiffres { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 5mm; }
+.ecriture { align-items: center !important; min-height: 9mm !important; white-space: nowrap; }
+.ecriture--lettres .pointilles--ligne { height: 1em; }
+.ecriture--chiffres { min-height: 13.5mm !important; }
+.lignes--lettres .ecriture--lettres .mots { flex: 1; }
+.lignes--corrigees .ecriture { min-height: 9mm !important; }
+.lignes--chiffres.lignes--corrigees .ecriture { min-height: 13mm !important; }
+.affirmations { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 0 8mm; }
+.affirmation { display: flex; align-items: center; justify-content: space-between; gap: 6px; min-height: 12mm; padding: 1px 0; font-size: .95rem; border-bottom: 1px dotted #BBB; }
+.cases-vf { display: flex; gap: 3mm; flex: none; }
+.case-vf { display: inline-block; min-width: 8mm; height: 7mm; padding: 0 1mm; border: 1.5px solid #333; border-radius: 3px; text-align: center; line-height: calc(7mm - 3px); font-size: .72rem; font-weight: 700; background: #fff; white-space: nowrap; }
+.case-vf--cochee { background: #EEE; }
+.coche { font-size: .85rem; margin-left: 1px; }
+
+@media print {
+  .rappel-frac { font-size: 8.5pt; line-height: 1.22; }
+  .fraction--grande { font-size: 20pt; }
+  .figures-lire .figure-cellule__dessin { min-height: 22mm; }
+  .affirmation { min-height: 11mm; font-size: 10pt; }
+  .ecriture { font-size: 10.5pt; }
+}
+
+.lignes--chiffres.lignes--n4 { grid-template-columns: 1fr 1fr; }
+.rappel-frac .fraction { font-size: .85em; line-height: 1; margin: 0 1px; }
+.rappel-frac .fraction--grande { font-size: 1.9rem; line-height: 1.1; }
+.rappel-frac p { line-height: 1.2; }
+@media print {
+  .rappel-frac .fraction--grande { font-size: 18pt; }
+  .rappel-frac__vedette { gap: 6px; }
+  .rappel-frac__noms { font-size: 8pt; }
+  .figure-cellule { gap: 1mm; }
+  .figures-lire { gap: 2mm 2mm; }
+  .figures-lire .figure-cellule__dessin { min-height: 22mm; }
+  .figures-colorier .figure-cellule__dessin { min-height: 24mm; }
+  .figures-colorier .fraction { font-size: 12pt; }
+  .case-fr { width: 6mm; height: 5mm; }
+  .ecriture--chiffres { min-height: 12mm !important; }
+  .lignes--chiffres.lignes--corrigees .ecriture { min-height: 12mm !important; }
+  .ecriture { min-height: 8.5mm !important; }
+  .affirmation { font-size: 9.5pt; min-height: 10mm; }
+  .sous-titre { font-size: 9.5pt; }
+}
+@media print {
+  .rappel-frac__noms { gap: 1px 7px; font-size: 7.6pt; }
+  .rappel-frac__noms .fraction { font-size: .8em; }
+  .figures-lire .figure-cellule__dessin { min-height: 20mm; }
+  .rappel-frac { gap: 1mm 4mm; }
+}
+.ecritures > div { display: grid; grid-template-columns: 17mm 1fr; align-items: start; }
+.ecritures .sous-titre { padding-top: 2mm; }
+@media print {
+  .figures-lire .figure-cellule__dessin { min-height: 0; height: 22.5mm; }
+  .figures-colorier .figure-cellule__dessin { min-height: 0; height: 24mm; }
+  .rappel-frac__noms { gap: 1px 5px; font-size: 7.4pt; }
+}
+@media print {
+  .rappel-frac__noms { flex-wrap: nowrap; justify-content: space-between; gap: 0 6px; font-size: 8pt; }
+}
+@media print {
+  .feuille:has(.figures-lire) .bloc { margin-bottom: 3px; }
+  .feuille:has(.figures-lire) .objectif { margin-bottom: 5px; }
+}

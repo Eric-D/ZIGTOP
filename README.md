@@ -37,6 +37,10 @@ et le **corrigé sur une deuxième page** pour l'adulte.
 
 Fiches disponibles (le plan complet est dans [`programme/ce2/PLAN-FICHES.md`](programme/ce2/PLAN-FICHES.md)) :
 
+- **CE2 — Les fractions : lire, écrire, représenter** (p. 22–25 du livret) : l'unité
+  partagée en parts égales, numérateur et dénominateur avec les mots de la leçon, les noms
+  (demi, tiers, quart… dixième) ; fractions à lire sur des figures, figures à colorier,
+  écriture en lettres et en chiffres, vrai ou faux sur le vocabulaire.
 - **CE2 — Les nombres : comparer, ranger, encadrer** (p. 9–13 du livret) : la méthode de
   comparaison du livret (nombre de chiffres, puis chiffre à chiffre en partant de la gauche),
   <, > et =, rangements croissant et décroissant, encadrements à la dizaine, à la centaine et
