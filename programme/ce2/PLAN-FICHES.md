@@ -63,6 +63,14 @@ réviser*, *composer* et *imprimer*, et permet des feuilles qui panachent les no
 | 25 | Ne plus parler de numéros de page dans l'interface ; raccourci « jusqu'à telle notion » | [#25](https://github.com/Eric-D/ZIGTOP/issues/25) | ⬜ à faire |
 | 26 | Séparer la notion de sa formulation : définitions communes, méthodes interchangeables | [#26](https://github.com/Eric-D/ZIGTOP/issues/26) | ⬜ à faire |
 
+## Phase 9 — répondre dans l'application et mesurer ce qui est acquis
+
+| # | Sujet | Issue | État |
+| --- | --- | --- | --- |
+| 27 | Banque d'items par notion : exercices structurés (question, réponse, difficulté 1–5), partagés par les fiches et l'application | [#27](https://github.com/Eric-D/ZIGTOP/issues/27) | ⬜ à faire |
+| 28 | Mode interactif : faire une fiche ou une révision panachée dans l'application, sans papier ; événements `item` dans le carnet | [#28](https://github.com/Eric-D/ZIGTOP/issues/28) | ⬜ à faire |
+| 29 | Maîtrise d'une notion : classement à la Elo par notion (K décroissant, incertitude, oubli, seuils), jamais montré à l'enfant | [#29](https://github.com/Eric-D/ZIGTOP/issues/29) | ⬜ à faire |
+
 ## Règles communes à toutes les fiches
 
 **Définitions communes, méthodes interchangeables.** Les *définitions* (ce qu'est un
