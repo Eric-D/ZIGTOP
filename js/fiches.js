@@ -4,7 +4,7 @@
 
 import { rnd, pick, shuffle, fmt, enLettres, setAlea, generateurAleatoire } from './utils.js';
 import { qrSVG } from './qr.js';
-import { demiDroite, figureFraction, regleFractions, monnaie, polygoneCote, horloge, ligneDuTemps, PIECES_EURO, BILLETS_EURO } from './visuels.js';
+import { demiDroite, figureFraction, regleFractions, monnaie, polygoneCote, horloge, ligneDuTemps, solide, patronCube, NB_PATRONS, NB_ASSEMBLAGES, PIECES_EURO, BILLETS_EURO } from './visuels.js';
 
 /* ------------------------------------------------------------------ */
 /* Outils de mise en page                                              */
@@ -3218,6 +3218,169 @@ const miseDurees = {
   },
 };
 
+/* ------------------------------------------------------------------ */
+/* CE2 — solides : reconnaître, décrire, patrons du cube                */
+/* ------------------------------------------------------------------ */
+
+// La leçon (page 47 du livret) : nombre de faces, d'arêtes et de sommets de quatre solides.
+const LECON_SOLIDES = {
+  cube: { faces: 6, aretes: 12, sommets: 8 },
+  pave: { faces: 6, aretes: 12, sommets: 8 },
+  'pave-carre': { faces: 6, aretes: 12, sommets: 8 },
+  pyramide: { faces: 5, aretes: 8, sommets: 5 },
+};
+// Ce que la fiche affirme des six solides (les comptes de la leçon, plus ce qu'on voit sur les solides ronds).
+const PROPRIETES_SOLIDES = {
+  cube: { faces: 6, aretes: 12, sommets: 8, facesCarrees: 6 },
+  pave: { faces: 6, aretes: 12, sommets: 8 },
+  pyramide: { faces: 5, aretes: 8, sommets: 5, facesTriangulaires: 4, pointe: 1 },
+  boule: { aretes: 0, sommets: 0, facesPlanes: 0, pointe: 0 },
+  cylindre: { facesPlanes: 2, sommets: 0, pointe: 0 },
+  cone: { facesPlanes: 1, pointe: 1 },
+};
+const NOM_SOLIDE = { cube: 'un cube', pave: 'un pavé droit', pyramide: 'une pyramide', boule: 'une boule', cylindre: 'un cylindre', cone: 'un cône' };
+const DET_SOLIDE = { cube: 'Le cube', pave: 'Le pavé droit', pyramide: 'La pyramide', boule: 'La boule', cylindre: 'Le cylindre', cone: 'Le cône' };
+const MOT_PROPRIETE = {
+  faces: ['face', 'faces', 'de face'], aretes: ['arête', 'arêtes', 'd’arête'], sommets: ['sommet', 'sommets', 'de sommet'],
+  facesPlanes: ['face plane', 'faces planes', 'de face plane'], facesCarrees: ['face carrée', 'faces carrées', 'de face carrée'],
+  facesTriangulaires: ['face triangulaire', 'faces triangulaires', 'de face triangulaire'],
+};
+const AUTRES_NOMBRES = {
+  faces: [4, 5, 6, 8, 10], aretes: [6, 8, 10, 12, 14], sommets: [4, 5, 6, 8, 10],
+  facesPlanes: [1, 2, 3, 4, 6], facesCarrees: [1, 2, 4, 5], facesTriangulaires: [2, 3, 5, 6],
+};
+const SOLIDES_A_VARIANTE = ['pave', 'pyramide', 'cylindre', 'cone'];
+
+// Une phrase du vrai-ou-faux : « Le pavé droit a 8 sommets. », « La boule n’a pas d’arête. »
+const phraseSolide = ({ solide: s, prop, n }) => {
+  if (prop === 'pointe') return `${DET_SOLIDE[s]} a une pointe.`;
+  const mot = MOT_PROPRIETE[prop];
+  return n === 0 ? `${DET_SOLIDE[s]} n’a pas ${mot[2]}.` : `${DET_SOLIDE[s]} a ${n} ${n > 1 ? mot[1] : mot[0]}.`;
+};
+
+// La phrase qui explique la bonne case dans le corrigé : celle de la leçon pour le cube, le pavé et la pyramide.
+const JUSTIFICATION_SOLIDE = {
+  cube: 'Le cube a 6 faces carrées, 12 arêtes et 8 sommets.',
+  pave: 'Le pavé droit a 6 faces, 12 arêtes et 8 sommets.',
+  pyramide: 'La pyramide a 5 faces, 8 arêtes et 5 sommets ; sa pointe est un sommet.',
+  boule: 'La boule est ronde : ni face plane, ni arête, ni sommet.',
+  cylindre: 'Le cylindre a 2 faces planes, les disques, et pas de pointe.',
+  cone: 'Le cône a une pointe et une face plane, le disque.',
+};
+
+function affirmationSolide(solide, vrai) {
+  const props = PROPRIETES_SOLIDES[solide];
+  // « a une pointe » ne peut être vrai que pour un solide qui en a une, et inversement.
+  const permises = Object.keys(props).filter((p) => p !== 'pointe' || (props.pointe === 1) === vrai);
+  const prop = pick(permises);
+  const reel = props[prop];
+  const n = vrai ? reel : (prop === 'pointe' ? 1 : pick(AUTRES_NOMBRES[prop].filter((x) => x !== reel)));
+  return { solide, prop, n, vrai };
+}
+
+function genererSolides() {
+  // Ex. 1 : les six solides, une fois chacun ; avec les deux derniers, des formes déjà vues mais autrement proportionnées.
+  const base = shuffle(Object.keys(NOM_SOLIDE)).map((nom) => ({ nom, variante: SOLIDES_A_VARIANTE.includes(nom) ? rnd(0, 1) : 0 }));
+  const doubles = shuffle(SOLIDES_A_VARIANTE).slice(0, 2).map((nom) => ({ nom, variante: 1 - base.find((b) => b.nom === nom).variante }));
+  const solides = [...base, ...doubles];
+
+  // Ex. 3 : huit assemblages de six carrés ; 2 ou 3 patrons parmi les six premiers, 4 au plus parmi les huit.
+  const valides = shuffle(Array.from({ length: NB_PATRONS }, (_, i) => i));
+  const autres = shuffle(Array.from({ length: NB_ASSEMBLAGES - NB_PATRONS }, (_, i) => NB_PATRONS + i));
+  const nv = rnd(2, 3);
+  const six = shuffle([...valides.slice(0, nv), ...autres.slice(0, 6 - nv)]);
+  const deux = shuffle(rnd(0, 1) ? [valides[nv], autres[6 - nv]] : [autres[6 - nv], autres[7 - nv]]);
+  const patrons = [...six, ...deux].map((numero) => ({ numero, quart: rnd(0, 3), miroir: rnd(0, 1) === 1 }));
+
+  // Ex. 4 : un solide par affirmation, 2 vraies et 2 non parmi les 4 premières, puis une de chaque.
+  const vrais = [...shuffle([true, true, false, false]), ...shuffle([true, false])];
+  const affirmations = shuffle(Object.keys(PROPRIETES_SOLIDES)).map((s, i) => affirmationSolide(s, vrais[i]));
+
+  return { objectif: 'Je sais reconnaître les solides : un cube, un pavé, une pyramide, une boule, un cylindre, un cône.', solides, patrons, affirmations };
+}
+
+const patronDe = (p, taille) => patronCube(p.numero, { taille, quart: p.quart, miroir: p.miroir });
+const ligneSolide = '<span class="pointilles pointilles--ligne"></span>';
+const nbReponse = (n) => `<span class="reponse rouge">${n}</span>`;
+
+const miseSolides = {
+  signe: '',
+  combien: (contenu, methode) => ({
+    solides: contenu.solides.slice(0, methode ? 6 : 8),
+    patrons: contenu.patrons.slice(0, methode ? 6 : 8),
+    tableau: ['cube', 'pave', ...(methode ? [] : ['pave-carre']), 'pyramide'],
+    affirmations: contenu.affirmations.slice(0, methode ? 4 : 6),
+  }),
+  noteCorrige: 'réponses en rouge, patrons du cube entourés ; dans l’exercice 4, la case cochée est la bonne et la phrase dessous dit pourquoi. Les nombres sont ceux de la leçon.',
+  // Rappel : les solides de la page 45, le vocabulaire et les descriptions de la page 47, les patrons de la page 46.
+  rappel() {
+    const six = Object.keys(NOM_SOLIDE).map((nom) => `<figure class="rappel-so__solide">${solide(nom, { taille: 84 })}<figcaption>${NOM_SOLIDE[nom]}</figcaption></figure>`).join('');
+    return `
+      <div class="rappel-so">
+        <div class="rappel-so__six">${six}</div>
+        <div class="rappel-so__vocabulaire">
+          ${solide('cube', { taille: 84, reperes: true })}
+          <p>Pour décrire un solide, on compte ses <b>faces</b>, ses <b>arêtes</b> et ses <b>sommets</b>.</p>
+        </div>
+        <ul class="rappel-so__descriptions">
+          <li><b>Le cube</b> a 6 faces carrées, 12 arêtes et 8 sommets.</li>
+          <li><b>Le pavé droit</b> a 6 faces rectangles, 12 arêtes et 8 sommets.</li>
+          <li><b>Le pavé droit à base carrée</b> a 6 faces : 2 carrés et 4 rectangles, 12 arêtes et 8 sommets.</li>
+          <li><b>La pyramide</b> a 5 faces : 1 carré et 4 triangles, 8 arêtes et 5 sommets.</li>
+          <li>Il y a onze patrons du cube : six carrés qui se plient pour former un cube.</li>
+        </ul>
+      </div>`;
+  },
+  exercices(contenu, methode, corrige = false) {
+    const { solides, patrons, tableau, affirmations } = this.combien(contenu, methode);
+    const etiquette = (nom) => (corrige ? undefined : 'Solide à nommer');
+    const gabarit = (nom) => ({ taille: methode ? 84 : corrige ? 56 : 74, etiquette: etiquette(nom) });
+    const ligneNom = (nom) => (corrige ? `<span class="solide-nom"><span class="reponse rouge">${NOM_SOLIDE[nom]}</span></span>` : `<span class="solide-nom">${ligneSolide}</span>`);
+    const cellulePatron = (p, i) => {
+      const { svg, estPatron } = patronDe(p, methode ? 104 : corrige ? 86 : 120);
+      return `<div class="patron-cellule${corrige && estPatron ? ' patron-cellule--entoure' : ''}"><b class="patron-cellule__lettre">${lettre(i)}.</b>${svg}</div>`;
+    };
+    const ligneTableau = (id) => {
+      const donnees = LECON_SOLIDES[id];
+      const dessin = id === 'pave-carre' ? solide('pave', { taille: 50, variante: 1, etiquette: 'Pavé droit à base carrée' }) : solide(id, { taille: 50 });
+      const nom = id === 'pave-carre' ? 'Pavé droit à base carrée' : id === 'pave' ? 'Pavé droit' : id === 'cube' ? 'Cube' : 'Pyramide à base carrée';
+      const case_nb = (cle) => (corrige ? `<td class="reponse-cellule">${nbReponse(donnees[cle])}</td>` : '<td class="case"></td>');
+      return `<tr data-solide="${id}"><th scope="row"><span class="tab-so__dessin">${dessin}</span><span class="tab-so__nom">${nom}</span></th>${case_nb('faces')}${case_nb('sommets')}${case_nb('aretes')}</tr>`;
+    };
+    return `
+    <div class="bloc">
+      <h2>Exercice 1 — Écris le nom de chaque solide.</h2>
+      <div class="solides-nommer solides-nommer--${solides.length}">
+        ${solides.map((s, i) => `<div class="solide-cellule"><b class="solide-cellule__lettre">${lettre(i)}.</b>${solide(s.nom, { ...gabarit(s.nom), variante: s.variante })}${ligneNom(s.nom)}</div>`).join('')}
+      </div>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 2 — Complète le tableau.</h2>
+      <table class="tab-so">
+        <tr><th scope="col">Solide</th><th scope="col">Nombre de faces</th><th scope="col">Nombre de sommets</th><th scope="col">Nombre d’arêtes</th></tr>
+        ${tableau.map(ligneTableau).join('')}
+      </table>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 3 — Entoure les patrons qui permettent de construire un cube.</h2>
+      <div class="patrons patrons--${patrons.length}">
+        ${patrons.map(cellulePatron).join('')}
+      </div>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 4 — Coche la bonne case : V ou F.</h2>
+      <ul class="affirmations affirmations--so">
+        ${affirmations.map((a, i) => `<li class="affirmation"><span class="affirmation__texte"><b>${lettre(i)}.</b> ${phraseSolide(a)}</span><span class="cases-vf">${case_('V', corrige && a.vrai)}${case_('F', corrige && !a.vrai)}</span>${corrige ? `<span class="affirmation__justif">${JUSTIFICATION_SOLIDE[a.solide]}</span>` : ''}</li>`).join('')}
+      </ul>
+    </div>
+`;
+  },
+  corriges(contenu, methode) { return this.exercices(contenu, methode, true); },
+};
+
 function pageExercices(fiche, contenu, { base = '', methode = true, identite = true } = {}) {
   const { signe } = fiche.mise;
   if (fiche.mise.rappel) return pageExercicesLibre(fiche, contenu, { base, methode, identite });
@@ -3505,6 +3668,16 @@ export const FICHES = [
     ],
     generer: genererDurees,
     mise: miseDurees,
+  },
+  {
+    id: 'ce2-solides',
+    classe: 'ce2',
+    domaine: 'Géométrie',
+    titre: 'Les solides : reconnaître, décrire, patrons du cube',
+    emoji: '🧊',
+    options: [],
+    generer: genererSolides,
+    mise: miseSolides,
   },
 ];
 

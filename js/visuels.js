@@ -425,3 +425,167 @@ export function ligneDuTemps({ debut, fin = null, etapes = [] } = {}) {
     ${dessin}
   </svg>`;
 }
+
+/* ------------------------------------------------------------------ */
+/* Solides : perspective cavalière, arêtes cachées en pointillés        */
+/* ------------------------------------------------------------------ */
+
+export const NOMS_SOLIDES = { cube: 'cube', pave: 'pavé droit', pyramide: 'pyramide', boule: 'boule', cylindre: 'cylindre', cone: 'cône' };
+
+const TRAIT = '#222';
+const FACE_HAUT = '#f0f0f0';   // faces claires et foncées : le relief reste lisible en noir et blanc
+const FACE_COTE = '#d6d6d6';
+const visible = (d, remplissage = 'none') => `<path d="${d}" fill="${remplissage}" stroke="${TRAIT}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>`;
+const cache = (d) => `<path class="arete-cachee" d="${d}" fill="none" stroke="${TRAIT}" stroke-width="1.7" stroke-dasharray="4 3.2" stroke-linecap="butt"/>`;
+const pts = (...p) => p.map(([x, y]) => `${x} ${y}`).join(' L');
+
+// Un parallélépipède vu de face, un peu de dessus et de droite.
+// (x, y) : coin haut gauche de la face avant ; w, h : sa largeur et sa hauteur ; (dx, dy) : décalage vers l'arrière.
+function parallelepipede(x, y, w, h, dx, dy) {
+  const A = [x, y], B = [x + w, y], C = [x + w, y + h], D = [x, y + h];
+  const a = [x + dx, y + dy], b = [x + w + dx, y + dy], c = [x + w + dx, y + h + dy], d = [x + dx, y + h + dy];
+  return [
+    visible(`M${pts(A, B, b, a)} Z`, FACE_HAUT),
+    visible(`M${pts(B, C, c, b)} Z`, FACE_COTE),
+    visible(`M${pts(A, B, C, D)} Z`, '#fff'),
+    cache(`M${pts(D, d)} L${pts(c)} M${pts(d, a)}`),
+    visible(`M${pts(A, B, C, D)} Z`),   // le trait de la face avant passe par-dessus les pointillés
+  ].join('');
+}
+
+function pyramideBase(A, B, C, D, S) {
+  return [
+    visible(`M${pts(S, B, C)} Z`, FACE_COTE),
+    visible(`M${pts(S, A, B)} Z`, '#fff'),
+    cache(`M${pts(A, D)} L${pts(C)} M${pts(S, D)}`),
+    visible(`M${pts(A, B, C)}`),
+    visible(`M${pts(S, A)} M${pts(S, B)} M${pts(S, C)}`),
+  ].join('');
+}
+
+const arcBas = (cx, cy, rx, ry) => `M${cx - rx} ${cy} A${rx} ${ry} 0 0 0 ${cx + rx} ${cy}`;
+const arcHaut = (cx, cy, rx, ry) => `M${cx - rx} ${cy} A${rx} ${ry} 0 0 1 ${cx + rx} ${cy}`;
+
+const DESSINS_SOLIDES = {
+  cube: () => parallelepipede(10, 44, 58, 58, 32, -30),
+  pave: (v) => (v === 1 ? parallelepipede(12, 38, 44, 66, 34, -26) : parallelepipede(4, 58, 84, 44, 28, -26)),
+  pyramide: (v) => (v === 1 ? pyramideBase([18, 96], [66, 96], [98, 74], [50, 74], [58, 10]) : pyramideBase([8, 92], [70, 92], [106, 66], [44, 66], [57, 8])),
+  boule: () => `${visible('M60 9 a46 46 0 1 0 0.01 0 Z', '#f4f4f4')}${cache(arcHaut(60, 55, 46, 13))}${visible(arcBas(60, 55, 46, 13))}`,
+  cylindre: (v) => {
+    const [cx, rx, ry, haut, bas] = v === 1 ? [60, 44, 12, 44, 92] : [60, 36, 11, 26, 90];
+    return [
+      visible(`M${cx - rx} ${haut} L${cx - rx} ${bas} A${rx} ${ry} 0 0 0 ${cx + rx} ${bas} L${cx + rx} ${haut} Z`, '#fff'),
+      cache(arcHaut(cx, bas, rx, ry)),
+      visible(`M${cx - rx} ${bas} A${rx} ${ry} 0 0 0 ${cx + rx} ${bas}`),
+      `<ellipse cx="${cx}" cy="${haut}" rx="${rx}" ry="${ry}" fill="${FACE_HAUT}" stroke="${TRAIT}" stroke-width="2.2"/>`,
+    ].join('');
+  },
+  cone: (v) => {
+    const [pointe, bas, rx, ry] = v === 1 ? [6, 92, 30, 10] : [8, 88, 40, 12];
+    return [
+      visible(`M60 ${pointe} L${60 - rx} ${bas} A${rx} ${ry} 0 0 0 ${60 + rx} ${bas} Z`, '#fff'),
+      cache(arcHaut(60, bas, rx, ry)),
+      visible(`M${60 - rx} ${bas} A${rx} ${ry} 0 0 0 ${60 + rx} ${bas}`),
+      visible(`M${60 - rx} ${bas} L60 ${pointe} L${60 + rx} ${bas}`),
+    ].join('');
+  },
+};
+
+// Repères du vocabulaire, sur un cube : une face, une arête, un sommet.
+const REPERES_CUBE = `
+  <circle cx="100" cy="14" r="3.6" fill="${TRAIT}"/>
+  <path d="M104 14 L116 14" stroke="${TRAIT}" stroke-width="1.2"/>
+  <text x="119" y="18" font-size="12.5" font-family="inherit" fill="${TRAIT}">un sommet</text>
+  <path d="M100 46 L116 46" stroke="${TRAIT}" stroke-width="1.2"/>
+  <circle cx="100" cy="46" r="2" fill="${TRAIT}"/>
+  <text x="119" y="50" font-size="12.5" font-family="inherit" fill="${TRAIT}">une arête</text>
+  <path d="M84 60 L116 90" stroke="${TRAIT}" stroke-width="1.2"/>
+  <circle cx="84" cy="60" r="2" fill="${TRAIT}"/>
+  <text x="119" y="94" font-size="12.5" font-family="inherit" fill="${TRAIT}">une face</text>`;
+
+// `solide(nom, { taille, variante })` : 'cube', 'pave', 'pyramide', 'boule', 'cylindre' ou 'cone'.
+// La variante (0 ou 1) change les proportions (pavé couché ou debout, pyramide ou cylindre plus hauts…) sans changer le solide.
+export function solide(nom, { taille = 96, variante = 0, etiquette, reperes = false } = {}) {
+  if (!DESSINS_SOLIDES[nom]) throw new Error(`solide : « ${nom} » inconnu`);
+  const avecReperes = reperes && nom === 'cube';
+  const largeur = avecReperes ? 200 : 120;
+  const px = Math.round((taille * 110) / 120);
+  return `<svg class="solide" data-solide="${nom}" data-variante="${variante}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${largeur} 110"
+    width="${avecReperes ? Math.round(taille * largeur / 120) : taille}" height="${px}" role="img" aria-label="${etiquette || `Un ${NOMS_SOLIDES[nom]}`}">${DESSINS_SOLIDES[nom](variante)}${avecReperes ? REPERES_CUBE : ''}</svg>`;
+}
+
+/* ------------------------------------------------------------------ */
+/* Patrons du cube                                                      */
+/* ------------------------------------------------------------------ */
+
+// Cases (x, y) de chaque assemblage de six carrés. Les 11 premiers sont les patrons du cube ;
+// les suivants n'en sont pas : on ne peut pas les plier en un cube (deux faces tombent au même endroit
+// ou il en reste une sans place).
+const rangeeDe4 = (haut, bas) => [[0, 1], [1, 1], [2, 1], [3, 1], [haut, 0], [bas, 2]];
+const ASSEMBLAGES = [
+  // 1 - 4 - 1 : six patrons
+  rangeeDe4(0, 0), rangeeDe4(0, 1), rangeeDe4(0, 2), rangeeDe4(0, 3), rangeeDe4(1, 1), rangeeDe4(1, 2),
+  // 2 - 3 - 1 : trois patrons
+  ...[1, 2, 3].map((c) => [[0, 0], [1, 0], [1, 1], [2, 1], [3, 1], [c, 2]]),
+  // 2 - 2 - 2 et 3 - 3
+  [[0, 0], [1, 0], [1, 1], [2, 1], [2, 2], [3, 2]],
+  [[0, 0], [1, 0], [2, 0], [2, 1], [3, 1], [4, 1]],
+  // pas des patrons
+  [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [5, 0]],                 // une ligne de 6
+  [[0, 0], [1, 0], [2, 0], [0, 1], [1, 1], [2, 1]],                 // un rectangle 2 × 3
+  [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [0, 1]],                 // une ligne de 5 et un carré
+  [[0, 0], [1, 0], [2, 0], [3, 0], [0, 1], [0, 2]],                 // un « L » : deux faces au même endroit
+  [[0, 0], [1, 0], [2, 0], [3, 0], [0, 1], [1, 1]],                 // deux carrés côte à côte du même côté
+  [[0, 0], [1, 0], [2, 0], [3, 0], [0, 1], [2, 1]],                 // deux carrés du même côté de la rangée
+  [[0, 0], [1, 0], [2, 0], [3, 0], [1, 1], [1, 2]],                 // une colonne de deux sous la rangée
+  [[0, 0], [1, 0], [2, 0], [0, 1], [1, 1], [0, 2]],                 // un escalier plein
+  [[0, 0], [1, 0], [0, 1], [1, 1], [2, 1], [0, 2]],                 // quatre carrés en bloc
+];
+export const NB_PATRONS = 11;
+export const NB_ASSEMBLAGES = ASSEMBLAGES.length;
+
+// Le patron se plie-t-il en cube ? On fait « rouler » un dé sur les cases : chaque case reçoit la face
+// qui touche la table, et il faut six faces différentes. Quatre carrés en bloc ne se plient jamais.
+function sePlieEnCube(cases) {
+  const cle = (x, y) => `${x},${y}`;
+  const ensemble = new Set(cases.map(([x, y]) => cle(x, y)));
+  if (ensemble.size !== 6) return false;
+  if (cases.some(([x, y]) => ensemble.has(cle(x + 1, y)) && ensemble.has(cle(x, y + 1)) && ensemble.has(cle(x + 1, y + 1)))) return false;
+  const rouler = {
+    E: (d) => ({ ...d, h: d.o, b: d.e, e: d.h, o: d.b }), O: (d) => ({ ...d, h: d.e, b: d.o, e: d.b, o: d.h }),
+    S: (d) => ({ ...d, h: d.n, b: d.s, s: d.h, n: d.b }), N: (d) => ({ ...d, h: d.s, b: d.n, n: d.h, s: d.b }),
+  };
+  const vus = new Map([[cle(...cases[0]), { h: 1, b: 2, n: 3, s: 4, e: 5, o: 6 }]]);
+  const file = [cases[0]];
+  while (file.length) {
+    const [x, y] = file.shift();
+    for (const [dx, dy, sens] of [[1, 0, 'E'], [-1, 0, 'O'], [0, 1, 'S'], [0, -1, 'N']]) {
+      const k = cle(x + dx, y + dy);
+      if (ensemble.has(k) && !vus.has(k)) { vus.set(k, rouler[sens](vus.get(cle(x, y)))); file.push([x + dx, y + dy]); }
+    }
+  }
+  return vus.size === 6 && new Set([...vus.values()].map((d) => d.b)).size === 6;
+}
+
+const normaliser = (cases) => {
+  const mx = Math.min(...cases.map((c) => c[0])), my = Math.min(...cases.map((c) => c[1]));
+  return cases.map(([x, y]) => [x - mx, y - my]);
+};
+
+// `patronCube(numero, { taille, quart, miroir })` : l'assemblage n° `numero` (0 à NB_ASSEMBLAGES - 1), tourné de `quart`
+// quarts de tour et retourné si `miroir`. Retourne { svg, estPatron, cases }. L'assemblage est toujours posé en largeur.
+export function patronCube(numero, { taille = 120, quart = 0, miroir = false } = {}) {
+  if (!ASSEMBLAGES[numero]) throw new Error(`patronCube : assemblage ${numero} inconnu`);
+  let cases = ASSEMBLAGES[numero].map((c) => [...c]);
+  if (miroir) cases = normaliser(cases.map(([x, y]) => [-x, y]));
+  for (let i = 0; i < quart; i++) cases = normaliser(cases.map(([x, y]) => [-y, x]));
+  let colonnes = Math.max(...cases.map((c) => c[0])) + 1, lignes = Math.max(...cases.map((c) => c[1])) + 1;
+  if (lignes > colonnes) { cases = normaliser(cases.map(([x, y]) => [-y, x])); [colonnes, lignes] = [lignes, colonnes]; }
+  const estPatron = sePlieEnCube(cases);
+  const u = Math.min(94 / colonnes, 58 / lignes, 22);
+  const x0 = (100 - colonnes * u) / 2, y0 = (64 - lignes * u) / 2;
+  const carres = cases.map(([x, y]) => `<rect x="${(x0 + x * u).toFixed(2)}" y="${(y0 + y * u).toFixed(2)}" width="${u.toFixed(2)}" height="${u.toFixed(2)}" fill="#fff" stroke="${TRAIT}" stroke-width="2" stroke-linejoin="round"/>`).join('');
+  const svg = `<svg class="patron" data-assemblage="${numero}" data-patron="${estPatron ? 'oui' : 'non'}" data-cases="${cases.map((c) => c.join(',')).join(';')}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 64"
+    width="${taille}" height="${Math.round(taille * 0.64)}" role="img" aria-label="Assemblage de six carrés">${carres}</svg>`;
+  return { svg, estPatron, cases };
+}

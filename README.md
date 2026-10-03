@@ -37,6 +37,10 @@ et le **corrigé sur une deuxième page** pour l'adulte.
 
 Fiches disponibles (le plan complet est dans [`programme/ce2/PLAN-FICHES.md`](programme/ce2/PLAN-FICHES.md)) :
 
+- **CE2 — Les solides : reconnaître, décrire, patrons du cube** (p. 45–47 du livret) : les
+  six solides de la leçon dessinés en perspective, face / arête / sommet dans ses mots ;
+  solides à nommer, tableau faces-sommets-arêtes, patrons du cube à reconnaître, vrai ou
+  faux.
 - **CE2 — Les durées : relations et calculs** (p. 43–44 du livret) : les relations de la
   leçon (minute, heure, demi-heure, quart d'heure, siècle, millénaire), durées entre deux
   horaires et heures d'arrivée sur une ligne du temps, problèmes. Option : minutes et

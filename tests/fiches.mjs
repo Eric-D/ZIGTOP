@@ -4,7 +4,7 @@ import { JSDOM } from 'jsdom';
 import { FICHES, tirer, rendre, decoder, codeDe, optionsParDefaut } from '../js/fiches.js';
 import { matrice } from '../js/qr.js';
 import { fmt } from '../js/utils.js';
-import { figureFraction, monnaie, polygoneCote, horloge, ligneDuTemps } from '../js/visuels.js';
+import { figureFraction, monnaie, polygoneCote, horloge, ligneDuTemps, solide, patronCube, NB_ASSEMBLAGES } from '../js/visuels.js';
 
 let echecs = 0;
 const verifier = (ok, message) => { if (!ok) echecs++; console.log(`${ok ? '✔' : '✘'} ${message}`); };
@@ -2320,6 +2320,136 @@ for (const opt of optionsMult) {
     .map(([id, o]) => somme(empreinte(FICHES.find((x) => x.id === id), o)));
   verifier(h.join() === '2857615915,841554819,1341628403,3247079376,2467628440,3671073380,178792032,2718432813,1534335352,750168435,1150851747,649082766,1335819493,11888257,1584605419,857785706,538954699,1652536371,2192490432,1573601925', `durées : les douze fiches précédentes sont inchangées (${h.join()})`);
   verifier(FICHES.slice(0, 12).map((f) => f.id).join() === 'ce2-addition-posee,ce2-soustraction-posee,ce2-multiplication,ce2-nombres-lire-ecrire,ce2-nombres-comparer,ce2-fractions-lire,ce2-fractions-comparer,ce2-fractions-calculer,ce2-monnaie,ce2-longueurs,ce2-heures,ce2-masses-contenances', 'durées : ordre des douze premières fiches inchangé');
+}
+
+/* Solides : reconnaître, décrire, patrons du cube ---------------------------- */
+{
+  const fs = FICHES.find((f) => f.id === 'ce2-solides');
+  console.log('— Solides : reconnaître, décrire, patrons du cube');
+  verifier(FICHES.indexOf(fs) === 13, 'solides : fiche à l’index 13 de FICHES');
+  verifier(fs.titre === 'Les solides : reconnaître, décrire, patrons du cube' && fs.emoji === '🧊' && fs.options.length === 0, 'solides : titre, emoji, aucune option');
+
+  const NOMS = { cube: 'un cube', pave: 'un pavé droit', pyramide: 'une pyramide', boule: 'une boule', cylindre: 'un cylindre', cone: 'un cône' };
+  // Comptes de la leçon (page 47) : faces, sommets, arêtes.
+  const LECON = { cube: [6, 8, 12], pave: [6, 8, 12], 'pave-carre': [6, 8, 12], pyramide: [5, 5, 8] };
+  // Ce qu'on affirme de chaque solide, écrit ici indépendamment du générateur.
+  const VRAI = {
+    cube: { faces: 6, aretes: 12, sommets: 8, facesCarrees: 6 }, pave: { faces: 6, aretes: 12, sommets: 8 },
+    pyramide: { faces: 5, aretes: 8, sommets: 5, facesTriangulaires: 4, pointe: 1 }, boule: { aretes: 0, sommets: 0, facesPlanes: 0, pointe: 0 },
+    cylindre: { facesPlanes: 2, sommets: 0, pointe: 0 }, cone: { facesPlanes: 1, pointe: 1 },
+  };
+  // Les onze patrons du cube, dessinés en texte ; on les compare à toute rotation ou symétrie près.
+  const ART = [[0, 0], [0, 1], [0, 2], [0, 3], [1, 1], [1, 2]].map(([h, b]) => [0, 1, 2].map((r) => [...'....'].map((_, x) => (r === 1 || (r === 0 && x === h) || (r === 2 && x === b) ? 'X' : '.')).join('')))
+    .concat([['XX..', '.XXX', '.X..'], ['XX..', '.XXX', '..X.'], ['XX..', '.XXX', '...X'], ['XX..', '.XX.', '..XX'], ['XXX..', '..XXX']]);
+  const casesDe = (art) => art.flatMap((l, y) => [...l].flatMap((c, x) => (c === 'X' ? [[x, y]] : [])));
+  const normal = (c) => { const mx = Math.min(...c.map((p) => p[0])), my = Math.min(...c.map((p) => p[1])); return c.map(([x, y]) => [x - mx, y - my]).sort((a, b) => a[1] - b[1] || a[0] - b[0]); };
+  const formes = (c) => { const out = []; let t = c; for (let m = 0; m < 2; m++) { for (let r = 0; r < 4; r++) { t = t.map(([x, y]) => [-y, x]); out.push(JSON.stringify(normal(t))); } t = t.map(([x, y]) => [-x, y]); } return out; };
+  const PATRONS = new Set(ART.flatMap((a) => formes(casesDe(a))));
+  const estUnPatron = (cases) => PATRONS.has(JSON.stringify(normal(cases)));
+  const lireCases = (svg) => svg.getAttribute('data-cases').split(';').map((c) => c.split(',').map(Number));
+
+  // Les dessins eux-mêmes
+  verifier(Object.keys(NOMS).every((n) => solide(n).includes(`data-solide="${n}"`) && solide(n).includes('arete-cachee') === !['boule'].includes(n) || n === 'boule'), 'solide : les six solides se dessinent, arêtes cachées en pointillés');
+  verifier(['cube', 'pave', 'pyramide', 'cylindre', 'cone', 'boule'].every((n) => /stroke-dasharray/.test(solide(n))), 'solide : des pointillés sur chaque solide');
+  let patronsOk = 0, valides = 0, invalides = 0;
+  for (let n = 0; n < NB_ASSEMBLAGES; n++) for (let q = 0; q < 4; q++) for (const miroir of [false, true]) {
+    const { estPatron, cases, svg } = patronCube(n, { quart: q, miroir });
+    const doc = new JSDOM(`<div>${svg}</div>`).window.document.querySelector('svg');
+    if (estPatron === estUnPatron(cases) && estPatron === estUnPatron(lireCases(doc)) && cases.length === 6) patronsOk++;
+    if (q === 0 && !miroir) { if (estPatron) valides++; else invalides++; }
+  }
+  verifier(patronsOk === NB_ASSEMBLAGES * 8, `patronCube : estPatron recalculé pour les ${NB_ASSEMBLAGES * 8} figures (tournées, retournées)`);
+  verifier(valides === 11 && invalides >= 6, `patronCube : ${valides} patrons du cube et ${invalides} assemblages qui n’en sont pas`);
+
+  const fenetre = new JSDOM('<body></body>').window.document;
+  const conteneur = (html) => { const div = fenetre.createElement('div'); div.innerHTML = html; return div; };
+  const doc = (c, o) => conteneur(rendre(fs, c, o));
+  const texte = (el) => el.textContent.replace(/[  ]/g, ' ').replace(/\s+/g, ' ').trim();
+
+  let nomsOk = 0, nomsTot = 0, tabOk = 0, tabTot = 0, patOk = 0, patTot = 0, vfOk = 0, vfTot = 0, comptes = 0, vierge = 0, ton = 0, nbPatrons = 0, mauvaisNb = 0;
+  for (let i = 0; i < 40; i++) {
+    const c = tirer(fs, {});
+    const premiers = c.solides.slice(0, 6).map((s) => s.nom).sort().join();
+    if (premiers !== Object.keys(NOMS).sort().join() || c.solides.length !== 8) mauvaisNb++;
+    for (const methode of [true, false]) {
+      const d = doc(c, { corrige: true, methode });
+      const [eleve, corr] = d.querySelectorAll('.feuille');
+      const attendu = { cellules: methode ? 6 : 8, lignes: methode ? 3 : 4, patrons: methode ? 6 : 8, affirmations: methode ? 4 : 6 };
+      const nb = (page) => [page.querySelectorAll('.solide-cellule').length, page.querySelectorAll('tr[data-solide]').length, page.querySelectorAll('svg.patron').length, page.querySelectorAll('.affirmation').length].join();
+      if (nb(eleve) === Object.values(attendu).join() && nb(corr) === nb(eleve)) comptes++;
+      // ex. 1 : le nom écrit dans le corrigé est celui du solide dessiné
+      for (const cell of corr.querySelectorAll('.solide-cellule')) {
+        nomsTot++;
+        if (texte(cell.querySelector('.reponse')) === NOMS[cell.querySelector('svg').getAttribute('data-solide')]) nomsOk++;
+      }
+      // ex. 2 : tableau de la leçon
+      const lignes = [...corr.querySelectorAll('tr[data-solide]')];
+      const ids = lignes.map((l) => l.getAttribute('data-solide'));
+      for (const l of lignes) { tabTot++; if ([...l.querySelectorAll('.reponse')].map((x) => +texte(x)).join() === LECON[l.getAttribute('data-solide')].join()) tabOk++; }
+      if (ids.join() !== (methode ? 'cube,pave,pyramide' : 'cube,pave,pave-carre,pyramide')) mauvaisNb++;
+      // ex. 3 : entourés = marqués estPatron = patrons du cube
+      const entoures = [...corr.querySelectorAll('.patron-cellule--entoure svg.patron')];
+      const tous = [...corr.querySelectorAll('svg.patron')];
+      patTot++;
+      if (tous.every((s) => (s.getAttribute('data-patron') === 'oui') === estUnPatron(lireCases(s)))
+        && entoures.length === tous.filter((s) => estUnPatron(lireCases(s))).length
+        && entoures.every((s) => estUnPatron(lireCases(s)))) patOk++;
+      if (entoures.length < 2 || entoures.length > 4) nbPatrons++;
+      // ex. 4 : vrai ou faux recalculé
+      [...corr.querySelectorAll('.affirmation')].forEach((li, k) => {
+        const a = c.affirmations[k];
+        const vrai = VRAI[a.solide][a.prop] === a.n;
+        const coche = li.querySelector('.case-vf--cochee');
+        vfTot++;
+        if (a.vrai === vrai && coche && coche.getAttribute('data-choix') === (vrai ? 'V' : 'F') && li.querySelectorAll('.case-vf--cochee').length === 1
+          && li.querySelector('.affirmation__justif') && (a.n === 0 || a.prop === 'pointe' || texte(li.querySelector('.affirmation__texte')).includes(` ${a.n} `))) vfOk++;
+      });
+      // rien d'écrit sur la page de l'enfant, ton positif, pas d'emoji
+      const nu = eleve.querySelector('.rouge, .reponse, .case-vf--cochee, .patron-cellule--entoure, .affirmation__justif') === null
+        && [...eleve.querySelectorAll('tr[data-solide] td')].every((td) => texte(td) === '')
+        && [...eleve.querySelectorAll('.solide-nom')].every((x) => texte(x) === '')
+        && !/aria-label="Un (cube|pavé|pyramide|boule|cylindre|cône)/.test([...eleve.querySelectorAll('.bloc:not(.bloc--methode) .solides-nommer')].map((x) => x.innerHTML).join());
+      if (nu) vierge++;
+      if (!/faux|erreur|✗|✘|✕|✖|raté/i.test(texte(d)) && !/\p{Extended_Pictographic}/u.test(texte(d))) ton++;
+    }
+  }
+  verifier(mauvaisNb === 0, 'solides : six solides distincts, 8 en tout, lignes du tableau attendues');
+  verifier(nomsOk === nomsTot, `solides : le nom du corrigé est celui du solide dessiné (${nomsOk}/${nomsTot})`);
+  verifier(tabOk === tabTot, `solides : tableau du corrigé = valeurs de la leçon (${tabOk}/${tabTot})`);
+  verifier(patOk === patTot && nbPatrons === 0, 'solides : patrons entourés = assemblages valides, 2 à 4 par fiche');
+  verifier(vfOk === vfTot, `solides : vrai ou faux recalculé, bonne case cochée, phrase de justification (${vfOk}/${vfTot})`);
+  verifier(comptes === 80, 'solides : mêmes comptes élève / corrigé, avec et sans méthode');
+  verifier(vierge === 80, 'solides : aucune réponse sur la page élève');
+  verifier(ton === 80, 'solides : pas de mot négatif ni d’emoji sur la feuille');
+
+  const c0 = tirer(fs, {});
+  const sans = doc(c0, { corrige: false, methode: false }), avec = doc(c0, { corrige: false, methode: true });
+  verifier(avec.textContent.includes('Je me souviens de la méthode') && !sans.textContent.includes('Je me souviens de la méthode'), 'solides : le rappel se masque');
+  const rappel = texte(avec.querySelector('.rappel-so'));
+  verifier(['6 faces carrées, 12 arêtes et 8 sommets', '5 faces : 1 carré et 4 triangles, 8 arêtes et 5 sommets', '2 carrés et 4 rectangles', 'faces', 'arêtes', 'sommets'].every((m) => rappel.includes(m))
+    && Object.values(NOMS).every((n) => rappel.includes(n)), 'solides : le rappel reprend les phrases et les nombres de la leçon');
+  verifier(avec.querySelectorAll('.rappel-so svg').length === 7, 'solides : le rappel dessine les six solides et le cube repéré');
+
+  for (let i = 0; i < 20; i++) {
+    const c = tirer(fs, {});
+    const r = decoder(c.code);
+    if (!(r && r.fiche === fs && JSON.stringify(tirer(r.fiche, r.options, r.graine)) === JSON.stringify(c))) { verifier(false, `solides : le code ${c.code} ne redonne pas la même fiche`); break; }
+  }
+  verifier(true, 'solides : le code redonne la même fiche');
+  verifier(rendre(fs, tirer(fs, {}, 77), { corrige: true }) === rendre(fs, tirer(fs, {}, 77), { corrige: true }), 'solides : même graine, même HTML');
+  const vus = new Set(); for (let i = 0; i < 200; i++) vus.add(tirer(fs, {}).code);
+  verifier(vus.size > 190, `solides : codes variés (${vus.size} sur 200)`);
+
+  // Les treize fiches précédentes inchangées : empreinte du HTML à graine fixe, mesurée avant l’ajout
+  const empreinte = (f, o) => { const t = tirer(f, o, 424242); return JSON.stringify(t) + rendre(f, t, { corrige: true, base: 'http://x/' }); };
+  const somme = (x) => { let h = 5381; for (const ch of x) h = ((h * 33) ^ ch.charCodeAt(0)) >>> 0; return h; };
+  const h = [['ce2-addition-posee', { taille: 'mix' }], ['ce2-soustraction-posee', { taille: 'mix' }], ['ce2-multiplication', { facteur: '2' }], ['ce2-nombres-lire-ecrire', { taille: '1000' }], ['ce2-nombres-lire-ecrire', { taille: '10000' }],
+    ['ce2-nombres-comparer', { taille: '1000' }], ['ce2-nombres-comparer', { taille: '10000' }], ['ce2-fractions-lire', {}], ['ce2-fractions-comparer', {}], ['ce2-fractions-calculer', { denominateur: '4' }], ['ce2-fractions-calculer', { denominateur: '10' }],
+    ['ce2-monnaie', { centimes: 'non' }], ['ce2-monnaie', { centimes: 'oui' }], ['ce2-longueurs', { km: 'non' }], ['ce2-longueurs', { km: 'oui' }], ['ce2-heures', { minutes: 'quarts' }], ['ce2-heures', { minutes: 'cinq' }],
+    ['ce2-masses-contenances', { grandeur: 'masses' }], ['ce2-masses-contenances', { grandeur: 'contenances' }], ['ce2-masses-contenances', { grandeur: 'deux' }], ['ce2-durees', { secondes: 'non' }], ['ce2-durees', { secondes: 'oui' }]]
+    .map(([id, o]) => somme(empreinte(FICHES.find((x) => x.id === id), o)));
+  verifier(h.join() === '2857615915,841554819,1341628403,3247079376,2467628440,3671073380,178792032,2718432813,1534335352,750168435,1150851747,649082766,1335819493,11888257,1584605419,857785706,538954699,1652536371,2192490432,1573601925,237366352,3253221856', `solides : les treize fiches précédentes sont inchangées (${h.join()})`);
+  verifier(FICHES.slice(0, 13).map((f) => f.id).join() === 'ce2-addition-posee,ce2-soustraction-posee,ce2-multiplication,ce2-nombres-lire-ecrire,ce2-nombres-comparer,ce2-fractions-lire,ce2-fractions-comparer,ce2-fractions-calculer,ce2-monnaie,ce2-longueurs,ce2-heures,ce2-masses-contenances,ce2-durees', 'solides : ordre des treize premières fiches inchangé');
 }
 
 process.exit(echecs ? 1 : 0);
