@@ -387,3 +387,41 @@ export function horloge({ heures, minutes, taille = 120, aiguilles = true, chiff
     <circle cx="${C}" cy="${C}" r="3.4" fill="#222"/>
   </svg>`;
 }
+
+// Ligne du temps : une droite horizontale avec l'horaire de départ à gauche et, au-dessus, un arc de saut
+// annoté par étape (« + 20 min » jusqu'à « 10 h », puis « + 1 h »…), comme le schéma de la fiche monnaie.
+//   debut  : horaire de départ, déjà écrit (« 9 h 40 ») ;
+//   fin    : horaire d'arrivée, écrit au bout de la droite ; absent, la droite se termine par une flèche seule ;
+//   etapes : liste de { libelle, cible } ; `cible` est l'horaire atteint après le saut. Les points sont espacés
+//            régulièrement (la ligne n'est pas à l'échelle) pour que les annotations ne se touchent jamais.
+// Sans étape, la droite est vierge : on dessine la place des sauts, l'élève trace les siens.
+// Chaque saut est un groupe `.saut` (avec `data-libelle`), chaque horaire un `<text class="horaire">`.
+// Traits foncés, annotations en gras : lisible en noir et blanc.
+export function ligneDuTemps({ debut, fin = null, etapes = [] } = {}) {
+  const W = 360, H = 78, y = 50, x0 = 34, x1 = 326;
+  const n = etapes.length;
+  const noms = [debut, ...(n ? etapes.map((e, i) => (i === n - 1 && fin ? fin : e.cible)) : (fin ? [fin] : []))];
+  const x = (i) => (n ? x0 + ((x1 - x0) * i) / n : (i ? x1 : x0));
+  const pic = 14;
+  let dessin = '';
+  noms.forEach((nom, i) => {
+    dessin += `<line x1="${x(i).toFixed(1)}" y1="${y - 6}" x2="${x(i).toFixed(1)}" y2="${y + 8}" stroke="#222" stroke-width="2.4"/>
+    <text class="horaire" x="${x(i).toFixed(1)}" y="${y + 25}" font-size="13" font-weight="700" fill="#222" text-anchor="middle">${nom}</text>`;
+  });
+  etapes.forEach((e, i) => {
+    const xa = x(i), xb = x(i + 1), m = (xa + xb) / 2;
+    dessin += `<g class="saut" data-libelle="${e.libelle}">
+      <path d="M${xa.toFixed(1)} ${y - 4} Q${m.toFixed(1)} ${y - 2 * pic - 4} ${xb.toFixed(1)} ${y - 8}" fill="none" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+      <path d="M${(xb - 6).toFixed(1)} ${y - 14} L${xb.toFixed(1)} ${y - 5} L${(xb + 6).toFixed(1)} ${y - 14}" fill="none" stroke="#222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+      <text x="${m.toFixed(1)}" y="${y - pic - 9}" font-size="13" font-weight="800" fill="#C0392B" text-anchor="middle">${e.libelle}</text></g>`;
+  });
+  const dit = n
+    ? `Ligne du temps de ${debut} à ${noms[n]} : ${etapes.map((e) => `${e.libelle.replace(/^\+\s?/, 'plus ')} jusqu'à ${e.cible}`).join(', puis ')}`
+    : `Ligne du temps vierge à partir de ${debut}${fin ? ` jusqu'à ${fin}` : ''}`;
+  return `<svg class="ligne-du-temps${n ? '' : ' ligne-du-temps--vierge'}" data-debut="${debut}" data-sauts="${n}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}"
+    role="img" aria-label="${dit.replace(/ /g, ' ')}">
+    <line x1="14" y1="${y}" x2="${W - 12}" y2="${y}" stroke="#222" stroke-width="2.4"/>
+    <path d="M${W - 20} ${y - 6} L${W - 11} ${y} L${W - 20} ${y + 6}" fill="none" stroke="#222" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+    ${dessin}
+  </svg>`;
+}

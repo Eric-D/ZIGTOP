@@ -1245,3 +1245,40 @@ svg.visuel {
 @media print {
   .rappel-mc { font-size: 8.3pt; line-height: 1.22; }
 }
+
+/* ---------- fiche durées : relations et calculs ---------- */
+.ligne-du-temps { display: block; width: 100%; max-width: 300px; height: auto; }
+.rappel-du__detail { margin-top: 2px !important; }
+.rappel-du { display: grid; grid-template-columns: 1fr 1.7fr; gap: 3mm 5mm; font-size: .82rem; line-height: 1.25; }
+.rappel-du p { margin: 0 0 3px; }
+.rappel-du__titre { font-weight: 800; }
+.rappel-du ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; white-space: nowrap; }
+.rappel-du__calcul { border-left: 1px dashed #CFC9BC; padding-left: 5mm; }
+.conversions--durees { grid-template-columns: repeat(3, auto); justify-content: space-between; }
+.conversions--durees .conversion { gap: 4px; }
+.conversions--durees .conversion .pointilles--mini { min-width: 9mm; }
+.conversions--corrigees.conversions--durees .conversion { min-height: 7mm; }
+.durees { display: grid; grid-template-columns: 1fr 1fr; gap: 2mm 8mm; }
+.durees__titre { margin: 0 0 1mm; font-size: .86rem; font-weight: 800; }
+.duree { margin-bottom: 1mm; break-inside: avoid; }
+.duree__enonce { margin: 0; font-size: .9rem; line-height: 1.25; }
+.duree__reponse { display: flex; align-items: center; gap: 4px; min-height: 8mm; font-size: .92rem; white-space: nowrap; }
+.duree__reponse .pointilles--mini { min-width: 11mm; height: 1.4em; }
+.duree__detail { margin: 0; font-size: .82rem; line-height: 1.3; font-weight: 600; }
+.duree--corrige .ligne-du-temps { max-width: 300px; }
+@media print {
+  .rappel-du { font-size: 8.3pt; line-height: 1.2; }
+  .conversions--durees .conversion { font-size: 10.5pt; }
+  .duree__enonce { font-size: 9.5pt; }
+  .duree__reponse { min-height: 7mm; font-size: 10pt; }
+  .duree__detail { font-size: 8.5pt; }
+  .durees__titre { font-size: 9.5pt; }
+  .feuille:has(.durees) .probleme-fr__ligne { min-height: 6mm; }
+  .feuille:has(.durees) .probleme-fr__enonce { margin: 0; }
+}
+.feuille--corrige:has(.durees) .probleme-fr { display: block; }
+.feuille--corrige:has(.durees) .probleme-fr__ligne { align-items: baseline; }
+.feuille--corrige:has(.durees) .probleme-fr__rep { min-width: 0; }
+.conversions--durees { padding-right: 3mm; }
+.duree--corrige { margin-bottom: 2mm; }
+.duree--corrige .duree__detail { margin-top: 1px; }

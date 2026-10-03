@@ -28,7 +28,7 @@ l'enfant a vus en classe.
 | 9 | Longueurs : unités, conversions, périmètre | [02-longueurs.md](02-grandeurs-et-mesures/02-longueurs.md) (33–36) | [#9](https://github.com/Eric-D/ZIGTOP/issues/9) | ✅ en ligne |
 | 10 | Heures : lire l’heure sur une horloge à aiguilles | [03-heures.md](02-grandeurs-et-mesures/03-heures.md) (37–38) | [#10](https://github.com/Eric-D/ZIGTOP/issues/10) | ✅ en ligne |
 | 11 | Masses et contenances : unités et conversions | [04-masses.md](02-grandeurs-et-mesures/04-masses.md) (39–42) | [#11](https://github.com/Eric-D/ZIGTOP/issues/11) | ✅ en ligne |
-| 12 | Durées : relations et calculs | [06-durees.md](02-grandeurs-et-mesures/06-durees.md) (43–44) | [#12](https://github.com/Eric-D/ZIGTOP/issues/12) | ⬜ à faire |
+| 12 | Durées : relations et calculs | [06-durees.md](02-grandeurs-et-mesures/06-durees.md) (43–44) | [#12](https://github.com/Eric-D/ZIGTOP/issues/12) | ✅ en ligne |
 | 13 | Solides : reconnaître, décrire, patrons du cube | [01-solides.md](03-geometrie/01-solides.md) (45–47) | [#13](https://github.com/Eric-D/ZIGTOP/issues/13) | ⬜ à faire |
 | 14 | Polygones : reconnaître, décrire, cercle | [02-polygones.md](03-geometrie/02-polygones.md) (48–50 (+ 51–54 manquantes)) | [#14](https://github.com/Eric-D/ZIGTOP/issues/14) | ⏸ bloqué en partie (pages 51–54) |
 | 15 | Symétrie : axes et figures symétriques | [03-symetrie.md](03-geometrie/03-symetrie.md) (55) | [#15](https://github.com/Eric-D/ZIGTOP/issues/15) | ⬜ à faire |

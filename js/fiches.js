@@ -4,7 +4,7 @@
 
 import { rnd, pick, shuffle, fmt, enLettres, setAlea, generateurAleatoire } from './utils.js';
 import { qrSVG } from './qr.js';
-import { demiDroite, figureFraction, regleFractions, monnaie, polygoneCote, horloge, PIECES_EURO, BILLETS_EURO } from './visuels.js';
+import { demiDroite, figureFraction, regleFractions, monnaie, polygoneCote, horloge, ligneDuTemps, PIECES_EURO, BILLETS_EURO } from './visuels.js';
 
 /* ------------------------------------------------------------------ */
 /* Outils de mise en page                                              */
@@ -2943,6 +2943,281 @@ const miseMassesContenances = {
   },
 };
 
+/* ------------------------------------------------------------------ */
+/* CE2 — durées : relations et calculs                                  */
+/* ------------------------------------------------------------------ */
+
+// Durée en minutes → « 1 h 35 min », « 2 h » ou « 35 min » ; instant en minutes depuis minuit → « 9 h 40 », « 10 h ».
+const dureeTxt = (d) => {
+  const h = Math.floor(d / 60), m = d % 60;
+  return h && m ? `${h}${NBSP}h${NBSP}${m}${NBSP}min` : h ? `${h}${NBSP}h` : `${m}${NBSP}min`;
+};
+const horaireTxt = (t) => (t % 60 ? hm(Math.floor(t / 60), t % 60) : `${t / 60}${NBSP}h`);
+const dureeHM = (d) => `${Math.floor(d / 60)}${NBSP}h${NBSP}${d % 60}${NBSP}min`;
+
+// Les sauts d'un calcul de durée : jusqu'à l'heure pile, puis les heures, puis les minutes.
+// Un saut qui ne se fait pas (déjà à l'heure pile, pas d'heure entière, pas de minutes) n'est pas dessiné.
+function sautsDuree(t0, duree) {
+  const morceaux = [];
+  let reste = duree;
+  const m = t0 % 60;
+  if (m && reste >= 60 - m) { morceaux.push(60 - m); reste -= 60 - m; }
+  const heures = Math.floor(reste / 60);
+  if (heures) morceaux.push(heures * 60);
+  reste -= heures * 60;
+  if (reste) morceaux.push(reste);
+  let t = t0;
+  return morceaux.map((minutes) => {
+    const de = t; t += minutes;
+    return { minutes, libelle: `+${NBSP}${dureeTxt(minutes)}`, de: horaireTxt(de), vers: horaireTxt(t) };
+  });
+}
+const etapesDe = (sauts) => sauts.map((s) => ({ libelle: s.libelle, cible: s.vers }));
+
+// Départ (multiple de 5 min) et durée (multiple de 5 min, moins de 4 h) ; `trois` : les trois sauts existent
+// (minutes jusqu'à l'heure pile, heures, minutes). Jamais l'exemple du rappel (9 h 40 → 11 h 15).
+function tirerHoraires({ trois = false, interdits = new Set(), dureeMin = 25, dureeMax = 235 } = {}) {
+  for (let essai = 0; essai < 600; essai++) {
+    const t0 = 60 * rnd(7, 16) + 5 * rnd(trois ? 1 : 0, 11);
+    const duree = 5 * rnd(dureeMin / 5, dureeMax / 5);
+    if (interdits.has(t0) || (t0 === 580 && duree === 95)) continue;
+    if (t0 % 60 && duree < 60 - (t0 % 60)) continue;
+    const n = sautsDuree(t0, duree).length;
+    if (trois ? n !== 3 : n < 2) continue;
+    interdits.add(t0);
+    return { t0, duree, t1: t0 + duree };
+  }
+  return { t0: 8 * 60 + 25, duree: 130, t1: 8 * 60 + 25 + 130 };
+}
+
+// Ex. 1 : égalités. Chaque ligne : ce qui est écrit, et les réponses [valeur, unité] dans l'ordre des blancs.
+function egalitesDurees() {
+  const h = rnd(2, 5), m = pick([15, 30, 45]);
+  const h2 = pick([1, 2, 3].filter((x) => x !== h)), m2 = pick([15, 30, 45]);
+  const siecles = rnd(2, 9);
+  const mille = rnd(0, 1);
+  return [
+    { gauche: `1${NBSP}h`, reponses: [[60, 'min']] },
+    { gauche: `${h}${NBSP}h${NBSP}${m}`, reponses: [[60 * h + m, 'min']] },
+    { gauche: `${60 * h2 + m2}${NBSP}min`, reponses: [[h2, 'h'], [m2, 'min']] },
+    { gauche: `1${NBSP}quart d’heure`, reponses: [[15, 'min']] },
+    { gauche: `1${NBSP}siècle`, reponses: [[100, 'ans']] },
+    { gauche: `${siecles}${NBSP}siècles`, reponses: [[100 * siecles, 'ans']] },
+    { gauche: `1${NBSP}demi-heure`, reponses: [[30, 'min']] },
+    mille ? { gauche: `1${NBSP}millénaire`, reponses: [[1000, 'ans']] } : { gauche: `1${NBSP}millénaire`, reponses: [[10, 'siècles']] },
+  ];
+}
+
+// Ex. 2 : conversions dans les deux sens. Les quatre premières sont celles du rappel ; sans les secondes,
+// on garde les heures et les siècles.
+function conversionsDurees(secondes, evite) {
+  const [h, h2, h3] = shuffle([2, 3, 4, 5, 6]);
+  let total, hh, mm;
+  do { hh = rnd(1, 3); mm = pick([10, 20, 30, 40, 45, 50]); total = 60 * hh + mm; } while (total === evite);
+  const mil = rnd(2, 5), ans = rnd(2, 9);
+  const min = rnd(2, 5), s = 60 * rnd(1, 3) + pick([15, 20, 30, 45]);
+  const hVersMin = { gauche: `${h}${NBSP}h`, reponses: [[60 * h, 'min']] };
+  const minVersH = { gauche: `${total}${NBSP}min`, reponses: [[hh, 'h'], [mm, 'min']] };
+  const milVersSiecles = { gauche: `${mil}${NBSP}millénaires`, reponses: [[10 * mil, 'siècles']] };
+  const ansVersSiecles = { gauche: `${100 * ans}${NBSP}ans`, reponses: [[ans, 'siècles']] };
+  if (secondes) {
+    return [hVersMin, minVersH,
+      { gauche: `${min}${NBSP}min`, reponses: [[60 * min, 's']] },
+      { gauche: `${s}${NBSP}s`, reponses: [[Math.floor(s / 60), 'min'], [s % 60, 's']] },
+      milVersSiecles, ansVersSiecles];
+  }
+  return [hVersMin, minVersH, milVersSiecles, ansVersSiecles,
+    { gauche: `${60 * h2}${NBSP}min`, reponses: [[h2, 'h']] },
+    { gauche: `${h3}${NBSP}h`, reponses: [[60 * h3, 'min']] }];
+}
+
+// Ex. 4 : un trajet (durée à trouver), un film (heure de fin à trouver), une récréation (minutes).
+function problemeDurees(modele, prenom, interdits) {
+  if (modele === 'recre') {
+    let t0, duree;
+    do { t0 = 60 * rnd(9, 15) + 5 * rnd(0, 11); duree = 5 * rnd(3, 10); } while (interdits.has(t0));
+    interdits.add(t0);
+    const t1 = t0 + duree, s = sautsDuree(t0, duree);
+    return { modele, t0, duree, t1,
+      enonce: `La récréation de ${prenom} commence à ${horaireTxt(t0)} et finit à ${horaireTxt(t1)}. Combien de minutes dure-t-elle ?`,
+      calcul: s.length > 1 ? `${s.map((x) => dureeTxt(x.minutes)).join(' + ')} = ${dureeTxt(duree)}` : `de ${horaireTxt(t0)} à ${horaireTxt(t1)} : ${dureeTxt(duree)}`,
+      phrase: `La récréation dure ${dureeTxt(duree)}.` };
+  }
+  const hh = tirerHoraires({ interdits });
+  const s = sautsDuree(hh.t0, hh.duree);
+  if (modele === 'trajet') {
+    return { modele, ...hh,
+      enonce: `${prenom} part en ${pick(['train', 'bus', 'voiture'])} à ${horaireTxt(hh.t0)} et arrive à ${horaireTxt(hh.t1)}. Quelle est la durée du trajet ?`,
+      calcul: `${s.map((x) => dureeTxt(x.minutes)).join(' + ')} = ${dureeTxt(hh.duree)}`,
+      phrase: `Le trajet dure ${dureeTxt(hh.duree)}.` };
+  }
+  return { modele, ...hh,
+    enonce: `${prenom} regarde un film qui commence à ${horaireTxt(hh.t0)}. Il dure ${dureeTxt(hh.duree)}. À quelle heure le film finit-il ?`,
+    calcul: s.map((x) => `${x.de} + ${x.libelle.replace(/^\+\s/, '')} = ${x.vers}`).join(' ; '),
+    phrase: `Le film finit à ${horaireTxt(hh.t1)}.` };
+}
+
+function genererDurees(options) {
+  const secondes = options.secondes === 'oui';
+  const [p, q, r] = shuffle(PRENOMS);
+  const egalites = egalitesDurees();
+  const evite = parseInt(egalites[2].gauche, 10);
+  const conversions = conversionsDurees(secondes, evite);
+  const interdits = new Set();
+  const durees = [tirerHoraires({ trois: true, interdits }), tirerHoraires({ interdits }), tirerHoraires({ interdits })];
+  const arrivees = [tirerHoraires({ trois: true, interdits }), tirerHoraires({ interdits }), tirerHoraires({ interdits })];
+  const problemes = [problemeDurees('trajet', p, interdits), problemeDurees('film', q, interdits), problemeDurees('recre', r, interdits)];
+  return {
+    secondes,
+    objectif: secondes
+      ? 'Je connais les relations entre secondes, minutes, heures, demi-heure, quart d’heure, siècle et millénaire, et je calcule des durées.'
+      : 'Je connais les relations entre minutes, heures, demi-heure, quart d’heure, siècle et millénaire, et je calcule des durées.',
+    methode: {},
+    egalites, conversions, durees, arrivees, problemes,
+  };
+}
+
+const RELATIONS_DUREES = [
+  ['1 minute = 60 secondes', true],
+  ['1 heure = 60 minutes'], ['1 demi-heure = 30 minutes'], ['1 quart d’heure = 15 minutes'],
+  ['1 siècle = 100 ans'], [`1 millénaire = ${fmt(1000)} ans`], ['1 millénaire = 10 siècles'],
+].map(([t, secondes]) => [t.replace(/(\d) /g, `$1${NBSP}`), !!secondes]);
+
+const ecritureDuree = (e, pts, rep) => {
+  const parties = e.reponses.map(([v, u]) => (rep ? rouge(lg(v, u)) : `${pts}<span>${u}</span>`));
+  return `<span>${e.gauche} =</span>${rep ? `<span>${parties.join(' ')}</span>` : parties.join('')}`;
+};
+
+const miseDurees = {
+  signe: '',
+  combien: (contenu, methode) => ({
+    egalites: contenu.egalites.slice(0, methode ? 6 : 8),
+    conversions: contenu.conversions.slice(0, methode ? 4 : 6),
+    durees: contenu.durees.slice(0, methode ? 2 : 3),
+    arrivees: contenu.arrivees.slice(0, methode ? 2 : 3),
+    problemes: contenu.problemes.slice(0, methode ? 2 : 3),
+  }),
+  noteCorrige: 'les réponses attendues sont en rouge ; chaque durée est calculée avec la ligne du temps : on va jusqu’à l’heure pile, puis on ajoute les heures, puis les minutes.',
+  // Rappel : les relations de la leçon (pages 43 et 44), puis un calcul de durée sur une ligne du temps.
+  // La leçon ne montre aucun calcul de durée : cette partie est une transposition, pas une citation.
+  rappel(contenu) {
+    const depart = 9 * 60 + 40, s = sautsDuree(depart, 95);
+    return `
+      <div class="rappel-du">
+        <div class="rappel-du__relations">
+          <p class="rappel-du__titre">Je connais les relations</p>
+          <ul>${RELATIONS_DUREES.filter(([, sec]) => !sec || contenu.secondes).map(([t]) => `<li>${t}</li>`).join('')}</ul>
+        </div>
+        <div class="rappel-du__calcul">
+          <p class="rappel-du__titre">Pour calculer une durée</p>
+          <p>De ${horaireTxt(depart)} à ${horaireTxt(depart + 95)} : je vais jusqu’à l’heure pile, puis j’ajoute les heures, puis les minutes.</p>
+          ${ligneDuTemps({ debut: horaireTxt(depart), fin: horaireTxt(depart + 95), etapes: etapesDe(s) })}
+          <p class="rappel-du__detail">${s.map((x) => `de ${x.de} à ${x.vers} : ${dureeTxt(x.minutes)}`).join(' ; ')}.<br><b>En tout : ${dureeTxt(95)}.</b></p>
+        </div>
+      </div>`;
+  },
+  exercices(contenu, methode) {
+    const { egalites, conversions, durees, arrivees, problemes } = this.combien(contenu, methode);
+    const pts = '<span class="pointilles pointilles--mini"></span>';
+    const ligne = (e, i) => `<div class="conversion"><b>${lettre(i)}.</b>${ecritureDuree(e, pts, false)}</div>`;
+    const bloc = (liste, type, depart) => liste.map((x, i) => {
+      const rang = depart + i;
+      const enonce = type === 'duree'
+        ? `Départ : ${horaireTxt(x.t0)} ; arrivée : ${horaireTxt(x.t1)}.`
+        : `Départ : ${horaireTxt(x.t0)} ; durée : ${dureeTxt(x.duree)}.`;
+      const reponse = type === 'duree'
+        ? `<span>Durée :</span>${pts}<span>h</span>${pts}<span>min</span>`
+        : `<span>Arrivée :</span>${pts}<span>h</span>${pts}`;
+      return `<div class="duree"><p class="duree__enonce"><b>${lettre(rang)}.</b> ${enonce}</p>
+        ${ligneDuTemps({ debut: horaireTxt(x.t0), fin: type === 'duree' ? horaireTxt(x.t1) : null })}
+        <div class="duree__reponse">${reponse}</div></div>`;
+    }).join('');
+    return `
+    <div class="bloc">
+      <h2>Exercice 1 — Complète.</h2>
+      <div class="conversions conversions--3 conversions--durees">
+        ${egalites.map(ligne).join('')}
+      </div>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 2 — Convertis.</h2>
+      <div class="conversions conversions--3 conversions--durees">
+        ${conversions.map(ligne).join('')}
+      </div>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 3 — Calcule avec la ligne du temps : trace les sauts, puis réponds.</h2>
+      <div class="durees">
+        <div class="durees__colonne"><p class="durees__titre">Je cherche la durée.</p>${bloc(durees, 'duree', 0)}</div>
+        <div class="durees__colonne"><p class="durees__titre">Je cherche l’heure d’arrivée.</p>${bloc(arrivees, 'arrivee', durees.length)}</div>
+      </div>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 4 — Résous chaque problème.</h2>
+      <div class="problemes-fr">
+        ${problemes.map((pb, i) => `<div class="probleme-fr">
+          <p class="probleme-fr__enonce"><b>${lettre(i)}.</b> ${pb.enonce}</p>
+          <div class="probleme-fr__ligne"><span>Calcul :</span><span class="pointilles pointilles--ligne"></span></div>
+          <div class="probleme-fr__ligne"><span>Phrase réponse :</span><span class="pointilles pointilles--ligne"></span></div>
+        </div>`).join('')}
+      </div>
+    </div>
+`;
+  },
+  corriges(contenu, methode) {
+    const { egalites, conversions, durees, arrivees, problemes } = this.combien(contenu, methode);
+    const ligne = (e, i) => `<div class="conversion"><b>${lettre(i)}.</b>${ecritureDuree(e, '', true)}</div>`;
+    const bloc = (liste, type, depart) => liste.map((x, i) => {
+      const s = sautsDuree(x.t0, x.duree);
+      const detail = s.map((y) => `de ${y.de} à ${y.vers} : ${dureeTxt(y.minutes)}`).join(' ; ');
+      const enonce = type === 'duree'
+        ? `Départ : ${horaireTxt(x.t0)} ; arrivée : ${horaireTxt(x.t1)}.`
+        : `Départ : ${horaireTxt(x.t0)} ; durée : ${dureeTxt(x.duree)}.`;
+      const fin = type === 'duree' ? `en tout ${rouge(dureeTxt(x.duree))}.` : `arrivée à ${rouge(horaireTxt(x.t1))}.`;
+      return `<div class="duree duree--corrige"><p class="duree__enonce"><b>${lettre(depart + i)}.</b> ${enonce}</p>
+        ${ligneDuTemps({ debut: horaireTxt(x.t0), fin: horaireTxt(x.t1), etapes: etapesDe(s) })}
+        <p class="duree__detail">${detail} ; ${fin}</p></div>`;
+    }).join('');
+    return `
+    <div class="bloc">
+      <h2>Exercice 1</h2>
+      <div class="conversions conversions--3 conversions--corrigees conversions--durees">
+        ${egalites.map(ligne).join('')}
+      </div>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 2</h2>
+      <div class="conversions conversions--3 conversions--corrigees conversions--durees">
+        ${conversions.map(ligne).join('')}
+      </div>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 3</h2>
+      <div class="durees durees--corrigees">
+        <div class="durees__colonne">${bloc(durees, 'duree', 0)}</div>
+        <div class="durees__colonne">${bloc(arrivees, 'arrivee', durees.length)}</div>
+      </div>
+    </div>
+
+    <div class="bloc">
+      <h2>Exercice 4</h2>
+      <div class="problemes-fr">
+        ${problemes.map((pb, i) => `<div class="probleme-fr">
+          <p class="probleme-fr__enonce"><b>${lettre(i)}.</b> ${pb.enonce}</p>
+          <div class="probleme-fr__ligne"><span>Calcul :</span><span class="probleme-fr__rep">${pb.calcul}</span></div>
+          <div class="probleme-fr__ligne"><span>Phrase réponse :</span><span class="probleme-fr__rep">${pb.phrase}</span></div>
+        </div>`).join('')}
+      </div>
+    </div>
+`;
+  },
+};
+
 function pageExercices(fiche, contenu, { base = '', methode = true, identite = true } = {}) {
   const { signe } = fiche.mise;
   if (fiche.mise.rappel) return pageExercicesLibre(fiche, contenu, { base, methode, identite });
@@ -3211,6 +3486,25 @@ export const FICHES = [
     ],
     generer: genererMassesContenances,
     mise: miseMassesContenances,
+  },
+  {
+    id: 'ce2-durees',
+    classe: 'ce2',
+    domaine: 'Grandeurs et mesures',
+    titre: 'Les durées : relations et calculs',
+    emoji: '⏱️',
+    options: [
+      {
+        id: 'secondes', libelle: 'Unités utilisées',
+        valeurs: [
+          { v: 'non', nom: 'Minutes et heures' },
+          { v: 'oui', nom: 'Avec les secondes' },
+        ],
+        defaut: 'non',
+      },
+    ],
+    generer: genererDurees,
+    mise: miseDurees,
   },
 ];
 

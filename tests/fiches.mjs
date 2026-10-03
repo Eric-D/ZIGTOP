@@ -4,7 +4,7 @@ import { JSDOM } from 'jsdom';
 import { FICHES, tirer, rendre, decoder, codeDe, optionsParDefaut } from '../js/fiches.js';
 import { matrice } from '../js/qr.js';
 import { fmt } from '../js/utils.js';
-import { figureFraction, monnaie, polygoneCote, horloge } from '../js/visuels.js';
+import { figureFraction, monnaie, polygoneCote, horloge, ligneDuTemps } from '../js/visuels.js';
 
 let echecs = 0;
 const verifier = (ok, message) => { if (!ok) echecs++; console.log(`${ok ? '✔' : '✘'} ${message}`); };
@@ -2117,6 +2117,209 @@ for (const opt of optionsMult) {
     .map(([id, o]) => somme(empreinte(FICHES.find((x) => x.id === id), o)));
   verifier(h.join() === '2857615915,841554819,1341628403,3247079376,2467628440,3671073380,178792032,2718432813,1534335352,750168435,1150851747,649082766,1335819493,11888257,1584605419,857785706,538954699', `masses et contenances : les onze fiches précédentes sont inchangées (${h.join()})`);
   verifier(FICHES.slice(0, 11).map((f) => f.id).join() === 'ce2-addition-posee,ce2-soustraction-posee,ce2-multiplication,ce2-nombres-lire-ecrire,ce2-nombres-comparer,ce2-fractions-lire,ce2-fractions-comparer,ce2-fractions-calculer,ce2-monnaie,ce2-longueurs,ce2-heures', 'masses et contenances : ordre des onze premières fiches inchangé');
+}
+
+/* Durées : relations et calculs --------------------------------------------- */
+{
+  const fd = FICHES.find((f) => f.id === 'ce2-durees');
+  console.log('— Durées : relations et calculs');
+  verifier(FICHES.indexOf(fd) === 12, 'durées : fiche à l’index 12 de FICHES');
+  verifier(fd.titre === 'Les durées : relations et calculs' && fd.emoji === '⏱️' && fd.options.length === 1 && fd.options[0].id === 'secondes' && fd.options[0].defaut === 'non'
+    && JSON.stringify(fd.options[0].valeurs) === JSON.stringify([{ v: 'non', nom: 'Minutes et heures' }, { v: 'oui', nom: 'Avec les secondes' }]),
+    'durées : titre, emoji, option secondes (non, oui ; défaut non)');
+
+  const fenetre = new JSDOM('<body></body>').window.document;
+  const conteneur = (html) => { const div = fenetre.createElement('div'); div.innerHTML = html; return div; };
+  const doc = (c, o) => conteneur(rendre(fd, c, o));
+  const blocs = (page) => [...page.querySelectorAll('.bloc:not(.bloc--methode)')];
+  const txt = (el) => { const c = el.cloneNode(true); c.querySelectorAll('svg').forEach((x) => x.remove()); return c.textContent.replace(/[  ]/g, ' ').replace(/\s+/g, ' ').trim(); };
+  const hor = (s) => { const m = /^(\d+) h(?: (\d\d))?$/.exec(s); return m ? 60 * +m[1] + (m[2] ? +m[2] : 0) : NaN; };
+  const dur = (s) => { const m = /^(?:(\d+) h)?(?: ?(\d+) min)?$/.exec(s); return m && s ? 60 * (+m[1] || 0) + (+m[2] || 0) : NaN; };
+  // Écritures attendues, refaites ici : « 9 h 40 », « 10 h », « 1 h 35 min », « 35 min ».
+  const horTxt = (t) => (t % 60 ? `${Math.floor(t / 60)} h ${String(t % 60).padStart(2, '0')}` : `${t / 60} h`);
+  const dureeTxtT = (D) => { const hh = Math.floor(D / 60), mm = D % 60; return hh && mm ? `${hh} h ${mm} min` : hh ? `${hh} h` : `${mm} min`; };
+  const HORAIRE = '(\\d+ h(?: \\d\\d)?)';
+
+  // Valeur d'une quantité écrite : en minutes (durées usuelles) ou en secondes ; en ans (siècles, millénaires).
+  const enMin = (q) => {
+    let m;
+    if ((m = /^(\d+) h(?: (\d+)(?: min)?)?$/.exec(q))) return 60 * +m[1] + (+m[2] || 0);
+    if ((m = /^(\d+) min$/.exec(q))) return +m[1];
+    if (q === '1 quart d’heure') return 15;
+    if (q === '1 demi-heure') return 30;
+    return NaN;
+  };
+  const enS = (q) => { let m; if ((m = /^(\d+) min(?: (\d+) s)?$/.exec(q))) return 60 * +m[1] + (+m[2] || 0); if ((m = /^(\d+) s$/.exec(q))) return +m[1]; return NaN; };
+  const enAns = (q) => {
+    let m;
+    if ((m = /^(\d+) siècles?$/.exec(q))) return 100 * +m[1];
+    if ((m = /^(\d+) millénaires?$/.exec(q))) return 1000 * +m[1];
+    if ((m = /^(\d[\d ]*) ans$/.exec(q))) return +m[1].replace(/ /g, '');
+    return NaN;
+  };
+  // « 90 min = 1 h 30 min » : la valeur de gauche, celle de droite, dans la même unité.
+  const egalOk = (ligne) => {
+    const [g, d] = ligne.replace(/^[a-z]\.\s*/, '').split(/\s*=\s*/);
+    if (!d) return false;
+    const x = [enMin, enS, enAns].map((f) => [f(g), f(d)]).find(([a, b]) => !Number.isNaN(a) && !Number.isNaN(b));
+    return !!x && x[0] === x[1];
+  };
+
+  for (const secondes of ['non', 'oui']) for (const methode of [true, false]) {
+    const k = methode ? { e: 6, c: 4, d: 2, p: 2 } : { e: 8, c: 6, d: 3, p: 3 };
+    const nom = `durées secondes=${secondes}, ${methode ? 'avec' : 'sans'} méthode`;
+    let comptes = 0, egalites = 0, conv = 0, tl = 0, saut = 0, detail = 0, probl = 0, fuite = 0, horaires = 0, mots = 0, secUsage = 0, emoji = 0, tousMultiples = 0;
+    for (let graine = 1; graine <= 60; graine++) {
+      const c = tirer(fd, { secondes }, graine * 7919);
+      const d = doc(c, { corrige: true, methode });
+      const [pe, pc] = d.querySelectorAll('.feuille');
+      const [e1, e2, e3, e4] = blocs(pe), [c1, c2, c3, c4] = blocs(pc);
+      const cmpt = (el, sel) => el.querySelectorAll(sel).length;
+      if (!(blocs(pe).length === 4 && blocs(pc).length === 4 && cmpt(e1, '.conversion') === k.e && cmpt(c1, '.conversion') === k.e
+        && cmpt(e2, '.conversion') === k.c && cmpt(c2, '.conversion') === k.c
+        && cmpt(e3, '.duree') === 2 * k.d && cmpt(c3, '.duree') === 2 * k.d && cmpt(e3, 'svg.ligne-du-temps') === 2 * k.d && cmpt(c3, 'svg.ligne-du-temps') === 2 * k.d
+        && cmpt(e4, '.probleme-fr') === k.p && cmpt(c4, '.probleme-fr') === k.p)) comptes++;
+
+      // Ex. 1 et 2 : le corrigé est exact (recalculé ici), la feuille de l'élève n'a que des blancs
+      [[c1, e1], [c2, e2]].forEach(([cl, el]) => {
+        [...cl.querySelectorAll('.conversion')].forEach((l, i) => {
+          if (!egalOk(txt(l))) (cl === c1 ? egalites++ : conv++);
+          const gauche = txt(l).replace(/^[a-z]\.\s*/, '').split(/\s*=\s*/)[0];
+          const eleve = txt(el.querySelectorAll('.conversion')[i]);
+          if (!eleve.replace(/\s/g, '').startsWith(`${lettre(i)}.${gauche}=`.replace(/\s/g, ''))) (cl === c1 ? egalites++ : conv++);
+          if (/\d/.test(eleve.split(/\s*=\s*/)[1] || '') || cmpt(el.querySelectorAll('.conversion')[i], '.pointilles') < 1) (cl === c1 ? egalites++ : conv++);
+        });
+      });
+      const gauchesC1 = [...c1.querySelectorAll('.conversion')].map((l) => txt(l).replace(/^[a-z]\.\s*/, '').split(/\s*=\s*/)[0]);
+      const exigees = ['1 h', '1 quart d’heure', '1 siècle'];
+      if (!exigees.every((x) => gauchesC1.includes(x)) || !gauchesC1.some((x) => /^\d+ h \d+$/.test(x)) || !gauchesC1.some((x) => /^\d+ min$/.test(x)) || !gauchesC1.some((x) => /^[2-9] siècles$/.test(x))) egalites++;
+      if (methode === false && !(gauchesC1.includes('1 demi-heure') && gauchesC1.some((x) => x === '1 millénaire'))) egalites++;
+      const gauchesC2 = [...c2.querySelectorAll('.conversion')].map((l) => txt(l).replace(/^[a-z]\.\s*/, '').split(/\s*=\s*/)[0]);
+      const droitesC2 = [...c2.querySelectorAll('.conversion')].map((l) => txt(l).split(/\s*=\s*/)[1]);
+      const aSecondes = gauchesC2.some((x) => / s$/.test(x)) || droitesC2.some((x) => / s$/.test(x));
+      if ((secondes === 'oui') !== aSecondes) secUsage++;
+      if (secondes === 'oui' && !(gauchesC2.some((x) => /^\d+ min$/.test(x) && droitesC2[gauchesC2.indexOf(x)] && / s$/.test(droitesC2[gauchesC2.indexOf(x)])) && gauchesC2.some((x) => /^\d+ s$/.test(x)))) secUsage++;
+      if (secondes === 'non' && !(gauchesC2.some((x) => /millénaires$/.test(x)) && gauchesC2.some((x) => / ans$/.test(x)))) conv++;
+      if (new Set(gauchesC2).size !== gauchesC2.length) conv++;
+
+      // Ex. 3 : chaque durée recalculée tout en minutes ; sauts de la ligne du temps du corrigé
+      const items = [...c3.querySelectorAll('.duree')];
+      const itemsE = [...e3.querySelectorAll('.duree')];
+      items.forEach((it, i) => {
+        const type = i < k.d ? 'duree' : 'arrivee';
+        const enonce = txt(it.querySelector('.duree__enonce')).replace(/^[a-z]\. /, '');
+        const m = type === 'duree' ? new RegExp(`^Départ : ${HORAIRE} ; arrivée : ${HORAIRE}\\.$`).exec(enonce) : new RegExp(`^Départ : ${HORAIRE} ; durée : (.+)\\.$`).exec(enonce);
+        if (!m) { tl++; return; }
+        const t0 = hor(m[1]);
+        const D = type === 'duree' ? hor(m[2]) - t0 : dur(m[2]);
+        const t1 = type === 'duree' ? hor(m[2]) : t0 + D;
+        if (!(t0 % 5 === 0 && t1 % 5 === 0 && D % 5 === 0 && D > 0 && D < 240 && t0 >= 360 && t1 <= 22 * 60)) horaires++;
+        // Les sauts dessinés
+        const svg = it.querySelector('svg.ligne-du-temps');
+        const sauts = [...svg.querySelectorAll('.saut')].map((g) => g.getAttribute('data-libelle').replace(/[ ]/g, ' '));
+        const dest = [...svg.querySelectorAll('.horaire')].map((x) => x.textContent.replace(/[ ]/g, ' '));
+        const valeurs = sauts.map((s) => dur(s.replace(/^\+ /, '')));
+        if (valeurs.some(Number.isNaN) || valeurs.reduce((a, b) => a + b, 0) !== D) saut++;
+        // Chaque cible = départ + sauts cumulés ; départ et arrivée imprimés comme dans l'énoncé
+        let t = t0; const cibles = [];
+        valeurs.forEach((v) => { t += v; cibles.push(t); });
+        if (dest.length !== valeurs.length + 1 || dest.slice(1).some((x, j) => hor(x) !== cibles[j]) || hor(dest[0]) !== t0 || cibles[cibles.length - 1] !== t1) saut++;
+        // Méthode : jusqu'à l'heure pile, puis les heures, puis les minutes
+        const attendus = []; let r = D; const mm = t0 % 60;
+        if (mm && r >= 60 - mm) { attendus.push(60 - mm); r -= 60 - mm; }
+        if (Math.floor(r / 60)) attendus.push(60 * Math.floor(r / 60));
+        if (r % 60) attendus.push(r % 60);
+        if (JSON.stringify(attendus) !== JSON.stringify(valeurs)) saut++;
+        if (valeurs.length > 1 && cibles.slice(0, -1).some((x, j) => (j === 0 && mm ? x % 60 !== 0 : false))) saut++;
+        // Détail en mots
+        const dt = txt(it.querySelector('.duree__detail'));
+        let tt = t0;
+        const morceaux = valeurs.map((v) => { const s = `de ${horTxt(tt)} à ${horTxt(tt + v)} : ${dureeTxtT(v)}`; tt += v; return s; });
+        const fin = type === 'duree' ? `en tout ${dureeTxtT(D)}.` : `arrivée à ${horTxt(t1)}.`;
+        if (dt !== `${morceaux.join(' ; ')} ; ${fin}`) detail++;
+        // Page élève : ligne vierge, rien de la réponse
+        const ie = itemsE[i], se = ie.querySelector('svg.ligne-du-temps');
+        const dE = [...se.querySelectorAll('.horaire')].map((x) => x.textContent.replace(/ /g, ' '));
+        if (se.querySelectorAll('.saut').length || dE.length !== (type === 'duree' ? 2 : 1) || hor(dE[0]) !== t0 || (type === 'duree' && hor(dE[1]) !== t1)) fuite++;
+        if (txt(ie.querySelector('.duree__enonce')).replace(/^[a-z]\. /, '') !== enonce || cmpt(ie, '.duree__reponse .pointilles') !== (type === 'duree' ? 2 : 2)) fuite++;
+        if (/en tout|arrivée à/.test(txt(ie)) || (type === 'arrivee' && txt(ie).includes(horTxt(t1)) && t1 !== t0)) fuite++;
+        tousMultiples++;
+      });
+      // Ex. 4
+      [...c4.querySelectorAll('.probleme-fr')].forEach((pb, i) => {
+        const enonce = txt(pb.querySelector('.probleme-fr__enonce')).replace(/^[a-z]\. /, '');
+        const [calc, phrase] = [...pb.querySelectorAll('.probleme-fr__rep')].map(txt);
+        const hs = [...enonce.matchAll(/(\d+ h(?: \d\d)?)(?![\d ]*min)/g)].map((x) => hor(x[1]));
+        let ok = false;
+        if (i === 0) { // trajet : départ, arrivée → durée
+          const [a, b] = hs; const D = b - a;
+          ok = /durée du trajet/.test(enonce) && D > 0 && D < 240 && phrase === `Le trajet dure ${dureeTxtT(D)}.` && calc.endsWith(`= ${dureeTxtT(D)}`) && calc.split(' = ')[0].split(' + ').reduce((s, x) => s + dur(x), 0) === D;
+        } else if (i === 1) { // film : début + durée → fin
+          const a = hs[0], D = dur(/Il dure (.+?)\. À/.exec(enonce)[1]);
+          ok = D > 0 && D < 240 && phrase === `Le film finit à ${horTxt(a + D)}.` && calc.endsWith(`= ${horTxt(a + D)}`) && calc.split(' ; ').reduce((t, s) => { const mm = /^(.+) \+ (.+) = (.+)$/.exec(s); return mm && hor(mm[1]) === t && hor(mm[3]) === t + dur(mm[2]) ? t + dur(mm[2]) : NaN; }, a) === a + D;
+        } else {
+          const [a, b] = hs; const D = b - a;
+          ok = /Combien de minutes/.test(enonce) && D > 0 && D < 60 && phrase === `La récréation dure ${D} min.` && /= \d+ min$|: \d+ min$/.test(calc);
+        }
+        if (!ok || !(hs.every((x) => x % 5 === 0))) probl++;
+        if (!/Calcul :/.test(txt(e4.querySelectorAll('.probleme-fr')[i])) || !/Phrase réponse :/.test(txt(e4.querySelectorAll('.probleme-fr')[i])) || /dure \d|finit à \d/.test(txt(e4.querySelectorAll('.probleme-fr')[i]).replace(enonce, ''))) fuite++;
+      });
+      // Ton et feuille : pas de mot négatif, pas d'emoji
+      const tout = txt(pe) + ' ' + txt(pc);
+      if (/faux|erreur|raté|mauvais|✘|✗|✖|❌/i.test(tout)) mots++;
+      if (/\p{Extended_Pictographic}/u.test(rendre(fd, c, { corrige: true, methode }).replace(/<svg[\s\S]*?<\/svg>/g, ''))) emoji++;
+    }
+    verifier(comptes === 0, `${nom} : ${k.e} égalités, ${k.c} conversions, ${2 * k.d} lignes du temps, ${k.p} problèmes, 4 exercices, identiques sur la feuille et le corrigé`);
+    verifier(egalites === 0, `${nom} : égalités exactes (recalculées), blancs sur la feuille, relations de la leçon présentes`);
+    verifier(conv === 0 && secUsage === 0, `${nom} : conversions exactes dans les deux sens, secondes seulement avec l’option`);
+    verifier(tl === 0 && horaires === 0, `${nom} : horaires en multiples de 5 min, durées de moins de 4 h, énoncés bien formés (${tousMultiples} durées)`);
+    verifier(saut === 0, `${nom} : sauts de la ligne du temps = heure pile, heures, minutes ; leur somme vaut la durée`);
+    verifier(detail === 0, `${nom} : détail en mots du corrigé exact`);
+    verifier(probl === 0, `${nom} : problèmes avec calcul et phrase exacts`);
+    verifier(fuite === 0, `${nom} : aucune réponse sur la page élève (lignes du temps vierges, blancs, pas de calcul)`);
+    verifier(mots === 0 && emoji === 0, `${nom} : aucun mot négatif, aucun emoji sur la feuille`);
+  }
+
+  // Le rappel : relations de la leçon, puis le calcul d'une durée sur une ligne du temps
+  for (const secondes of ['non', 'oui']) {
+    const c = tirer(fd, { secondes }, 31);
+    const m = doc(c, { methode: true }).querySelector('.bloc--methode');
+    const t = txt(m);
+    const relations = ['1 heure = 60 minutes', '1 demi-heure = 30 minutes', '1 quart d’heure = 15 minutes', '1 siècle = 100 ans', '1 millénaire = 1 000 ans', '1 millénaire = 10 siècles'];
+    verifier(relations.every((r) => t.includes(r)) && t.includes('1 minute = 60 secondes') === (secondes === 'oui'), `durées secondes=${secondes} : le rappel reprend les relations de la leçon${secondes === 'oui' ? ' et 1 minute = 60 secondes' : ''}`);
+    verifier(t.includes('je vais jusqu’à l’heure pile, puis j’ajoute les heures, puis les minutes') && t.includes('En tout : 1 h 35 min.') && t.includes('de 9 h 40 à 10 h : 20 min ; de 10 h à 11 h : 1 h ; de 11 h à 11 h 15 : 15 min'), `durées secondes=${secondes} : le rappel montre 9 h 40 → 11 h 15 en 1 h 35 min`);
+    const svg = m.querySelector('svg.ligne-du-temps');
+    verifier(svg && [...svg.querySelectorAll('.saut')].map((g) => g.getAttribute('data-libelle').replace(/ /g, ' ')).join() === '+ 20 min,+ 1 h,+ 15 min' && [...svg.querySelectorAll('.horaire')].map((x) => x.textContent.replace(/ /g, ' ')).join() === '9 h 40,10 h,11 h,11 h 15', `durées secondes=${secondes} : la ligne du temps du rappel (+ 20 min, + 1 h, + 15 min)`);
+  }
+  // La figure elle-même
+  {
+    const v = conteneur(ligneDuTemps({ debut: '9 h 40', fin: '11 h 15', etapes: [{ libelle: '+ 20 min', cible: '10 h' }, { libelle: '+ 1 h', cible: '11 h' }, { libelle: '+ 15 min', cible: '11 h 15' }] }));
+    const xs = [...v.querySelectorAll('.saut text')].map((x) => +x.getAttribute('x'));
+    verifier(v.querySelectorAll('.saut').length === 3 && v.querySelectorAll('.horaire').length === 4 && xs.every((x, i) => !i || x - xs[i - 1] > 60), 'ligneDuTemps : trois arcs annotés, quatre horaires, annotations espacées');
+    verifier(conteneur(ligneDuTemps({ debut: '8 h' })).querySelectorAll('.saut').length === 0 && conteneur(ligneDuTemps({ debut: '8 h' })).querySelectorAll('.horaire').length === 1, 'ligneDuTemps : sans étape, une droite vierge avec son départ');
+  }
+
+  // Codes reproductibles et options
+  for (const secondes of ['non', 'oui']) {
+    const c = tirer(fd, { secondes });
+    const r = decoder(c.code);
+    verifier(r && r.fiche === fd && r.options.secondes === secondes && JSON.stringify(tirer(r.fiche, r.options, r.graine)) === JSON.stringify(c), `durées ${secondes} : le code ${c.code} redonne la même fiche`);
+    verifier(rendre(fd, tirer(fd, { secondes }, 77), { corrige: true }) === rendre(fd, tirer(fd, { secondes }, 77), { corrige: true }), `durées ${secondes} : même graine, même HTML`);
+    const vus = new Set(); for (let i = 0; i < 200; i++) vus.add(tirer(fd, { secondes }).code);
+    verifier(vus.size > 190, `durées ${secondes} : codes variés (${vus.size} sur 200)`);
+  }
+  verifier(codeDe(fd, { secondes: 'non' }, 5) !== codeDe(fd, { secondes: 'oui' }, 5), 'durées : l’option change le code');
+
+  // Les douze fiches précédentes inchangées : empreinte du HTML à graine fixe, mesurée avant l’ajout
+  const empreinte = (f, o) => { const t = tirer(f, o, 424242); return JSON.stringify(t) + rendre(f, t, { corrige: true, base: 'http://x/' }); };
+  const somme = (s) => { let h = 5381; for (const ch of s) h = ((h * 33) ^ ch.charCodeAt(0)) >>> 0; return h; };
+  const h = [['ce2-addition-posee', { taille: 'mix' }], ['ce2-soustraction-posee', { taille: 'mix' }], ['ce2-multiplication', { facteur: '2' }], ['ce2-nombres-lire-ecrire', { taille: '1000' }], ['ce2-nombres-lire-ecrire', { taille: '10000' }],
+    ['ce2-nombres-comparer', { taille: '1000' }], ['ce2-nombres-comparer', { taille: '10000' }], ['ce2-fractions-lire', {}], ['ce2-fractions-comparer', {}], ['ce2-fractions-calculer', { denominateur: '4' }], ['ce2-fractions-calculer', { denominateur: '10' }],
+    ['ce2-monnaie', { centimes: 'non' }], ['ce2-monnaie', { centimes: 'oui' }], ['ce2-longueurs', { km: 'non' }], ['ce2-longueurs', { km: 'oui' }], ['ce2-heures', { minutes: 'quarts' }], ['ce2-heures', { minutes: 'cinq' }],
+    ['ce2-masses-contenances', { grandeur: 'masses' }], ['ce2-masses-contenances', { grandeur: 'contenances' }], ['ce2-masses-contenances', { grandeur: 'deux' }]]
+    .map(([id, o]) => somme(empreinte(FICHES.find((x) => x.id === id), o)));
+  verifier(h.join() === '2857615915,841554819,1341628403,3247079376,2467628440,3671073380,178792032,2718432813,1534335352,750168435,1150851747,649082766,1335819493,11888257,1584605419,857785706,538954699,1652536371,2192490432,1573601925', `durées : les douze fiches précédentes sont inchangées (${h.join()})`);
+  verifier(FICHES.slice(0, 12).map((f) => f.id).join() === 'ce2-addition-posee,ce2-soustraction-posee,ce2-multiplication,ce2-nombres-lire-ecrire,ce2-nombres-comparer,ce2-fractions-lire,ce2-fractions-comparer,ce2-fractions-calculer,ce2-monnaie,ce2-longueurs,ce2-heures,ce2-masses-contenances', 'durées : ordre des douze premières fiches inchangé');
 }
 
 process.exit(echecs ? 1 : 0);
