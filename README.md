@@ -37,6 +37,10 @@ et le **corrigé sur une deuxième page** pour l'adulte.
 
 Fiches disponibles (le plan complet est dans [`programme/ce2/PLAN-FICHES.md`](programme/ce2/PLAN-FICHES.md)) :
 
+- **CE2 — Opérations : multiplication** (p. 19–21 du livret) : les deux méthodes en ligne
+  du livret (Mila, Enzo), la multiplication posée `427 × 5` puis `14 × 23` avec ses lignes
+  partielles ; produits en ligne à décomposer, multiplications posées à un puis deux
+  chiffres, problèmes. Option : × 1 chiffre seulement, ou × 1 et × 2 chiffres.
 - **CE2 — Opérations : soustraction posée** (p. 16–18 du livret) : méthode en 4 étapes avec
   l'exemple `4 268 − 1 951`, retenues notées comme dans le livret (le chiffre qui prête est
   barré et réécrit au-dessus, la colonne qui reçoit note « 1 » devant son chiffre), 4

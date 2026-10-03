@@ -18,7 +18,7 @@ l'enfant a vus en classe.
 | --- | --- | --- | --- | --- |
 | — | Addition posée | 03-addition-posee.md (14–15) | — | ✅ en ligne |
 | 1 | Soustraction posée | [04-soustraction-posee.md](01-nombres-et-calculs/04-soustraction-posee.md) (16–18) | [#1](https://github.com/Eric-D/ZIGTOP/issues/1) | ✅ en ligne |
-| 2 | Multiplication (en ligne et posée) | [05-multiplication.md](01-nombres-et-calculs/05-multiplication.md) (19–21) | [#2](https://github.com/Eric-D/ZIGTOP/issues/2) | ⬜ à faire |
+| 2 | Multiplication (en ligne et posée) | [05-multiplication.md](01-nombres-et-calculs/05-multiplication.md) (19–21) | [#2](https://github.com/Eric-D/ZIGTOP/issues/2) | ✅ en ligne |
 | 3 | Nombres : lire, écrire, décomposer | [02-nombres-jusqu-a-10000.md](01-nombres-et-calculs/02-nombres-jusqu-a-10000.md) (3–8) | [#3](https://github.com/Eric-D/ZIGTOP/issues/3) | ⬜ à faire |
 | 4 | Nombres : comparer, ranger, encadrer, droite graduée | [02-nombres-jusqu-a-10000.md](01-nombres-et-calculs/02-nombres-jusqu-a-10000.md) (9–13) | [#4](https://github.com/Eric-D/ZIGTOP/issues/4) | ⬜ à faire |
 | 5 | Fractions : lire, écrire, représenter | [06-fractions.md](01-nombres-et-calculs/06-fractions.md) (22–25) | [#5](https://github.com/Eric-D/ZIGTOP/issues/5) | ⬜ à faire |
@@ -69,7 +69,7 @@ d'exercices identique entre page élève et corrigé avec et sans méthode. Puis
 hauteur de page.
 
 **Livraison.** `VERSION` de `sw.js` incrémentée, section de la fiche ajoutée au README, ligne
-de ce plan passée à ✅, issue fermée par le commit (`Ferme #N`).
+de ce plan passée à ✅, issue fermée par le commit (`Closes #N` — GitHub ne reconnaît pas « Ferme »).
 
 ## Méthode de travail
 

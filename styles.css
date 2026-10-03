@@ -754,3 +754,77 @@ svg.visuel {
   .feuille__identite { font-size: 9.5pt; }
   .feuille__qr .qr { width: 19mm; height: 19mm; }
 }
+
+/* ---------- fiche multiplication : rappel en ligne, lignes partielles ---------- */
+.pointilles--mini { min-width: 34px; }
+.enligne { display: flex; gap: 18px; align-items: flex-start; margin-bottom: 6px; }
+.enligne__methode { flex: 1; min-width: 0; font-size: .82rem; text-align: center; }
+.enligne__nom { font-weight: 800; color: #E84393; }
+.enligne__texte { margin: 1px 0 3px; white-space: nowrap; }
+.enligne__total { font-weight: 800; font-size: .82rem; }
+.rectangle { display: flex; margin: 0 auto 3px; font-size: .75rem; font-weight: 700; }
+.rectangle span { padding: 3px 2px; border: 1.5px solid #111; text-align: center; white-space: nowrap; }
+.rectangle__haut { flex: 10; background: #E6E6E6; }
+.rectangle__bas { flex: 5; background: #fff; border-left: 0 !important; }
+.arbre { border-collapse: collapse; margin: 0 auto; font-size: .82rem; }
+.arbre td { padding: 1px 6px; text-align: center; }
+.arbre tr:nth-child(2) td:not(:nth-child(2)), .arbre tr:nth-child(3) td:not(:nth-child(2)) { border: 1.5px solid #111; }
+.methode--multiplication { flex-wrap: nowrap; }
+.methode__exemples { display: flex; gap: 10px; align-items: flex-start; }
+.methode__droite { flex: 1; min-width: 0; }
+.methode__droite .methode__etapes { min-width: 0; }
+.pose td.signe--lettre { font-size: .8rem; font-weight: 700; text-align: left; vertical-align: bottom; }
+.pose .note { width: auto; text-align: left; font-size: .72rem; font-weight: 700; color: #666; white-space: nowrap; padding-left: 5px; border: 0; }
+.pose--multiplication .pose__retenues--dizaines td, .pose--multiplication .pose__retenues--somme td { height: 14px; }
+.decompositions { list-style: none; margin: 0; padding: 0; }
+.decompositions li { padding: 3px 0; border-bottom: 1px dotted #DDD; font-size: .88rem; }
+.decomposition__op { font-weight: 700; }
+.decomposition__ligne { white-space: nowrap; }
+.decomposition__ligne--corrigee { color: #C0392B; font-weight: 600; }
+
+@media print {
+  /* Cellules de 7,5 mm au moins (8 mm de large pour les grilles à remplir). */
+  .pose--multiplication td { width: 8mm; height: 7.5mm; }
+  .pose--multiplication.pose--vide td { width: 7.5mm; }
+  .pose--multiplication td.signe { width: 6mm; }
+  .pose--multiplication td.note { width: auto; height: auto; }
+  .pose--multiplication .pose__entetes td { height: 3mm; }
+  .pose--multiplication .pose__retenues td { height: 3.8mm; font-size: 8pt; }
+  .methode .pose--multiplication td { width: 7.5mm; height: 7.5mm; font-size: 11pt; }
+  .methode .pose--multiplication td.signe { width: 6mm; }
+  .methode .pose--multiplication td.note { width: auto; height: auto; }
+  .methode .pose--multiplication .pose__entetes td { height: 3mm; }
+  .methode .pose--multiplication .pose__retenues td { height: 3.8mm; }
+  .pose .note { font-size: 7.5pt; }
+  .methode--multiplication { gap: 8px; }
+  .methode__exemples { gap: 4px; }
+  .methode__droite .enligne { gap: 8px; margin-bottom: 3px; }
+  .methode__droite .enligne__methode, .enligne__total { font-size: 8pt; }
+  .rectangle { font-size: 7.5pt; }
+  .methode__droite .enligne__texte { font-size: 7.6pt; }
+  .pose td.signe--lettre { font-size: 9pt; font-weight: 700; text-align: left; vertical-align: bottom; color: #111; }
+  .arbre { font-size: 8pt; }
+  .arbre td { padding: 0 5px; }
+  .methode__droite .methode__etapes { font-size: 8pt; line-height: 1.15; }
+  .methode__droite .methode__etapes li { margin-bottom: 0; }
+  .decompositions li { padding: 1px 0; font-size: 9pt; }
+  .pointilles--mini { min-width: 9mm; }
+  .operations .op__titre { margin-bottom: 0; min-height: 0; line-height: 1.15; }
+}
+@media print {
+  .pose--multiplication .pose__retenues td, .methode .pose--multiplication .pose__retenues td { height: 3.4mm; font-size: 7.5pt; }
+  .pose--multiplication .pose__entetes td, .methode .pose--multiplication .pose__entetes td { height: 2.8mm; }
+  .feuille:has(.pose--multiplication) .bloc h2 { padding: 2px 8px; margin-bottom: 3px; }
+  .feuille:has(.pose--multiplication) .decompositions li { line-height: 1.1; }
+}
+@media print {
+  .methode .pose--multiplication .pose__retenues td { height: 3.1mm; }
+  .feuille:has(.pose--multiplication) .bloc { margin-bottom: 4px; }
+  .feuille:has(.pose--multiplication) .bloc--methode { padding: 4px 9px; }
+}
+.retenue--barree { text-decoration: line-through; text-decoration-thickness: 1.5px; }
+.pose td.note .note__sep { color: #666; }
+.pose td.note { min-width: 10mm; }
+@media print {
+  .pose td.note { min-width: 9mm; font-size: 8pt; }
+}

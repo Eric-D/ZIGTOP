@@ -7,6 +7,7 @@ import { fmt } from '../js/utils.js';
 
 let echecs = 0;
 const verifier = (ok, message) => { if (!ok) echecs++; console.log(`${ok ? '✔' : '✘'} ${message}`); };
+const lettre = (i) => String.fromCharCode(97 + i);
 const nombre = (txt) => parseInt(String(txt).replace(/\s/g, ''), 10);
 
 const fiche = FICHES.find((f) => f.id === 'ce2-addition-posee');
@@ -329,6 +330,184 @@ verifier(!rendre(sous, cs, { identite: true }).split('feuille--corrige')[1].incl
   verifier(vus.size > 190, `soustraction : codes variés (${vus.size} sur 200)`);
   // l'ancien code d'addition désigne toujours l'addition
   verifier(decoder(contenu.code).fiche === fiche, 'un code d’addition déjà imprimé désigne toujours l’addition');
+}
+
+/* ================================================================== */
+/* Multiplication                                                      */
+/* ================================================================== */
+
+const mult = FICHES.find((f) => f.id === 'ce2-multiplication');
+verifier(FICHES.indexOf(mult) === 2 && FICHES.length === 3, 'la multiplication est ajoutée à la fin de FICHES (les codes imprimés ne bougent pas)');
+verifier(JSON.stringify(mult.options[0].valeurs.map((v) => v.v)) === '["1","2"]' && mult.options[0].defaut === '2' && mult.options[0].id === 'facteur',
+  'option « facteur » : 1 puis 2, défaut 2');
+
+// Lecture d'une grille de multiplication du corrigé : lignes de cellules sans la colonne du signe.
+const lireGrille = (op) => {
+  const lignes = [...op.querySelectorAll('tr')].map((tr) => ({
+    classes: tr.className,
+    cellules: [...tr.querySelectorAll('td')].map((td) => td.textContent.trim()),
+    brut: [...tr.querySelectorAll('td')],
+  }));
+  return lignes;
+};
+const ligneNombre = (l) => nombre(l.cellules.slice(1, -1).join(''));   // sans signe ni note
+
+/* M1. Programme, forme des produits, tirages */
+{
+  let hors = 0, tir = 0, zeros = 0;
+  for (const facteur of ['1', '2']) {
+    for (let i = 0; i < 60; i++) {
+      const c = tirer(mult, { facteur });
+      tir++;
+      for (const o of c.posees1) if (o.a < 10 || o.a > 999 || o.b < 2 || o.b > 9 || o.a * o.b > 9999) hors++;
+      for (const o of c.posees2) {
+        if (c.deux) { if (o.a < 10 || o.a > 99 || o.b < 10 || o.b > 99 || o.a * o.b >= 10000) hors++; }
+        else if (o.a < 10 || o.a > 999 || o.b < 2 || o.b > 9) hors++;
+      }
+      for (const o of c.enligne) if (o.a < 3 || o.a > 9 || o.b < 12 || o.b > 19) hors++;
+      for (const o of c.problemes) if (o.a < 10 || o.a > 99 || o.b < 2 || o.b > 9) hors++;
+      for (const o of [...c.posees1, ...c.posees2]) if (/0/.test(`${o.a}${o.b}`)) zeros++;
+      if (c.deux !== (facteur === '2')) hors++;
+    }
+  }
+  verifier(hors === 0, `multiplication : facteurs raisonnables pour le CE2 (≤ 999 × 9, ≤ 99 × 99), ${tir} tirages`);
+  verifier(zeros === 0, 'multiplication : pas de 0 dans les facteurs posés');
+}
+
+/* M2. Corrigé exact, lignes partielles, retenues */
+const optionsMult = [{ facteur: '1' }, { facteur: '2' }];
+for (const opt of optionsMult) {
+  const cm = tirer(mult, opt);
+  for (const methode of [true, false]) {
+    const doc = new JSDOM(`<div>${rendre(mult, cm, { corrige: true, methode })}</div>`).window.document;
+    const [pe, pc] = doc.querySelectorAll('.feuille');
+    const nom = `multiplication (facteur ${opt.facteur}, ${methode ? 'avec' : 'sans'} méthode)`;
+    const aTraiter = [...cm.posees1.slice(0, methode ? 3 : 6), ...cm.posees2.slice(0, methode ? 2 : (cm.deux ? 3 : 4))];
+    const ops = [...pc.querySelectorAll('.operations .op')];
+    verifier(ops.length === aTraiter.length, `${nom} : ${ops.length} multiplications corrigées`);
+    let produitsOk = true, partielsOk = true, retOk = true, cellulesOk = true;
+    ops.forEach((op, k) => {
+      const { a, b } = aTraiter[k];
+      const L = lireGrille(op);
+      const n = L[0].cellules.length;
+      if (!L.every((l) => l.cellules.length === n)) cellulesOk = false;
+      const res = L.find((l) => l.classes.includes('pose__resultat'));
+      if (ligneNombre(res) !== a * b) produitsOk = false;
+      const nombres = L.filter((l) => l.classes.includes('pose__nombre'));
+      if (ligneNombre(nombres[0]) !== a || ligneNombre(nombres[1]) !== b) produitsOk = false;
+      const colonnes = res.cellules.length - 2;
+      if (b >= 10) {
+        const p1 = nombres[2], p2 = nombres[3];
+        const lire = (l) => nombre(l.cellules.slice(1, 1 + colonnes).join(''));
+        if (lire(p1) !== a * (b % 10) || lire(p2) !== a * Math.floor(b / 10) * 10) partielsOk = false;
+        // la ligne des dizaines est décalée d'une colonne : son dernier chiffre est le 0 des unités
+        if (p2.cellules[colonnes] !== '0') partielsOk = false;
+        // la note de droite rappelle le calcul de la ligne
+        if (p1.cellules[colonnes + 1] !== `${b % 10} × ${a}` || p2.cellules[colonnes + 1] !== `${Math.floor(b / 10) * 10} × ${a}`) partielsOk = false;
+        // petites retenues de l'addition : au-dessus du chiffre suivant, là où la somme dépasse 9
+        const somme = L.find((l) => l.classes.includes('pose__retenues--somme'));
+        const A1 = String(a * (b % 10)).padStart(colonnes, '0'), A2 = String(a * Math.floor(b / 10) * 10).padStart(colonnes, '0');
+        let r = 0; const attendu = Array(colonnes).fill('');
+        for (let i = colonnes - 1; i >= 0; i--) { const s = +A1[i] + +A2[i] + r; r = s >= 10 ? 1 : 0; if (r && i > 0) attendu[i - 1] = '1'; }
+        if (somme.cellules.slice(1, 1 + colonnes).join('|') !== attendu.join('|')) retOk = false;
+        // les retenues de l'addition sont entre les deux lignes partielles
+        const iSomme = L.findIndex((l) => l.classes.includes('pose__retenues--somme'));
+        if (L[iSomme - 1] !== p1 || L[iSomme + 1] !== p2) retOk = false;
+      }
+      // Retenues de la multiplication : comme dans le livret, en petit à droite de la ligne du
+      // facteur (colonne des notes), l'une après l'autre, la précédente barrée. Recalculées ici.
+      const suite = (d) => {
+        const A = String(a).split('').reverse().map(Number); const s = []; let r = 0;
+        for (let j = 0; j + 1 < A.length; j++) { r = Math.floor((A[j] * d + r) / 10); if (r) s.push(r); }
+        return s;
+      };
+      const suites = (b >= 10 ? [suite(b % 10), suite(Math.floor(b / 10))] : [suite(b)]).filter((s) => s.length);
+      const attendues = suites.flatMap((s) => s.map((r, i) => `${r}${i < s.length - 1 ? '~' : ''}`));
+      const ligneFacteur = L.find((l) => l.classes.includes('pose__nombre--derniere') && !l.classes.includes('pose__partiel'));
+      const noteTd = ligneFacteur.brut[ligneFacteur.brut.length - 1];
+      const trouvees = [...noteTd.querySelectorAll('.retenue')].map((s) => `${s.textContent}${s.classList.contains('retenue--barree') ? '~' : ''}`);
+      if (noteTd.className !== 'note' || trouvees.join() !== attendues.join()) retOk = false;
+      // plus de rangée de retenues au-dessus des chiffres
+      if (L.some((l) => l.classes === 'pose__retenues' || l.classes.includes('--dizaines'))) retOk = false;
+    });
+    verifier(produitsOk, `${nom} : les produits du corrigé sont exacts (recalculés)`);
+    verifier(partielsOk, `${nom} : lignes partielles exactes (a × unités ; a × dizaines décalé, avec son 0)`);
+    verifier(retOk, `${nom} : retenues notées à droite du facteur, l’une après l’autre, la précédente barrée`);
+    verifier(cellulesOk, `${nom} : toutes les lignes d'une grille ont le même nombre de cellules`);
+
+    const nbE = pe.querySelectorAll('.operations .op').length, nbC = pc.querySelectorAll('.operations .op').length;
+    verifier(nbE === nbC && nbE === aTraiter.length, `${nom} : ${nbE} multiplications posées côté élève, ${nbC} côté corrigé`);
+    verifier(pe.querySelectorAll('.decompositions li').length === pc.querySelectorAll('.decompositions li').length
+      && pe.querySelectorAll('.decompositions li').length === (methode ? 3 : 6), `${nom} : produits en ligne identiques des deux côtés`);
+    verifier(pe.querySelectorAll('.probleme').length === 2 && pc.querySelectorAll('.probleme').length === 2, `${nom} : 2 problèmes des deux côtés`);
+    // Grilles vides des problèmes : même structure que les autres.
+    verifier([...pe.querySelectorAll('.pose')].every((t) => new Set([...t.querySelectorAll('tr')].map((tr) => tr.children.length)).size === 1),
+      `${nom} : grilles de la page élève rectangulaires`);
+    // Corrigé en ligne détaillé : a × b = a × 10 + a × u = a×10 + a×u = produit
+    const lignesEnligne = [...pc.querySelectorAll('.decompositions li')].map((li) => li.textContent.replace(/\s+/g, ' ').trim());
+    const attenduEnligne = cm.enligne.slice(0, methode ? 3 : 6).map((o, i) =>
+      `${lettre(i)}. ${o.a} × ${o.b} = ${o.a} × 10 + ${o.a} × ${o.b - 10} = ${o.a * 10} + ${o.a * (o.b - 10)} = ${o.a * o.b}`);
+    verifier(JSON.stringify(lignesEnligne) === JSON.stringify(attenduEnligne), `${nom} : calculs en ligne détaillés et exacts`);
+    // Problèmes
+    verifier(cm.problemes.every((p) => p.phrase.includes(fmt(p.a * p.b))), `${nom} : phrases réponses = bons produits`);
+
+    // Page élève : aucune réponse, aucune retenue, hors exemple du rappel
+    const bad = pe.querySelectorAll('.operations .reponse, .operations .retenue:not(:empty), .decompositions strong, .probleme strong').length;
+    verifier(bad === 0, `${nom} : la page élève ne contient aucune réponse`);
+    verifier(methode ? pe.querySelectorAll('.methode .pose__resultat .reponse').length > 0 : !pe.textContent.includes('Je me souviens'),
+      `${nom} : exemple du rappel corrigé / rappel masqué`);
+  }
+}
+
+// Exemples et mots de la leçon
+{
+  const c2 = tirer(mult, { facteur: '2' }), c1 = tirer(mult, { facteur: '1' });
+  const h2 = rendre(mult, c2, { corrige: false }), h1 = rendre(mult, c1, { corrige: false });
+  const d2 = new JSDOM(`<div>${h2}</div>`).window.document, d1 = new JSDOM(`<div>${h1}</div>`).window.document;
+  verifier(h2.includes('Méthode de Mila') && h2.includes('Méthode d’Enzo') && h2.includes('9 fois 10 plus 9 fois 5'), 'multiplication : les deux méthodes en ligne (Mila, Enzo) sont rappelées');
+  verifier(h2.includes('5 × 7u = 35u') && h2.includes('je retiens 3d') && h2.includes('2m 1c'), 'multiplication : étapes de 427 × 5 avec les mots de la leçon');
+  verifier(d2.querySelectorAll('.methode__exemple').length === 2 && d1.querySelectorAll('.methode__exemple').length === 1, 'multiplication : 14 × 23 rappelé seulement avec l’option × 2 chiffres');
+  verifier(h2.includes('92 + 230 = 322') && !h1.includes('92 + 230 = 322'), 'multiplication : 14 × 23 = 322 par 92 + 230');
+  const premier = d2.querySelector('.methode__exemple .pose__resultat');
+  verifier([...premier.querySelectorAll('td')].map((td) => td.textContent).join('') === '2135', 'l’exemple 427 × 5 donne 2 135');
+  verifier(d1.querySelectorAll('.feuille .operations .pose--multiplication').length === 3 + 2, 'option × 1 chiffre : ex. 3 remplacé par 2 multiplications × 1 chiffre de plus (3 + 2 grilles)');
+  verifier([...d1.querySelectorAll('.operations .pose__nombre--derniere')].every((tr) => tr.querySelectorAll('td').length > 0)
+    && d1.querySelectorAll('.pose__partiel').length === 0, 'option × 1 chiffre : aucune ligne partielle');
+  verifier(d2.querySelectorAll('.feuille .operations .pose__partiel').length === 4, 'option × 2 chiffres : 2 grilles à 2 lignes partielles');
+}
+
+// Signe, ton, stabilité, code
+{
+  const cm = tirer(mult, optionsParDefaut(mult));
+  const html = rendre(mult, cm, { corrige: true });
+  const doc = new JSDOM(`<div>${html}</div>`).window.document;
+  verifier([...doc.querySelectorAll('.pose__nombre--derniere:not(.pose__partiel) .signe')].every((td) => td.textContent === '×'), 'toutes les multiplications portent le signe ×');
+  const texte = doc.body.textContent.toLowerCase();
+  verifier(!/\b(faux|erreur|raté|nul|négatif)\b/.test(texte) && !texte.includes('✘') && !texte.includes('❌'), 'multiplication : aucun mot négatif');
+  verifier(!/<[^>]*>[^<]*[\u{1F300}-\u{1FAFF}✖]/u.test(html.replace(/<h1[^>]*>.*?<\/h1>/s, '')), 'multiplication : pas d’emoji sur la feuille');
+  verifier(html === rendre(mult, cm, { corrige: true }), 'multiplication : un même contenu donne toujours la même fiche');
+  verifier(!rendre(mult, cm, { identite: true }).split('feuille--corrige')[1].includes('Nom :'), 'multiplication : pas de Nom / Date sur le corrigé');
+  const rej = decoder(cm.code);
+  verifier(!!rej && rej.fiche === mult && rej.options.facteur === '2', `le code ${cm.code} désigne la fiche de multiplication et son option`);
+  verifier(JSON.stringify(tirer(rej.fiche, rej.options, rej.graine)) === JSON.stringify(cm), 'multiplication : le code redonne exactement les mêmes exercices');
+  for (const facteur of ['1', '2']) {
+    const d2 = decoder(tirer(mult, { facteur }).code);
+    verifier(d2.fiche === mult && d2.options.facteur === facteur, `multiplication : option « ${facteur} » conservée dans le code`);
+  }
+  const vus = new Set();
+  for (let i = 0; i < 200; i++) vus.add(tirer(mult, { facteur: '2' }).code);
+  verifier(vus.size > 190, `multiplication : codes variés (${vus.size} sur 200)`);
+}
+
+// Addition et soustraction : rendu inchangé (tirage à graine fixe, structure et résultats).
+{
+  const a = tirer(fiche, { taille: 'mix' }, 424242), s = tirer(sous, { taille: 'mix' }, 424242);
+  verifier(decoder(a.code).fiche === fiche && decoder(s.code).fiche === sous, 'addition et soustraction gardent leurs codes');
+  verifier(FICHES[0].options.length === 1 && FICHES[1].options.length === 1
+    && FICHES[0].options[0].valeurs.map((v) => v.v).join() === '3,4,mix' && FICHES[1].options[0].valeurs.map((v) => v.v).join() === '3,4,mix',
+    'addition et soustraction : options inchangées');
+  const html = rendre(fiche, a, { corrige: true }) + rendre(sous, s, { corrige: true });
+  verifier(!html.includes('pose--multiplication') && !html.includes('methode--multiplication'), 'addition et soustraction : aucune trace du rendu de multiplication');
 }
 
 process.exit(echecs ? 1 : 0);
