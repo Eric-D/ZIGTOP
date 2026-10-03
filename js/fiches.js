@@ -8,6 +8,47 @@ import { HAUTEURS_BLOCS } from './hauteurs-blocs.js';
 import { demiDroite, figureFraction, regleFractions, monnaie, polygoneCote, horloge, ligneDuTemps, solide, patronCube, figurePlane, cercle, PX_PAR_CM, figureSymetrie, quadrillageSymetrie, diagrammeBarres, nbAxesFigure, FIGURES_SYMETRIQUES, FIGURES_ASYMETRIQUES, FIGURES_POLYGONES, FIGURES_NON_POLYGONES, NB_VARIANTES_FIGURE, NB_PATRONS, NB_ASSEMBLAGES, PIECES_EURO, BILLETS_EURO } from './visuels.js';
 
 /* ------------------------------------------------------------------ */
+/* Formulations : la notion d'un côté, la façon de la dire de l'autre  */
+/* ------------------------------------------------------------------ */
+
+// Une fiche = une NOTION (exercices, tirage, corrigé : invariants) + une FORMULATION (l'objectif
+// « Je sais… », le rappel de méthode et son exemple, les consignes, les phrases d'explication du
+// corrigé, la note pour le parent). Une fiche convertie porte un objet `formulations` :
+//   { livret: {…}, commune: {…} }, les mêmes clés dans les deux :
+//   objectif(contenu), rappel (étapes, noms de méthodes…), consignes, corrige (phrases du corrigé),
+//   noteParent. Les valeurs peuvent être des fonctions de `contenu` (le texte dépend du tirage).
+// - `livret` : les textes du livret transcrit, mot pour mot ;
+// - `commune` : le vocabulaire des programmes et les méthodes les plus répandues, sans tournure
+//   propre à un manuel.
+// La formulation est un choix d'AFFICHAGE : elle n'entre jamais dans le code de fiche, et un même
+// code rouvre les mêmes exercices quelle que soit la formulation. Les fiches pas encore converties
+// n'ont pas de `formulations` : elles ignorent l'option.
+export const NOMS_FORMULATIONS = ['livret', 'commune'];
+export const FORMULATION_DEFAUT = 'commune';   // le réglage de l'application (le rendu brut reste `livret`)
+
+// La formulation demandée, `livret` si le nom est inconnu ; `null` pour une fiche non convertie.
+export function formulation(fiche, nom = 'livret') {
+  const f = fiche && fiche.formulations;
+  return f ? (f[nom] || f.livret) : null;
+}
+
+// Le texte d'une formulation : une chaîne, ou une fonction du contenu tiré.
+const texte = (x, contenu) => (typeof x === 'function' ? x(contenu) : x);
+
+// Les options d'un tirage, relues dans son code (le contenu ne les porte pas).
+const optionsDe = (contenu) => {
+  const t = contenu && contenu.code ? decoder(contenu.code) : null;
+  return t && t.options ? t.options : {};
+};
+
+// L'objectif « Je sais… » d'un contenu dans la formulation demandée (celui du générateur pour
+// une fiche non convertie).
+export function objectifDe(fiche, contenu, nom = 'livret') {
+  const fm = formulation(fiche, nom);
+  return fm ? texte(fm.objectif, contenu) : contenu.objectif;
+}
+
+/* ------------------------------------------------------------------ */
 /* Outils de mise en page                                              */
 /* ------------------------------------------------------------------ */
 
@@ -58,8 +99,11 @@ const entetes = (largeur) => ENTETES.slice(0, largeur).reverse();
 // Toutes les lignes ont exactement le même nombre de cellules — colonne du signe
 // comprise — sinon les unités ne tomberaient pas sous les unités, ce qui est
 // précisément ce que la leçon demande d'apprendre.
-function operationPosee({ a, b, largeur, mode, numero, signe = '+' }) {
+function operationPosee({ a, b, largeur, mode, numero, signe = '+', formulation: nom = 'livret' }) {
   const soustraction = signe === '−';
+  // Formulation commune de la soustraction : on ajoute 10 au chiffre du haut (petit « 1 » devant),
+  // et 1 au chiffre du bas de la colonne suivante (petit « 1 » à côté) ; rien n'est barré.
+  const commune = soustraction && nom === 'commune';
   const total = soustraction ? a - b : a + b;
   const resultat = String(total);
   const colonnes = Math.max(largeur, resultat.length);   // colonnes de chiffres
@@ -79,9 +123,10 @@ function operationPosee({ a, b, largeur, mode, numero, signe = '+' }) {
   // Addition : la retenue s'écrit en haut de la colonne suivante.
   // Soustraction (livret) : le nouveau chiffre s'écrit au-dessus du chiffre barré.
   const retenuesCorrige = soustraction ? emp.haut : ret;
-  const ligneRetenues = mode === 'corrige'
-    ? `<tr class="pose__retenues">${signeTd('')}${retenuesCorrige.map((r) => cellule(r, 'retenue')).join('')}</tr>`
-    : `<tr class="pose__retenues">${signeTd('')}${vides(colonnes, 'retenue')}</tr>`;
+  const ligneRetenues = commune ? ''
+    : mode === 'corrige'
+      ? `<tr class="pose__retenues">${signeTd('')}${retenuesCorrige.map((r) => cellule(r, 'retenue')).join('')}</tr>`
+      : `<tr class="pose__retenues">${signeTd('')}${vides(colonnes, 'retenue')}</tr>`;
 
   // Ligne du haut d'une soustraction corrigée : « 12 » pour la colonne qui reçoit 10 unités,
   // chiffre barré pour celle qui prête.
@@ -91,11 +136,18 @@ function operationPosee({ a, b, largeur, mode, numero, signe = '+' }) {
     return `<td class="${emp.prete[i] ? 'barre' : ''}">${texte}</td>`;
   }).join('');
 
+  // Soustraction commune, corrigée : « 12 » en haut quand la colonne reçoit 10, « 9 » + petit 1 en bas
+  // quand la colonne de droite a reçu 10.
+  const hautCommun = () => A.map((c, i) => (c === ' ' ? cellule('') : `<td>${emp.recoit[i] ? '<span class="ret-petite ret-petite--haut">1</span>' : ''}${c}</td>`)).join('');
+  const basCommun = () => B.map((c, i) => `<td>${c !== ' ' ? c : ''}${emp.recoit[i + 1] ? '<span class="ret-petite ret-petite--bas">1</span>' : ''}</td>`).join('');
+  const haut = () => (commune && mode === 'corrige' ? hautCommun() : soustraction && mode === 'corrige' ? hautCorrige() : A.map((c) => cellule(c)).join(''));
+  const bas = () => (commune && mode === 'corrige' ? basCommun() : B.map((c) => cellule(c)).join(''));
+
   const lignesNombres = mode === 'vide'
     ? `<tr class="pose__nombre">${signeTd('')}${vides(colonnes, 'case')}</tr>
        <tr class="pose__nombre pose__nombre--derniere">${signeTd(signe)}${vides(colonnes, 'case')}</tr>`
-    : `<tr class="pose__nombre">${signeTd('')}${soustraction && mode === 'corrige' ? hautCorrige() : A.map((c) => cellule(c)).join('')}</tr>
-       <tr class="pose__nombre pose__nombre--derniere">${signeTd(signe)}${B.map((c) => cellule(c)).join('')}</tr>`;
+    : `<tr class="pose__nombre">${signeTd('')}${haut()}</tr>
+       <tr class="pose__nombre pose__nombre--derniere">${signeTd(signe)}${bas()}</tr>`;
 
   const ligneResultat = mode === 'corrige'
     ? `<tr class="pose__resultat">${signeTd('')}${R.map((c) => cellule(c, 'reponse')).join('')}</tr>`
@@ -127,19 +179,34 @@ function suiteRetenues(a, d) {
   return out;
 }
 
+// Les mêmes retenues, avec leur place : [rang du chiffre qui les reçoit (0 = unités), retenue].
+function suiteRetenuesPlacees(a, d) {
+  const A = String(a).split('').reverse().map(Number);
+  const out = [];
+  let r = 0;
+  for (let j = 0; j + 1 < A.length; j++) {
+    r = Math.floor((A[j] * d + r) / 10);
+    if (r) out.push([j + 1, String(r)]);
+  }
+  return out;
+}
+
 // Une multiplication posée : `b` a un chiffre (une seule ligne de résultat) ou deux
 // chiffres (deux lignes partielles : a × unités, puis a × dizaines décalé d'une colonne,
 // avec son 0 des unités, comme 10 × 23 = 230 dans la leçon). Même modes que
 // `operationPosee`. Toutes les lignes ont le même nombre de cellules, colonne du signe
 // (et colonne des petites notes « 4 × 23 », quand il y en a) comprises.
-function multiplicationPosee({ a, b, largeur = 0, mode, numero }) {
+function multiplicationPosee({ a, b, largeur = 0, mode, numero, formulation: nom = 'livret' }) {
   const deux = b >= 10;
   const produit = a * b;
   const colonnes = Math.max(largeur, String(a).length, String(b).length, String(produit).length);
   const unites = b % 10, dizaines = Math.floor(b / 10);
   const partiel1 = a * unites;
   const partiel2 = a * dizaines * 10;
-  const notes = true;   // colonne de droite : retenues (comme dans le livret) et notes « 4 × 23 »
+  // Formulation commune : les retenues s'écrivent au-dessus des chiffres du premier facteur
+  // (une ligne par chiffre du second facteur). Formulation du livret : en petit à droite du facteur.
+  const commune = nom === 'commune';
+  const notes = !commune || deux;   // colonne de droite : retenues (livret) et notes « 4 × 23 »
 
   const cellule = (v, classe = '') => `<td class="${classe}">${v && v !== ' ' ? v : ''}</td>`;
   const vides = (n, classe = '') => Array(n).fill(`<td class="${classe}"></td>`).join('');
@@ -160,10 +227,19 @@ function multiplicationPosee({ a, b, largeur = 0, mode, numero }) {
   // de a × unités, puis (après « ; ») celles de a × dizaines.
   const ecrire = (suite) => suite.map((r, i) => `<span class="retenue${i < suite.length - 1 ? ' retenue--barree' : ''}">${r}</span>`).join(' ');
   const suites = [suiteRetenues(a, deux ? unites : b), ...(deux ? [suiteRetenues(a, dizaines)] : [])].filter((s) => s.length);
-  const retenuesNote = corrige ? suites.map(ecrire).join(' <span class="note__sep">;</span> ') : '';
+  const retenuesNote = corrige && !commune ? suites.map(ecrire).join(' <span class="note__sep">;</span> ') : '';
+
+  // Commune : une ligne de retenues par chiffre du second facteur (dizaines en haut, unités contre le nombre).
+  const retenuesAuDessus = (d, classe) => {
+    const r = Array(colonnes).fill('');
+    if (corrige) suiteRetenuesPlacees(a, d).forEach(([j, v]) => { r[colonnes - 1 - j] = v; });
+    return ligne(`pose__retenues ${classe}`, '', r.map((v) => cellule(v, 'retenue')).join(''), '');
+  };
+  const lignesRetenues = commune ? [...(deux ? [retenuesAuDessus(dizaines, 'pose__retenues--dizaines')] : []), retenuesAuDessus(unites, 'pose__retenues--unites')] : [];
 
   const lignes = [
     `<tr class="pose__entetes">${lettreTd}${entetes(colonnes).map((e) => `<td>${e}</td>`).join('')}${noteTd('')}</tr>`,
+    ...lignesRetenues,
     ligne('pose__nombre', '', rempli ? chiffresDe(a) : vides(colonnes, 'case'), ''),
     ligne('pose__nombre pose__nombre--derniere', '×', rempli ? chiffresDe(b) : vides(colonnes, 'case'), retenuesNote),
   ];
@@ -267,16 +343,15 @@ function estimations(chif) {
   });
 }
 
-function genererAdditionPosee(options) {
-  const chif = options.taille === '3' ? 3 : options.taille === '4' ? 4 : null;
-  const tailles = chif ? [chif, chif, chif, chif] : [3, 3, 4, 4];
+const petiteTaille = (contenu) => optionsDe(contenu).taille === '3';
 
-  return {
-    objectif: chif === 3
+const FORMULATIONS_ADDITION = {
+  livret: {
+    nom: 'livret',
+    objectif: (c) => (petiteTaille(c)
       ? 'Je sais poser et calculer des additions avec des nombres inférieurs à 1 000.'
-      : 'Je sais poser et calculer des additions avec des nombres inférieurs à 10 000.',
-    methode: {
-      exemple: { a: 685, b: 267, largeur: 3 },
+      : 'Je sais poser et calculer des additions avec des nombres inférieurs à 10 000.'),
+    rappel: {
       etapes: [
         'Je pose l’addition en colonnes : les unités sous les unités, les dizaines sous les dizaines…',
         'Je commence par les unités : 5 u + 7 u = 12 u. 12 u, c’est 1 d et 2 u : j’écris 2 et je retiens 1 dizaine.',
@@ -285,6 +360,48 @@ function genererAdditionPosee(options) {
         'Je vérifie avec un ordre de grandeur : 700 + 250 = 950, tout près de 952. C’est cohérent !',
       ],
     },
+    consignes: {
+      ex1: 'Calcule ces additions.',
+      ex2: 'Pose l’opération, puis calcule.',
+      ex3: 'Entoure le bon ordre de grandeur (sans calculer !).',
+      ex4: 'Résous ces problèmes.',
+      phraseReponse: 'Phrase réponse :',
+    },
+    corrige: { exact: 'résultat exact :' },
+    noteParent: 'les retenues sont notées en haut de chaque colonne.',
+  },
+  commune: {
+    nom: 'commune',
+    objectif: (c) => (petiteTaille(c)
+      ? 'Je sais poser et effectuer des additions avec des nombres inférieurs à 1 000.'
+      : 'Je sais poser et effectuer des additions avec des nombres inférieurs à 10 000.'),
+    rappel: {
+      etapes: [
+        'Je pose l’addition en colonnes : unités sous unités, dizaines sous dizaines, centaines sous centaines.',
+        'Colonne des unités : 5 + 7 = 12. J’écris 2 et je retiens 1, que je note en haut de la colonne des dizaines.',
+        'Colonne des dizaines : 1 + 8 + 6 = 15. J’écris 5 et je retiens 1, noté en haut de la colonne des centaines.',
+        'Colonne des centaines : 1 + 6 + 2 = 9. J’écris 9.',
+        'Je vérifie avec un ordre de grandeur : en arrondissant à la centaine, 700 + 300 = 1 000, et 952 en est proche.',
+      ],
+    },
+    consignes: {
+      ex1: 'Effectue ces additions posées.',
+      ex2: 'Pose chaque addition en colonnes, puis effectue-la.',
+      ex3: 'Entoure l’ordre de grandeur du résultat, sans poser l’addition.',
+      ex4: 'Résous ces problèmes.',
+      phraseReponse: 'Phrase réponse :',
+    },
+    corrige: { exact: 'résultat exact :' },
+    noteParent: 'les retenues sont notées en haut de chaque colonne, comme dans l’exemple du rappel ; chaque ordre de grandeur s’obtient en arrondissant les deux nombres à la centaine.',
+  },
+};
+
+function genererAdditionPosee(options) {
+  const chif = options.taille === '3' ? 3 : options.taille === '4' ? 4 : null;
+  const tailles = chif ? [chif, chif, chif, chif] : [3, 3, 4, 4];
+
+  return {
+    methode: { exemple: { a: 685, b: 267, largeur: 3 } },
     // Les additions supplémentaires ne sont imprimées que lorsque le rappel de
     // méthode est masqué : la place libérée sert alors à s'entraîner davantage.
     posees: [
@@ -370,18 +487,17 @@ function problemesSoustraction(chif) {
   return shuffle(modeles).slice(0, 2).map((f) => f());
 }
 
-function genererSoustractionPosee(options) {
-  const chif = options.taille === '3' ? 3 : options.taille === '4' ? 4 : null;
-  const tailles = chif ? [chif, chif, chif, chif] : [3, 3, 3, 4];
-  const avec = (i, retenues) => ({ ...soustractionAvec(tailles[i], retenues), largeur: tailles[i] });
-
-  return {
-    objectif: chif === 3
+// Livret : on « casse » une unité de la colonne de gauche (le chiffre qui prête est barré, le nouveau
+// s'écrit au-dessus). Commune : la méthode usuelle en France (par compensation) — on ajoute 10 au
+// chiffre du haut et 1 au chiffre du bas de la colonne suivante, notés en petit ; rien n'est barré.
+const FORMULATIONS_SOUSTRACTION = {
+  livret: {
+    nom: 'livret',
+    objectif: (c) => (petiteTaille(c)
       ? 'Je sais poser et calculer une soustraction avec retenue.'
-      : 'Je sais poser et calculer une soustraction avec des nombres à 4 chiffres.',
+      : 'Je sais poser et calculer une soustraction avec des nombres à 4 chiffres.'),
     // L'exemple est celui de la page 18 du livret : 4 268 − 1 951.
-    methode: {
-      exemple: { a: 4268, b: 1951, largeur: 4 },
+    rappel: {
       etapes: [
         'Je commence par les unités. Retirer 1 unité à 8 unités, c’est possible : 8 − 1 = 7. J’écris 7.',
         'Je continue avec les dizaines. Retirer 5 dizaines à 6 dizaines, c’est possible : 6 − 5 = 1. J’écris 1.',
@@ -389,6 +505,48 @@ function genererSoustractionPosee(options) {
         'Je continue avec les milliers : 3 − 1 = 2. J’écris 2. Je vérifie : 2 317 + 1 951 = 4 268.',
       ],
     },
+    consignes: {
+      ex1: 'Calcule ces soustractions.',
+      ex2: 'Pose l’opération, puis calcule.',
+      ex3: 'Vérifie chaque résultat avec une addition.',
+      ex4: 'Résous ces problèmes.',
+      verification: 'Je calcule :',
+      phraseReponse: 'Phrase réponse :',
+    },
+    noteParent: 'comme dans la leçon, le chiffre qui prête est barré et le nouveau chiffre s’écrit au-dessus ; la colonne qui reçoit 10 unités les note devant son chiffre (2 devient 12).',
+  },
+  commune: {
+    nom: 'commune',
+    objectif: (c) => (petiteTaille(c)
+      ? 'Je sais poser et effectuer des soustractions avec retenue, avec des nombres inférieurs à 1 000.'
+      : 'Je sais poser et effectuer des soustractions avec retenue, avec des nombres à 4 chiffres.'),
+    rappel: {
+      etapes: [
+        'Je pose la soustraction en colonnes et je commence par les unités : 8 − 1 = 7. J’écris 7.',
+        'Colonne des dizaines : 6 − 5 = 1. J’écris 1.',
+        'Colonne des centaines : 2 − 9 n’est pas possible. J’ajoute 10 au 2 : 12 − 9 = 3. J’écris 3. Pour que l’écart ne change pas, j’ajoute aussi 1 au chiffre du bas de la colonne suivante : un petit 1 à côté du 1.',
+        'Colonne des milliers : 1 + 1 = 2, puis 4 − 2 = 2. J’écris 2. Je vérifie : 2 317 + 1 951 = 4 268.',
+      ],
+    },
+    consignes: {
+      ex1: 'Effectue ces soustractions posées.',
+      ex2: 'Pose chaque soustraction en colonnes, puis effectue-la.',
+      ex3: 'Vérifie chaque résultat avec une addition.',
+      ex4: 'Résous ces problèmes.',
+      verification: 'Je calcule :',
+      phraseReponse: 'Phrase réponse :',
+    },
+    noteParent: 'les retenues sont notées en petit : un 1 devant le chiffre du haut quand on lui ajoute 10 (2 devient 12), et un 1 à côté du chiffre du bas de la colonne suivante (l’écart ne change pas) ; aucun chiffre n’est barré.',
+  },
+};
+
+function genererSoustractionPosee(options) {
+  const chif = options.taille === '3' ? 3 : options.taille === '4' ? 4 : null;
+  const tailles = chif ? [chif, chif, chif, chif] : [3, 3, 3, 4];
+  const avec = (i, retenues) => ({ ...soustractionAvec(tailles[i], retenues), largeur: tailles[i] });
+
+  return {
+    methode: { exemple: { a: 4268, b: 1951, largeur: 4 } },
     posees: [
       avec(0, 'aucune'), avec(1, 'une'), avec(2, 'plusieurs'), avec(3, 'plusieurs'),
       avec(1, 'plusieurs'), avec(3, 'une'), avec(2, 'une'), avec(0, 'plusieurs'),
@@ -487,6 +645,60 @@ function problemesMultiplication() {
   return shuffle(modeles).slice(0, 2).map((f) => f());
 }
 
+// Exemples du livret : 9 × 15, 427 × 5 et 14 × 23 ; les mêmes dans les deux formulations.
+const FORMULATIONS_MULTIPLICATION = {
+  livret: {
+    nom: 'livret',
+    objectif: (c) => (c.deux
+      ? 'Je sais calculer en ligne des produits, et poser et calculer des multiplications.'
+      : 'Je sais calculer en ligne des produits, et poser et calculer une multiplication par un nombre à 1 chiffre.'),
+    rappel: {
+      nomRectangle: 'Méthode de Mila',
+      texteRectangle: (a, b, u) => `${a} × ${b}, c’est ${a} fois 10 plus ${a} fois ${u}.`,
+      nomArbre: 'Méthode d’Enzo',
+      etapes: (c) => [
+        'Je calcule le nombre d’unités : 5 × 7u = 35u. 35u, c’est 3d 5u. J’écris 5 dans la colonne des unités et je retiens 3d.',
+        'Je calcule le nombre de dizaines : 5 × 2d = 10d. J’ajoute les 3d que j’ai retenues : 10d + 3d = 13d. 13d, c’est 1c 3d. J’écris 3 dans la colonne des dizaines et je retiens 1c.',
+        'Je calcule le nombre de centaines : 5 × 4c = 20c. J’ajoute 1c que j’ai retenue : 20c + 1c = 21c. 21c, c’est 2m 1c. J’écris 1 dans la colonne des centaines et 2 dans la colonne des milliers.',
+        ...(c.deux ? ['Avec 14 × 23 : 14 fois 23, c’est 10 fois 23 plus 4 fois 23. J’écris 4 × 23 = 92, puis 10 × 23 = 230 en dessous. J’additionne : 92 + 230 = 322.'] : []),
+      ],
+    },
+    consignes: {
+      ex1: 'Calcule en ligne, en décomposant le deuxième nombre.',
+      ex2: 'Calcule ces multiplications posées.',
+      ex3: (c) => (c.deux ? 'Calcule ces multiplications posées : écris chaque ligne.' : 'Calcule ces multiplications posées.'),
+      ex4: 'Résous ces problèmes.',
+      phraseReponse: 'Phrase réponse :',
+    },
+    noteParent: 'les retenues de chaque multiplication sont notées, comme dans la leçon, en petit à droite de la ligne du facteur, l’une après l’autre, la précédente barrée (avec deux chiffres : celles de a × unités, puis, après un point-virgule, celles de a × dizaines) ; avec deux chiffres, les deux lignes partielles (a × unités, puis a × dizaines décalé d’une colonne, avec son 0) sont additionnées, et les petites retenues de cette addition sont notées entre les deux lignes.',
+  },
+  commune: {
+    nom: 'commune',
+    objectif: (c) => (c.deux
+      ? 'Je sais calculer des produits en ligne, et poser des multiplications.'
+      : 'Je sais calculer des produits en ligne, et poser une multiplication par un nombre à 1 chiffre.'),
+    rappel: {
+      nomRectangle: 'Avec un rectangle',
+      texteRectangle: (a, b, u) => `${a} × ${b}, c’est ${a} × 10 + ${a} × ${u}.`,
+      nomArbre: 'Avec un arbre de calcul',
+      etapes: (c) => [
+        'Unités : 5 × 7 = 35. J’écris 5 et je retiens 3, que je note au-dessus du chiffre des dizaines.',
+        'Dizaines : 5 × 2 = 10, plus la retenue 3 : 13. J’écris 3 et je retiens 1, noté au-dessus des centaines.',
+        'Centaines : 5 × 4 = 20, plus la retenue 1 : 21. J’écris 21 : le 1 dans les centaines et le 2 dans les milliers.',
+        ...(c.deux ? ['Avec 23 × 14 : je multiplie 23 par 4 (92), puis par 10 en écrivant 0 dans la colonne des unités (230). J’additionne les deux lignes : 92 + 230 = 322.'] : []),
+      ],
+    },
+    consignes: {
+      ex1: 'Calcule en ligne, en décomposant le deuxième facteur.',
+      ex2: 'Pose et calcule ces multiplications.',
+      ex3: (c) => (c.deux ? 'Pose et calcule ces multiplications : écris chaque ligne de calcul.' : 'Pose et calcule ces multiplications.'),
+      ex4: 'Résous ces problèmes.',
+      phraseReponse: 'Phrase réponse :',
+    },
+    noteParent: 'les retenues sont notées en petit au-dessus des chiffres du premier facteur, sur une ligne pour chaque chiffre du second (avec deux chiffres, la ligne du haut est celle des dizaines) ; avec deux chiffres, les deux lignes partielles (a × unités, puis a × dizaines décalé d’une colonne, avec son 0) sont additionnées, et les petites retenues de cette addition sont notées entre les deux lignes.',
+  },
+};
+
 function genererMultiplication(options) {
   const deux = options.facteur !== '1';
   const un = [produitUnChiffre(2, 1), produitUnChiffre(3, 1), produitUnChiffre(3, 2), produitUnChiffre(3, 1), produitUnChiffre(2, 1), produitUnChiffre(3, 2)];
@@ -496,19 +708,9 @@ function genererMultiplication(options) {
 
   return {
     deux,
-    objectif: deux
-      ? 'Je sais calculer en ligne des produits, et poser et calculer des multiplications.'
-      : 'Je sais calculer en ligne des produits, et poser et calculer une multiplication par un nombre à 1 chiffre.',
-    // Exemples du livret : 9 × 15 (pages 19), 427 × 5 (page 20) et 14 × 23 (page 21).
     methode: {
       enligne: { a: 9, b: 15 },
       exemples: deux ? [{ a: 427, b: 5 }, { a: 23, b: 14 }] : [{ a: 427, b: 5 }],
-      etapes: [
-        'Je calcule le nombre d’unités : 5 × 7u = 35u. 35u, c’est 3d 5u. J’écris 5 dans la colonne des unités et je retiens 3d.',
-        'Je calcule le nombre de dizaines : 5 × 2d = 10d. J’ajoute les 3d que j’ai retenues : 10d + 3d = 13d. 13d, c’est 1c 3d. J’écris 3 dans la colonne des dizaines et je retiens 1c.',
-        'Je calcule le nombre de centaines : 5 × 4c = 20c. J’ajoute 1c que j’ai retenue : 20c + 1c = 21c. 21c, c’est 2m 1c. J’écris 1 dans la colonne des centaines et 2 dans la colonne des milliers.',
-        ...(deux ? ['Avec 14 × 23 : 14 fois 23, c’est 10 fois 23 plus 4 fois 23. J’écris 4 × 23 = 92, puis 10 × 23 = 230 en dessous. J’additionne : 92 + 230 = 322.'] : []),
-      ],
     },
     enligne: produitsEnLigne(),
     posees1: un,
@@ -659,26 +861,26 @@ const miseAddition = {
     posees: contenu.posees.slice(0, methode ? 4 : 8),
     aposer: contenu.aposer.slice(0, methode ? 3 : 4),
   }),
-  noteCorrige: 'les retenues sont notées en haut de chaque colonne.',
-  exercices(contenu, methode) {
+  exercices(contenu, methode, fm = FORMULATIONS_ADDITION.livret) {
     const { posees, aposer } = this.combien(contenu, methode);
+    const k = fm.consignes;
     return `
     <div class="bloc">
-      <h2>Exercice 1 — Calcule ces additions.</h2>
+      <h2>Exercice 1 — ${k.ex1}</h2>
       <div class="operations">
         ${posees.map((o, i) => operationPosee({ ...o, mode: 'pose', numero: String.fromCharCode(97 + i) })).join('')}
       </div>
     </div>
 
     <div class="bloc">
-      <h2>Exercice 2 — Pose l’opération, puis calcule.</h2>
+      <h2>Exercice 2 — ${k.ex2}</h2>
       <div class="operations">
         ${aposer.map((o, i) => operationPosee({ ...o, largeur: o.largeur + 1, mode: 'vide', numero: String.fromCharCode(97 + i) })).join('')}
       </div>
     </div>
 
     <div class="bloc">
-      <h2>Exercice 3 — Entoure le bon ordre de grandeur (sans calculer !).</h2>
+      <h2>Exercice 3 — ${k.ex3}</h2>
       <ul class="estimations">
         ${contenu.estimations.map((e, i) => `
           <li><span class="estimation__op">${String.fromCharCode(97 + i)}. ${fmt(e.a)} + ${fmt(e.b)}</span>
@@ -687,21 +889,21 @@ const miseAddition = {
     </div>
 
     <div class="bloc">
-      <h2>Exercice 4 — Résous ces problèmes.</h2>
+      <h2>Exercice 4 — ${k.ex4}</h2>
       <div class="problemes">
       ${contenu.problemes.map((p, i) => `
         <div class="probleme">
           <p class="probleme__enonce">${String.fromCharCode(97 + i)}. ${echappe(p.enonce)}</p>
           <div class="probleme__espace">
             ${operationPosee({ a: p.a, b: p.b, largeur: String(p.a).length + 1, mode: 'vide', numero: '' })}
-            <div class="probleme__phrase">Phrase réponse : <span class="pointilles"></span><span class="pointilles"></span></div>
+            <div class="probleme__phrase">${k.phraseReponse} <span class="pointilles"></span><span class="pointilles"></span></div>
           </div>
         </div>`).join('')}
       </div>
     </div>
 `;
   },
-  corriges(contenu, methode) {
+  corriges(contenu, methode, fm = FORMULATIONS_ADDITION.livret) {
     const { posees, aposer } = this.combien(contenu, methode);
     return `
     <div class="bloc">
@@ -724,7 +926,7 @@ const miseAddition = {
         ${contenu.estimations.map((e, i) => `
           <li><span class="estimation__op">${String.fromCharCode(97 + i)}. ${fmt(e.a)} + ${fmt(e.b)}</span>
               <span class="estimation__choix"><span class="pastille-choix pastille-choix--bonne">${fmt(e.reponse)}</span>
-              <span class="estimation__exact">(résultat exact : ${fmt(e.exact)})</span></span></li>`).join('')}
+              <span class="estimation__exact">(${fm.corrige.exact} ${fmt(e.exact)})</span></span></li>`).join('')}
       </ul>
     </div>
 
@@ -746,62 +948,62 @@ const miseSoustraction = {
     posees: contenu.posees.slice(0, methode ? 4 : 8),
     aposer: contenu.aposer.slice(0, methode ? 3 : 4),
   }),
-  noteCorrige: 'comme dans la leçon, le chiffre qui prête est barré et le nouveau chiffre s’écrit au-dessus ; la colonne qui reçoit 10 unités les note devant son chiffre (2 devient 12).',
-  exercices(contenu, methode) {
+  exercices(contenu, methode, fm = FORMULATIONS_SOUSTRACTION.livret) {
     const { posees, aposer } = this.combien(contenu, methode);
+    const k = fm.consignes;
     return `
     <div class="bloc">
-      <h2>Exercice 1 — Calcule ces soustractions.</h2>
+      <h2>Exercice 1 — ${k.ex1}</h2>
       <div class="operations">
-        ${posees.map((o, i) => operationPosee({ ...o, signe: '−', mode: 'pose', numero: lettre(i) })).join('')}
+        ${posees.map((o, i) => operationPosee({ ...o, signe: '−', mode: 'pose', numero: lettre(i), formulation: fm.nom })).join('')}
       </div>
     </div>
 
     <div class="bloc">
-      <h2>Exercice 2 — Pose l’opération, puis calcule.</h2>
+      <h2>Exercice 2 — ${k.ex2}</h2>
       <div class="operations">
-        ${aposer.map((o, i) => operationPosee({ ...o, signe: '−', mode: 'vide', numero: lettre(i) })).join('')}
+        ${aposer.map((o, i) => operationPosee({ ...o, signe: '−', mode: 'vide', numero: lettre(i), formulation: fm.nom })).join('')}
       </div>
     </div>
 
     <div class="bloc">
-      <h2>Exercice 3 — Vérifie chaque résultat avec une addition.</h2>
+      <h2>Exercice 3 — ${k.ex3}</h2>
       <ul class="estimations">
         ${contenu.verifications.map((v, i) => `
           <li><span class="estimation__op">${lettre(i)}. ${fmt(v.a)} − ${fmt(v.b)} = ${fmt(v.r)}</span>
-              <span class="verification">Je calcule : ${fmt(v.r)} + ${fmt(v.b)} = <span class="pointilles pointilles--court"></span></span></li>`).join('')}
+              <span class="verification">${k.verification} ${fmt(v.r)} + ${fmt(v.b)} = <span class="pointilles pointilles--court"></span></span></li>`).join('')}
       </ul>
     </div>
 
     <div class="bloc">
-      <h2>Exercice 4 — Résous ces problèmes.</h2>
+      <h2>Exercice 4 — ${k.ex4}</h2>
       <div class="problemes">
       ${contenu.problemes.map((p, i) => `
         <div class="probleme">
           <p class="probleme__enonce">${lettre(i)}. ${echappe(p.enonce)}</p>
           <div class="probleme__espace">
-            ${operationPosee({ a: p.a, b: p.b, signe: '−', largeur: String(p.a).length, mode: 'vide', numero: '' })}
-            <div class="probleme__phrase">Phrase réponse : <span class="pointilles"></span><span class="pointilles"></span></div>
+            ${operationPosee({ a: p.a, b: p.b, signe: '−', largeur: String(p.a).length, mode: 'vide', numero: '', formulation: fm.nom })}
+            <div class="probleme__phrase">${k.phraseReponse} <span class="pointilles"></span><span class="pointilles"></span></div>
           </div>
         </div>`).join('')}
       </div>
     </div>
 `;
   },
-  corriges(contenu, methode) {
+  corriges(contenu, methode, fm = FORMULATIONS_SOUSTRACTION.livret) {
     const { posees, aposer } = this.combien(contenu, methode);
     return `
     <div class="bloc">
       <h2>Exercice 1</h2>
       <div class="operations">
-        ${posees.map((o, i) => operationPosee({ ...o, signe: '−', mode: 'corrige', numero: lettre(i) })).join('')}
+        ${posees.map((o, i) => operationPosee({ ...o, signe: '−', mode: 'corrige', numero: lettre(i), formulation: fm.nom })).join('')}
       </div>
     </div>
 
     <div class="bloc">
       <h2>Exercice 2</h2>
       <div class="operations">
-        ${aposer.map((o, i) => operationPosee({ ...o, signe: '−', mode: 'corrige', numero: lettre(i) })).join('')}
+        ${aposer.map((o, i) => operationPosee({ ...o, signe: '−', mode: 'corrige', numero: lettre(i), formulation: fm.nom })).join('')}
       </div>
     </div>
 
@@ -833,14 +1035,14 @@ const miseMultiplication = {
     posees1: contenu.posees1.slice(0, methode ? 3 : 6),
     posees2: contenu.posees2.slice(0, methode ? 2 : (contenu.deux ? 3 : 4)),
   }),
-  noteCorrige: 'les retenues de chaque multiplication sont notées, comme dans la leçon, en petit à droite de la ligne du facteur, l’une après l’autre, la précédente barrée (avec deux chiffres : celles de a × unités, puis, après un point-virgule, celles de a × dizaines) ; avec deux chiffres, les deux lignes partielles (a × unités, puis a × dizaines décalé d’une colonne, avec son 0) sont additionnées, et les petites retenues de cette addition sont notées entre les deux lignes.',
   // Rappel de méthode : les deux façons de calculer en ligne (Mila, Enzo), puis les étapes
   // de la multiplication posée, avec les exemples du livret.
-  rappel(contenu) {
-    const { enligne: { a, b }, exemples, etapes } = contenu.methode;
+  rappel(contenu, fm = FORMULATIONS_MULTIPLICATION.livret) {
+    const { enligne: { a, b }, exemples } = contenu.methode;
+    const etapes = fm.rappel.etapes(contenu);
     const u = b % 10;
     const exemplesHtml = exemples.map((e) => `
-          <div class="methode__exemple">${multiplicationPosee({ ...e, mode: 'corrige', numero: '' })}</div>`).join('');
+          <div class="methode__exemple">${multiplicationPosee({ ...e, mode: 'corrige', numero: '', formulation: fm.nom })}</div>`).join('');
     return `
       <div class="methode methode--multiplication">
         <div class="methode__exemples">${exemplesHtml}
@@ -848,13 +1050,13 @@ const miseMultiplication = {
         <div class="methode__droite">
           <div class="enligne">
             <div class="enligne__methode">
-              <div class="enligne__nom">Méthode de Mila</div>
-              <div class="enligne__texte">${a} × ${b}, c’est ${a} fois 10 plus ${a} fois ${u}.</div>
+              <div class="enligne__nom">${fm.rappel.nomRectangle}</div>
+              <div class="enligne__texte">${fm.rappel.texteRectangle(a, b, u)}</div>
               <div class="rectangle"><span class="rectangle__haut">${a} × 10 = ${a * 10}</span><span class="rectangle__bas">${a} × ${u} = ${a * u}</span></div>
               <div class="enligne__total">${a} × ${b} = ${a * 10} + ${a * u} = ${a * b}</div>
             </div>
             <div class="enligne__methode">
-              <div class="enligne__nom">Méthode d’Enzo</div>
+              <div class="enligne__nom">${fm.rappel.nomArbre}</div>
               <table class="arbre">
                 <tr><td colspan="3">${a} × ${b}</td></tr>
                 <tr><td>${a} × 10</td><td>+</td><td>${a} × ${u}</td></tr>
@@ -867,11 +1069,12 @@ const miseMultiplication = {
         </div>
       </div>`;
   },
-  exercices(contenu, methode) {
+  exercices(contenu, methode, fm = FORMULATIONS_MULTIPLICATION.livret) {
     const { enligne, posees1, posees2 } = this.combien(contenu, methode);
+    const k = fm.consignes;
     return `
     <div class="bloc">
-      <h2>Exercice 1 — Calcule en ligne, en décomposant le deuxième nombre.</h2>
+      <h2>Exercice 1 — ${texte(k.ex1, contenu)}</h2>
       <ul class="decompositions">
         ${enligne.map((o, i) => `
           <li><span class="decomposition__op">${lettre(i)}. ${o.a} × ${o.b}</span>
@@ -880,35 +1083,35 @@ const miseMultiplication = {
     </div>
 
     <div class="bloc">
-      <h2>Exercice 2 — Calcule ces multiplications posées.</h2>
+      <h2>Exercice 2 — ${texte(k.ex2, contenu)}</h2>
       <div class="operations">
-        ${posees1.map((o, i) => multiplicationPosee({ ...o, mode: 'pose', numero: lettre(i) })).join('')}
+        ${posees1.map((o, i) => multiplicationPosee({ ...o, mode: 'pose', numero: lettre(i), formulation: fm.nom })).join('')}
       </div>
     </div>
 
     <div class="bloc">
-      <h2>Exercice 3 — ${contenu.deux ? 'Calcule ces multiplications posées : écris chaque ligne.' : 'Calcule ces multiplications posées.'}</h2>
+      <h2>Exercice 3 — ${texte(k.ex3, contenu)}</h2>
       <div class="operations">
-        ${posees2.map((o, i) => multiplicationPosee({ ...o, mode: 'pose', numero: lettre(i) })).join('')}
+        ${posees2.map((o, i) => multiplicationPosee({ ...o, mode: 'pose', numero: lettre(i), formulation: fm.nom })).join('')}
       </div>
     </div>
 
     <div class="bloc">
-      <h2>Exercice 4 — Résous ces problèmes.</h2>
+      <h2>Exercice 4 — ${texte(k.ex4, contenu)}</h2>
       <div class="problemes">
       ${contenu.problemes.map((p, i) => `
         <div class="probleme">
           <p class="probleme__enonce">${lettre(i)}. ${echappe(p.enonce)}</p>
           <div class="probleme__espace">
-            ${multiplicationPosee({ a: p.a, b: p.b, mode: 'vide', numero: '' })}
-            <div class="probleme__phrase">Phrase réponse : <span class="pointilles"></span><span class="pointilles"></span></div>
+            ${multiplicationPosee({ a: p.a, b: p.b, mode: 'vide', numero: '', formulation: fm.nom })}
+            <div class="probleme__phrase">${k.phraseReponse} <span class="pointilles"></span><span class="pointilles"></span></div>
           </div>
         </div>`).join('')}
       </div>
     </div>
 `;
   },
-  corriges(contenu, methode) {
+  corriges(contenu, methode, fm = FORMULATIONS_MULTIPLICATION.livret) {
     const { enligne, posees1, posees2 } = this.combien(contenu, methode);
     return `
     <div class="bloc">
@@ -923,14 +1126,14 @@ const miseMultiplication = {
     <div class="bloc">
       <h2>Exercice 2</h2>
       <div class="operations">
-        ${posees1.map((o, i) => multiplicationPosee({ ...o, mode: 'corrige', numero: lettre(i) })).join('')}
+        ${posees1.map((o, i) => multiplicationPosee({ ...o, mode: 'corrige', numero: lettre(i), formulation: fm.nom })).join('')}
       </div>
     </div>
 
     <div class="bloc">
       <h2>Exercice 3</h2>
       <div class="operations">
-        ${posees2.map((o, i) => multiplicationPosee({ ...o, mode: 'corrige', numero: lettre(i) })).join('')}
+        ${posees2.map((o, i) => multiplicationPosee({ ...o, mode: 'corrige', numero: lettre(i), formulation: fm.nom })).join('')}
       </div>
     </div>
 
@@ -1961,7 +2164,66 @@ function complement(prix, billet, centimes) {
   etapes.push({ de: cur, vers: B, diff: B - cur });
   return { etapes, rendu: B - prix };
 }
-const phraseComplement = ({ etapes, rendu }) => `${etapes.map((e) => `De ${eur(e.de)} à ${eur(e.vers)}, il faut ${montant(e.diff)}.`).join(' ')} Le vendeur rend ${eur(rendu)}.`;
+
+// Le complément « en deux temps » est commun aux deux formulations ; seule la façon de le dire change.
+const FORMULATIONS_MONNAIE = {
+  livret: {
+    nom: 'livret',
+    objectif: 'Je sais composer une somme avec des pièces et des billets, et je sais rendre la monnaie.',
+    rappel: {
+      rendre: () => `<p>Pour <b>rendre la monnaie</b> sur ${eur(2000)} pour un achat de ${eur(1260)}, je cherche le complément à ${eur(2000)} de ${eur(1260)}.<br>
+          <b>Je complète à ${eur(1300)} puis à ${eur(2000)}.</b></p>`,
+      detail: () => `<p>De ${eur(1260)} pour aller à ${eur(1300)}, il faut ${cts(40)}.<br>
+          De ${eur(1300)} pour aller à ${eur(2000)}, il faut ${eur(700)}.<br>
+          Le vendeur doit rendre ${eur(700)} + ${cts(40)} soit en tout <b>${eur(740)}</b>.</p>`,
+    },
+    consignes: {
+      ex1: 'Compose chaque somme avec le moins de pièces et de billets possible.',
+      exemple1: `Écris par exemple : … × 20${NBSP}€ + … × 5${NBSP}€ + …`,
+      ex2: (c) => (c.centimes ? 'Convertis.' : 'Additionne les sommes.'),
+      ex3: 'Rends la monnaie.',
+      completer: 'Je complète à',
+      rend: 'Le vendeur rend :',
+      ex4: 'Résous chaque problème.',
+      question: 'Quel est le prix total ? Combien le vendeur rend-il ?',
+      prixTotal: 'Prix total :',
+      monnaieRendue: 'Monnaie rendue :',
+    },
+    corrige: {
+      complement: ({ etapes, rendu }) => `${etapes.map((e) => `De ${eur(e.de)} à ${eur(e.vers)}, il faut ${montant(e.diff)}.`).join(' ')} Le vendeur rend ${eur(rendu)}.`,
+      achat: (a) => `Achat de ${eur(a.prix)}, payé avec ${eur(a.billet * 100)}. `,
+    },
+    noteParent: 'les réponses attendues sont en rouge ; chaque somme est composée avec le moins de pièces et de billets possible, et chaque monnaie rendue est détaillée comme dans la leçon : on complète à l’euro suivant, puis au billet.',
+  },
+  commune: {
+    nom: 'commune',
+    objectif: 'Je sais composer une somme avec des pièces et des billets, et rendre la monnaie.',
+    rappel: {
+      rendre: () => `<p>Pour <b>rendre la monnaie</b> sur un billet de ${eur(2000)} après un achat de ${eur(1260)}, je calcule ce qu’il faut ajouter à ${eur(1260)} pour arriver à ${eur(2000)}.<br>
+          <b>Je complète en deux temps : jusqu’à ${eur(1300)}, puis jusqu’à ${eur(2000)}.</b></p>`,
+      detail: () => `<p>De ${eur(1260)} à ${eur(1300)}, j’ajoute ${cts(40)}.<br>
+          De ${eur(1300)} à ${eur(2000)}, j’ajoute ${eur(700)}.<br>
+          Le vendeur rend ${eur(700)} + ${cts(40)} = <b>${eur(740)}</b>.</p>`,
+    },
+    consignes: {
+      ex1: 'Compose chaque somme avec le moins de pièces et de billets possible.',
+      exemple1: `Écris par exemple : … × 20${NBSP}€ + … × 5${NBSP}€ + …`,
+      ex2: (c) => (c.centimes ? 'Convertis.' : 'Additionne les sommes.'),
+      ex3: 'Rends la monnaie : complète en deux temps.',
+      completer: 'Je complète d’abord jusqu’à',
+      rend: 'Le vendeur rend :',
+      ex4: 'Résous chaque problème.',
+      question: 'Quel est le prix total ? Combien le vendeur rend-il ?',
+      prixTotal: 'Prix total :',
+      monnaieRendue: 'Monnaie rendue :',
+    },
+    corrige: {
+      complement: ({ etapes, rendu }) => `${etapes.map((e) => `De ${eur(e.de)} à ${eur(e.vers)}, j’ajoute ${montant(e.diff)}.`).join(' ')} Le vendeur rend ${eur(rendu)}.`,
+      achat: (a) => `Achat de ${eur(a.prix)}, payé avec un billet de ${eur(a.billet * 100)}. `,
+    },
+    noteParent: 'les réponses attendues sont en rouge ; chaque somme est composée avec le moins de pièces et de billets possible, et chaque monnaie rendue est détaillée en deux temps : on complète jusqu’au prix rond suivant (l’euro entier, ou la dizaine d’euros), puis jusqu’au billet.',
+  },
+};
 
 // Les articles : [nom, prix minimum, prix maximum] en euros entiers.
 const ARTICLES = [
@@ -2053,7 +2315,6 @@ function genererMonnaie(options) {
 
   return {
     centimes,
-    objectif: 'Je sais composer une somme avec des pièces et des billets, et je sais rendre la monnaie.',
     sommes, conversions, additions, achats, problemes,
   };
 }
@@ -2095,9 +2356,8 @@ const miseMonnaie = {
     achats: contenu.achats.slice(0, methode ? 4 : 6),
     problemes: contenu.problemes.slice(0, methode ? 2 : 3),
   }),
-  noteCorrige: 'les réponses attendues sont en rouge ; chaque somme est composée avec le moins de pièces et de billets possible, et chaque monnaie rendue est détaillée comme dans la leçon : on complète à l’euro suivant, puis au billet.',
-  // Rappel : les billets et les pièces, 1 € = 100 c, et la méthode de la leçon (page 32 du livret).
-  rappel() {
+  // Rappel : les billets et les pièces, 1 € = 100 c (communs), et la méthode pour rendre la monnaie (formulation).
+  rappel(contenu, fm = FORMULATIONS_MONNAIE.livret) {
     return `
       <div class="rappel-mon">
         <div class="rappel-mon__monnaie">
@@ -2110,29 +2370,27 @@ const miseMonnaie = {
           <p class="rappel-mon__egalite">1 euro, c’est 100 centimes d’euro.<br><b>1${NBSP}€ = 100${NBSP}c</b></p>
         </div>
         <div class="rappel-mon__rendre">
-          <p>Pour <b>rendre la monnaie</b> sur ${eur(2000)} pour un achat de ${eur(1260)}, je cherche le complément à ${eur(2000)} de ${eur(1260)}.<br>
-          <b>Je complète à ${eur(1300)} puis à ${eur(2000)}.</b></p>
+          ${fm.rappel.rendre()}
           ${schemaComplement({ prix: 1260, inter: 1300, billet: 2000 })}
-          <p>De ${eur(1260)} pour aller à ${eur(1300)}, il faut ${cts(40)}.<br>
-          De ${eur(1300)} pour aller à ${eur(2000)}, il faut ${eur(700)}.<br>
-          Le vendeur doit rendre ${eur(700)} + ${cts(40)} soit en tout <b>${eur(740)}</b>.</p>
+          ${fm.rappel.detail()}
         </div>
       </div>`;
   },
-  exercices(contenu, methode) {
+  exercices(contenu, methode, fm = FORMULATIONS_MONNAIE.livret) {
     const { sommes, conversions, additions, achats, problemes } = this.combien(contenu, methode);
+    const k = fm.consignes;
     const pts = '<span class="pointilles pointilles--ligne"></span>';
     return `
     <div class="bloc">
-      <h2>Exercice 1 — Compose chaque somme avec le moins de pièces et de billets possible.</h2>
-      <p class="consigne-mon">Écris par exemple : … × 20${NBSP}€ + … × 5${NBSP}€ + …</p>
+      <h2>Exercice 1 — ${k.ex1}</h2>
+      <p class="consigne-mon">${k.exemple1}</p>
       <ul class="sommes">
         ${sommes.map((s, i) => `<li class="somme"><b>${lettre(i)}.</b><span class="somme__montant">${eur(s)}</span><span>=</span>${pts}</li>`).join('')}
       </ul>
     </div>
 
     <div class="bloc">
-      <h2>Exercice 2 — ${contenu.centimes ? 'Convertis.' : 'Additionne les sommes.'}</h2>
+      <h2>Exercice 2 — ${texte(k.ex2, contenu)}</h2>
       <div class="conversions">
         ${contenu.centimes
     ? conversions.map((c, i) => `<div class="conversion"><b>${lettre(i)}.</b>${c.vers === 'cts'
@@ -2143,28 +2401,28 @@ const miseMonnaie = {
     </div>
 
     <div class="bloc">
-      <h2>Exercice 3 — Rends la monnaie.</h2>
+      <h2>Exercice 3 — ${k.ex3}</h2>
       <div class="achats">
         ${achats.map((a, i) => `<div class="achat">
           <p class="achat__enonce"><b>${lettre(i)}.</b> J’achète ${a.nom} à ${eur(a.prix)}. Je paie avec un billet de ${eur(a.billet * 100)}.</p>
-          <div class="achat__ligne"><span>Je complète à <span class="pointilles pointilles--mini"></span> € :</span>${pts}</div>
-          <div class="achat__ligne"><span>Le vendeur rend :</span>${pts}</div>
+          <div class="achat__ligne"><span>${k.completer} <span class="pointilles pointilles--mini"></span> € :</span>${pts}</div>
+          <div class="achat__ligne"><span>${k.rend}</span>${pts}</div>
         </div>`).join('')}
       </div>
     </div>
 
     <div class="bloc">
-      <h2>Exercice 4 — Résous chaque problème.</h2>
+      <h2>Exercice 4 — ${k.ex4}</h2>
       <div class="problemes-mon">
         ${problemes.map((pb, i) => `<div class="probleme-mon">
-          <p class="probleme-mon__enonce"><b>${lettre(i)}.</b> ${pb.prenom} achète ${listeArticles(pb.articles)}. ${pb.prenom} paie avec un billet de ${eur(pb.billet * 100)}. Quel est le prix total ? Combien le vendeur rend-il ?</p>
-          <div class="probleme-mon__lignes"><div class="achat__ligne"><span>Prix total :</span>${pts}</div><div class="achat__ligne"><span>Monnaie rendue :</span>${pts}</div></div>
+          <p class="probleme-mon__enonce"><b>${lettre(i)}.</b> ${pb.prenom} achète ${listeArticles(pb.articles)}. ${pb.prenom} paie avec un billet de ${eur(pb.billet * 100)}. ${k.question}</p>
+          <div class="probleme-mon__lignes"><div class="achat__ligne"><span>${k.prixTotal}</span>${pts}</div><div class="achat__ligne"><span>${k.monnaieRendue}</span>${pts}</div></div>
         </div>`).join('')}
       </div>
     </div>
 `;
   },
-  corriges(contenu, methode) {
+  corriges(contenu, methode, fm = FORMULATIONS_MONNAIE.livret) {
     const { sommes, conversions, additions, achats, problemes } = this.combien(contenu, methode);
     const valeurs = contenu.centimes ? VALEURS_TOUTES : VALEURS_ENTIERES;
     return `
@@ -2189,7 +2447,7 @@ const miseMonnaie = {
     <div class="bloc">
       <h2>Exercice 3</h2>
       <div class="achats achats--corriges">
-        ${achats.map((a, i) => `<div class="achat achat--corrige"><b>${lettre(i)}.</b> ${nomPrix(a)}<span class="rouge achat__detail">${phraseComplement(complement(a.prix, a.billet, contenu.centimes))}</span></div>`).join('')}
+        ${achats.map((a, i) => `<div class="achat achat--corrige"><b>${lettre(i)}.</b> ${fm.corrige.achat(a)}<span class="rouge achat__detail">${fm.corrige.complement(complement(a.prix, a.billet, contenu.centimes))}</span></div>`).join('')}
       </div>
     </div>
 
@@ -2199,14 +2457,13 @@ const miseMonnaie = {
         ${problemes.map((pb, i) => {
     const total = totalProbleme(pb);
     return `<div class="probleme-mon"><p class="probleme-mon__enonce"><b>${lettre(i)}.</b> Prix total : ${pb.articles.map((x) => eur(x.prix)).join(' + ')} = <span class="rouge">${eur(total)}</span>.
-            <span class="rouge">${phraseComplement(complement(total, pb.billet, contenu.centimes))}</span></p></div>`;
+            <span class="rouge">${fm.corrige.complement(complement(total, pb.billet, contenu.centimes))}</span></p></div>`;
   }).join('')}
       </div>
     </div>
 `;
   },
 };
-const nomPrix = (a) => `Achat de ${eur(a.prix)}, payé avec ${eur(a.billet * 100)}. `;
 
 /* ------------------------------------------------------------------ */
 /* CE2 — longueurs : unités, conversions, périmètre                     */
@@ -3549,10 +3806,12 @@ const misePolygones = {
 };
 const ROUGE_CERCLE = '#C0392B';
 
-function pageExercices(fiche, contenu, { base = '', methode = true, identite = true } = {}) {
+function pageExercices(fiche, contenu, { base = '', methode = true, identite = true, formulation: nom = 'livret' } = {}) {
   const { signe } = fiche.mise;
-  if (fiche.mise.rappel) return pageExercicesLibre(fiche, contenu, { base, methode, identite });
-  const exemple = operationPosee({ ...contenu.methode.exemple, signe, mode: 'corrige', numero: '' });
+  const fm = formulation(fiche, nom);
+  if (fiche.mise.rappel) return pageExercicesLibre(fiche, contenu, { base, methode, identite, fm });
+  const etapes = fm ? fm.rappel.etapes : contenu.methode.etapes;
+  const exemple = operationPosee({ ...contenu.methode.exemple, signe, mode: 'corrige', numero: '', formulation: fm ? fm.nom : 'livret' });
   const { a, b } = contenu.methode.exemple;
   const egalite = `${fmt(a)} ${signe} ${fmt(b)} = ${fmt(signe === '−' ? a - b : a + b)}`;
 
@@ -3560,44 +3819,45 @@ function pageExercices(fiche, contenu, { base = '', methode = true, identite = t
   <section class="feuille">
     ${enTete(fiche, '', contenu, base, identite, 'eleve')}
 
-    <div class="objectif">${echappe(contenu.objectif)}</div>
+    <div class="objectif">${echappe(fm ? texte(fm.objectif, contenu) : contenu.objectif)}</div>
 
     ${methode ? `<div class="bloc bloc--methode">
       <h2>Je me souviens de la méthode</h2>
       <div class="methode">
         <div class="methode__exemple">${exemple}<div class="methode__egalite">${egalite}</div></div>
-        <ol class="methode__etapes">${contenu.methode.etapes.map((e) => `<li>${echappe(e)}</li>`).join('')}</ol>
+        <ol class="methode__etapes">${texte(etapes, contenu).map((e) => `<li>${echappe(e)}</li>`).join('')}</ol>
       </div>
     </div>` : ''}
-${fiche.mise.exercices(contenu, methode)}
+${fiche.mise.exercices(contenu, methode, fm || undefined)}
     <div class="pied-feuille">Mathoo · fiche de révision à imprimer</div>
   </section>`;
 }
 
 // Page d'une fiche dont le rappel de méthode a sa propre mise en page (`mise.rappel`).
-function pageExercicesLibre(fiche, contenu, { base, methode, identite }) {
+function pageExercicesLibre(fiche, contenu, { base, methode, identite, fm }) {
   return `
   <section class="feuille">
     ${enTete(fiche, '', contenu, base, identite, 'eleve')}
 
-    <div class="objectif">${echappe(contenu.objectif)}</div>
+    <div class="objectif">${echappe(fm ? texte(fm.objectif, contenu) : contenu.objectif)}</div>
 
     ${methode ? `<div class="bloc bloc--methode">
       <h2>Je me souviens de la méthode</h2>
-      ${fiche.mise.rappel(contenu)}
+      ${fiche.mise.rappel(contenu, fm || undefined)}
     </div>` : ''}
-${fiche.mise.exercices(contenu, methode)}
+${fiche.mise.exercices(contenu, methode, fm || undefined)}
     <div class="pied-feuille">Mathoo · fiche de révision à imprimer</div>
   </section>`;
 }
 
-function pageCorrige(fiche, contenu, { base = '', methode = true } = {}) {
+function pageCorrige(fiche, contenu, { base = '', methode = true, formulation: nom = 'livret' } = {}) {
+  const fm = formulation(fiche, nom);
   return `
   <section class="feuille feuille--corrige">
     ${enTete(fiche, 'corrigé', contenu, base, false, 'corrige')}
-    <div class="objectif objectif--corrige">Pour le parent ou l’enseignant : ${fiche.mise.noteCorrige}
+    <div class="objectif objectif--corrige">Pour le parent ou l’enseignant : ${fm ? fm.noteParent : fiche.mise.noteCorrige}
       Pour retrouver exactement cette fiche plus tard : scanner le QR code, ou saisir <strong>${contenu.code}</strong> dans l’application.</div>
-${fiche.mise.corriges(contenu, methode)}
+${fiche.mise.corriges(contenu, methode, fm || undefined)}
     <div class="pied-feuille">Mathoo · corrigé</div>
   </section>`;
 }
@@ -4005,6 +4265,7 @@ export const FICHES = [
       },
     ],
     generer: genererAdditionPosee,
+    formulations: FORMULATIONS_ADDITION,
     mise: miseAddition,
   },
   {
@@ -4029,6 +4290,7 @@ export const FICHES = [
       },
     ],
     generer: genererSoustractionPosee,
+    formulations: FORMULATIONS_SOUSTRACTION,
     mise: miseSoustraction,
   },
   {
@@ -4052,6 +4314,7 @@ export const FICHES = [
       },
     ],
     generer: genererMultiplication,
+    formulations: FORMULATIONS_MULTIPLICATION,
     mise: miseMultiplication,
   },
   {
@@ -4172,6 +4435,7 @@ export const FICHES = [
       },
     ],
     generer: genererMonnaie,
+    formulations: FORMULATIONS_MONNAIE,
     mise: miseMonnaie,
   },
   {
@@ -4456,12 +4720,14 @@ export function tirer(fiche, options, graine = graineAleatoire()) {
 // `contenus` : une fiche ou plusieurs. Les pages élève sortent d'abord, les corrigés
 // ensuite : on donne la pile du dessus à l'enfant et on garde le reste.
 // `eleve: false` ne rend que les corrigés — c'est la vue partagée par lien.
+// `formulation` : 'livret' (par défaut, les textes du livret transcrit) ou 'commune' ; une fiche
+// non convertie l'ignore.
 export function rendre(fiche, contenus, {
-  corrige = true, methode = true, identite = true, eleve = true, base = '',
+  corrige = true, methode = true, identite = true, eleve = true, base = '', formulation = 'livret',
 } = {}) {
   const liste = Array.isArray(contenus) ? contenus : [contenus];
-  const pages = eleve ? liste.map((c) => pageExercices(fiche, c, { base, methode, identite })) : [];
-  if (corrige || !eleve) pages.push(...liste.map((c) => pageCorrige(fiche, c, { base, methode })));
+  const pages = eleve ? liste.map((c) => pageExercices(fiche, c, { base, methode, identite, formulation })) : [];
+  if (corrige || !eleve) pages.push(...liste.map((c) => pageCorrige(fiche, c, { base, methode, formulation })));
   return pages.join('');
 }
 
@@ -4498,9 +4764,10 @@ function titreDuBloc(html) {
 // La liste ordonnée des exercices d'une fiche : { titre, consigne, eleve, corrige, hauteur, hauteurCorrige }.
 // `hauteur` et `hauteurCorrige` (px, impression, 703 px de large) viennent de hauteurs-blocs.js ;
 // on les mesure avec le rappel de méthode (`methode: true`), qui est la version courte des exercices.
-export function blocsDe(fiche, contenu, { methode = true } = {}) {
-  const eleves = decouperBlocs(fiche.mise.exercices(contenu, methode));
-  const corriges = decouperBlocs(fiche.mise.corriges(contenu, methode));
+export function blocsDe(fiche, contenu, { methode = true, formulation: nom = 'livret' } = {}) {
+  const fm = formulation(fiche, nom) || undefined;
+  const eleves = decouperBlocs(fiche.mise.exercices(contenu, methode, fm));
+  const corriges = decouperBlocs(fiche.mise.corriges(contenu, methode, fm));
   if (eleves.length !== corriges.length) throw new Error(`${fiche.id} : ${eleves.length} exercices, ${corriges.length} corrigés`);
   const mesures = HAUTEURS_BLOCS[fiche.id] || {};
   return eleves.map((eleve, i) => ({

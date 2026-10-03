@@ -288,9 +288,13 @@ function lienFiche({ codes, vue, methode, identite } = {}) {
   return `${baseURL()}?${p.toString().replace(/%2C/g, ',')}`;
 }
 
-const ficheHTML = () => (panache
-  ? rendrePanache(panache.feuilles, { ...fiche.affichage, base: baseURL() })
-  : rendreFiche(ficheParId(fiche.id), fiche.contenus, { ...fiche.affichage, base: baseURL() }));
+// La formulation est un réglage de l'application, pas de la fiche : elle n'est dans aucun code ni lien.
+const ficheHTML = () => {
+  const formulation = A11y.formulationDe(reglages);
+  return panache
+    ? rendrePanache(panache.feuilles, { ...fiche.affichage, base: baseURL(), formulation })
+    : rendreFiche(ficheParId(fiche.id), fiche.contenus, { ...fiche.affichage, base: baseURL(), formulation });
+};
 
 const codesAffiches = () => (panache ? panache.codes : fiche.contenus.map((c) => c.code));
 
@@ -610,6 +614,20 @@ function pasReviser(c, liste, disponibles) {
       <div class="pied-page"><button class="btn btn--fantome" data-aller="accueil">← Retour à l’île</button></div>`;
 }
 
+// « Méthode : … » : le même choix que dans les réglages, pour les notions qui ont deux formulations.
+function choixFormulation() {
+  const g = A11y.FORMULATION;
+  const choisie = g.options.find((o) => o.v === A11y.formulationDe(reglages));
+  return `
+    <div class="reglage" id="choix-formulation">
+      <div class="reglage__libelle">Méthode : ${choisie.nom}</div>
+      <div class="reglage__options" role="group" aria-label="Méthode des fiches">
+        ${g.options.map((o) => `<button class="option" data-reglage="${g.id}" data-valeur="${o.v}" aria-pressed="${o.v === choisie.v}">${o.nom}</button>`).join('')}
+      </div>
+      <div class="reglage__aide">${choisie.aide} Les exercices et le code restent les mêmes.</div>
+    </div>`;
+}
+
 function pasComposer() {
   const aff = fiche.affichage;
   const n = fiche.selection.length;
@@ -638,6 +656,7 @@ function pasComposer() {
             'Une ligne de rappel par exercice, en haut de la feuille.')
           : bascule('affichage', 'methode', 'Rappel de la méthode', ['oui', 'Avec'], ['non', 'Sans'], aff.methode,
             'Sans le rappel, la place libérée sert à plus d’exercices.')}
+        ${fiche.selection.some((id) => ficheParId(id).formulations) ? choixFormulation() : ''}
         <div class="reglage">
           <div class="reglage__libelle">Nombre de feuilles</div>
           <div class="reglage__options">
@@ -1330,7 +1349,7 @@ app.addEventListener('click', (ev) => {
   if (cible.dataset.reglage) {
     reglages = A11y.appliquer(P.setReglage(cible.dataset.reglage, cible.dataset.valeur));
     Son.jouer('clic');
-    return vueReglages();
+    return vue.nom === 'fiches' ? rafraichir() : vueReglages();
   }
 
   if (cible.dataset.decor) {

@@ -9,7 +9,7 @@
 export const HAUTEURS_BLOCS = {
   'ce2-addition-posee': { eleve: [172,172,137,220], corrige: [172,172,137,151] },
   'ce2-soustraction-posee': { eleve: [172,172,112,220], corrige: [172,172,112,151] },
-  'ce2-multiplication': { eleve: [97,136,209,179], corrige: [97,136,210,151] },
+  'ce2-multiplication': { eleve: [97,148,232,190], corrige: [97,151,240,151] },
   'ce2-nombres-lire-ecrire': { eleve: [304,135,101,125], corrige: [199,116,89,125] },
   'ce2-nombres-comparer': { eleve: [112,171,152,175], corrige: [112,128,134,133] },
   'ce2-fractions-lire': { eleve: [168,173,208,116], corrige: [164,173,209,116] },

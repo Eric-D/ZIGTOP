@@ -141,6 +141,17 @@ Changer un de ces réglages d'affichage ne retire pas de nouveaux nombres : seul
 « 🎲 Autres exercices » et le choix des nombres utilisés relancent un tirage. Augmenter
 le nombre de feuilles garde celles déjà affichées et n'en tire que de nouvelles.
 
+### Définitions communes, méthodes interchangeables
+
+Le livret transcrit est *un* support ; les enfants n'ont pas tous le même. Les définitions
+sont communes, mais les méthodes (« je casse un millier », les retenues à droite du facteur…)
+sont une formulation parmi d'autres. Chaque fiche porte donc deux **formulations** — `livret`
+(les textes de la leçon transcrite, mot pour mot) et `commune` (vocabulaire des programmes,
+méthodes les plus répandues : soustraction par compensation, retenues de multiplication
+au-dessus des chiffres) — choisies dans les réglages ou au pas « Composer », **commune par
+défaut**. C'est un choix d'affichage : les exercices, les nombres et les codes imprimés sont
+les mêmes dans les deux. Conversion en cours, fiche par fiche (#26).
+
 ### La feuille panachée
 
 Réviser notion par notion est la forme la plus faible de l'entraînement : ce qui fait tenir
@@ -391,6 +402,7 @@ node tests/panache.mjs            # feuilles panachées : code Z, budget de haut
 node tests/tunnel.mjs             # tunnel : cocher → composer → imprimer, retour, ouverture par lien au pas 3
 node tests/raccourcis.mjs         # raccourcis : jusqu'à la page N, domaine, révision de la semaine, mémorisation
 node tests/carnet.mjs             # carnet : séries, fiches imprimées, appréciations, export/import sans doublon
+node tests/formulations.mjs       # formulations : mêmes exercices dans les deux, réglage, codes inchangés
 
 # vérification approfondie du QR code (dépendances en plus) :
 npm i --no-save playwright jsqr pngjs && npx playwright install chromium

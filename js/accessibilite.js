@@ -11,6 +11,17 @@ export const DEFAUTS = {
   saisie: 'clavier',   // 'choix' : on choisit parmi des réponses au lieu de les écrire
   visuels: 'oui',      // dessins d'aide (jetons, ligne des nombres, parts…)
   serie: '10',         // nombre de questions par série
+  formulation: 'commune', // fiches : 'livret' = les mots de la leçon transcrite, 'commune' = les programmes officiels
+};
+
+// Comment les fiches disent la méthode (rappel, consignes, corrigé) : le choix ne change jamais les
+// exercices ni les codes. Le même réglage est proposé en préparant une fiche (js/app.js).
+export const FORMULATION = {
+  id: 'formulation', libelle: 'Méthode des fiches',
+  options: [
+    { v: 'livret', nom: 'Comme dans la leçon de la classe', aide: 'Les mots et les méthodes du livret : « je casse un millier », les retenues à droite du facteur…' },
+    { v: 'commune', nom: 'Formulation commune', aide: 'Le vocabulaire des programmes et les méthodes les plus répandues : retenues au-dessus des chiffres, complément à l’euro en deux temps…' },
+  ],
 };
 
 export const GROUPES = [
@@ -89,6 +100,10 @@ export const GROUPES = [
       },
     ],
   },
+  {
+    titre: 'Formulation des méthodes',
+    reglages: [FORMULATION],
+  },
 ];
 
 export function normaliser(reglages = {}) {
@@ -106,6 +121,7 @@ export function appliquer(reglages) {
   return r;
 }
 
+export const formulationDe = (reglages) => (normaliser(reglages).formulation === 'livret' ? 'livret' : 'commune');
 export const animationsActives = (reglages) => normaliser(reglages).animations === 'oui';
 export const tailleSerie = (reglages) => parseInt(normaliser(reglages).serie, 10) || 10;
 

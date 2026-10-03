@@ -3,7 +3,7 @@
 // fiche, sur une page A4 élève et son corrigé. Le code « Z… » (voir fiches.js) redonne
 // exactement la même composition.
 
-import { FICHES, ficheParId, optionsParDefaut, tirer, blocsDe, codePanache, enTeteHTML, echappe } from './fiches.js';
+import { FICHES, NOMS_FORMULATIONS, ficheParId, optionsParDefaut, tirer, blocsDe, objectifDe, codePanache, enTeteHTML, echappe } from './fiches.js';
 import { HAUTEURS_PAGE, HAUTEURS_RAPPEL } from './hauteurs-blocs.js';
 
 export const HAUTEUR_PAGE = 1046;     // px, impression, 703 px de large (voir PLAN-FICHES.md)
@@ -61,7 +61,13 @@ export function composer({ notions, graine, miniRappel = false }) {
     const index = FICHES.indexOf(fiche);
     const contenu = tirer(fiche, options, graineDerivee(graine, index));
     const bloc = blocsDe(fiche, contenu, { methode: true })[INDEX_BLOC];
-    return { id: fiche.id, options, bloc: { ...bloc, ficheId: fiche.id, court: fiche.court, objectif: contenu.objectif } };
+    // Une fiche convertie garde aussi son bloc et son objectif dans chaque formulation : la
+    // composition (qui tient sur quelle feuille) est la même, seul le texte change à l'affichage.
+    const variantes = fiche.formulations ? Object.fromEntries(NOMS_FORMULATIONS.map((nom) => {
+      const b = blocsDe(fiche, contenu, { methode: true, formulation: nom })[INDEX_BLOC];
+      return [nom, { eleve: b.eleve, corrige: b.corrige, consigne: b.consigne, objectif: objectifDe(fiche, contenu, nom) }];
+    })) : null;
+    return { id: fiche.id, options, bloc: { ...bloc, ficheId: fiche.id, court: fiche.court, objectif: objectifDe(fiche, contenu), ...(variantes ? { variantes } : {}) } };
   });
 
   // Le budget des deux pages (élève et corrigé) : en-tête + mini-rappels + blocs ≤ 1 046 px.
@@ -100,38 +106,43 @@ export function composer({ notions, graine, miniRappel = false }) {
 
 // Le bloc tel que la fiche l'a écrit, dont seul le titre est renuméroté :
 // « Exercice 3 — consigne », identique sur la page élève et sur le corrigé.
-export function htmlBloc(bloc, numero, vue = 'eleve') {
-  const h2 = `<h2>Exercice ${numero}${bloc.consigne ? ` — ${bloc.consigne}` : ''}</h2>`;
-  return (vue === 'corrige' ? bloc.corrige : bloc.eleve).replace(/<h2[^>]*>[\s\S]*?<\/h2>/, h2);
+// `formulation` : le bloc d'une fiche convertie existe dans chaque formulation (`bloc.variantes`) ;
+// à défaut (fiche non convertie, ou bloc sans variantes) c'est le bloc tel quel.
+export const varianteDe = (bloc, formulation = 'livret') => (bloc.variantes && (bloc.variantes[formulation] || bloc.variantes.livret)) || bloc;
+
+export function htmlBloc(bloc, numero, vue = 'eleve', formulation = 'livret') {
+  const v = varianteDe(bloc, formulation);
+  const h2 = `<h2>Exercice ${numero}${v.consigne ? ` — ${v.consigne}` : ''}</h2>`;
+  return (vue === 'corrige' ? v.corrige : v.eleve).replace(/<h2[^>]*>[\s\S]*?<\/h2>/, h2);
 }
 
 const titrePanache = (feuille) => `Révision : ${feuille.blocs.map((b) => b.court).join(' · ')}`;
 const surtitre = (feuille, i, total) =>
   `${ficheParId(feuille.notions[0].id).classe.toUpperCase()} · Révision${total > 1 ? ` · feuille ${i + 1} sur ${total}` : ''}`;
 
-function pageEleve(feuille, i, total, { base, identite }) {
+function pageEleve(feuille, i, total, { base, identite, formulation }) {
   return `
   <section class="feuille feuille--panache">
     ${enTeteHTML({ surtitre: surtitre(feuille, i, total), titre: titrePanache(feuille), code: feuille.code, base, identite, vue: 'eleve' })}
 ${feuille.miniRappel ? `
     <ul class="rappels">${feuille.blocs.map((b, k) => `
-      <li><strong>Exercice ${k + 1}.</strong> ${echappe(b.objectif)}</li>`).join('')}
+      <li><strong>Exercice ${k + 1}.</strong> ${echappe(varianteDe(b, formulation).objectif)}</li>`).join('')}
     </ul>
 ` : ''}
 ${feuille.blocs.map((b, k) => `
-    ${htmlBloc(b, k + 1, 'eleve')}`).join('\n')}
+    ${htmlBloc(b, k + 1, 'eleve', formulation)}`).join('\n')}
     <div class="pied-feuille">Mathoo · feuille de révision à imprimer</div>
   </section>`;
 }
 
-function pageCorrigePanache(feuille, i, total, { base }) {
+function pageCorrigePanache(feuille, i, total, { base, formulation }) {
   return `
   <section class="feuille feuille--corrige feuille--panache">
     ${enTeteHTML({ surtitre: surtitre(feuille, i, total), titre: `${titrePanache(feuille)} — <em>corrigé</em>`, code: feuille.code, base, identite: false, vue: 'corrige' })}
     <div class="objectif objectif--corrige">Pour le parent ou l’enseignant : un exercice par notion, corrigés dans le même ordre.
       Pour retrouver exactement cette feuille plus tard : scanner le QR code, ou saisir <strong>${feuille.code}</strong> dans l’application.</div>
 ${feuille.blocs.map((b, k) => `
-    ${htmlBloc(b, k + 1, 'corrige')}`).join('\n')}
+    ${htmlBloc(b, k + 1, 'corrige', formulation)}`).join('\n')}
     <div class="pied-feuille">Mathoo · corrigé</div>
   </section>`;
 }
@@ -139,9 +150,9 @@ ${feuille.blocs.map((b, k) => `
 // Même signature que `rendre` : les pages élève d'abord, les corrigés ensuite ; `eleve: false`
 // ne rend que les corrigés (la vue partagée par lien). `feuilles` : ce que renvoie `composer`
 // (ou son tableau `feuilles`).
-export function rendrePanache(feuilles, { corrige = true, identite = true, eleve = true, base = '' } = {}) {
+export function rendrePanache(feuilles, { corrige = true, identite = true, eleve = true, base = '', formulation = 'livret' } = {}) {
   const liste = Array.isArray(feuilles) ? feuilles : feuilles.feuilles;
-  const pages = eleve ? liste.map((f, i) => pageEleve(f, i, liste.length, { base, identite })) : [];
-  if (corrige || !eleve) pages.push(...liste.map((f, i) => pageCorrigePanache(f, i, liste.length, { base })));
+  const pages = eleve ? liste.map((f, i) => pageEleve(f, i, liste.length, { base, identite, formulation })) : [];
+  if (corrige || !eleve) pages.push(...liste.map((f, i) => pageCorrigePanache(f, i, liste.length, { base, formulation })));
   return pages.join('');
 }

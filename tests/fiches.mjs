@@ -1,7 +1,7 @@
 // Une fiche imprimée ne se corrige pas après coup : le corrigé doit être juste,
 // les retenues bien placées, et la fiche ne doit pas changer toute seule.
 import { JSDOM } from 'jsdom';
-import { FICHES, tirer, rendre, decoder, codeDe, optionsParDefaut } from '../js/fiches.js';
+import { FICHES, tirer, rendre, decoder, codeDe, optionsParDefaut, formulation, objectifDe } from '../js/fiches.js';
 import { matrice } from '../js/qr.js';
 import { fmt } from '../js/utils.js';
 import { figureFraction, monnaie, polygoneCote, horloge, ligneDuTemps, solide, patronCube, NB_ASSEMBLAGES, figurePlane, cercle, PX_PAR_CM, FIGURES_POLYGONES, FIGURES_NON_POLYGONES, NB_VARIANTES_FIGURE, figureSymetrie, quadrillageSymetrie, FIGURES_SYMETRIQUES, FIGURES_ASYMETRIQUES, TAILLES_QUADRILLAGE, NB_MOITIES_QUADRILLAGE, diagrammeBarres } from '../js/visuels.js';
@@ -10,6 +10,27 @@ let echecs = 0;
 const verifier = (ok, message) => { if (!ok) echecs++; console.log(`${ok ? '✔' : '✘'} ${message}`); };
 const lettre = (i) => String.fromCharCode(97 + i);
 const nombre = (txt) => parseInt(String(txt).replace(/\s/g, ''), 10);
+
+// Depuis l'issue #26, l'objectif et les étapes du rappel ne sont plus dans le tirage mais dans la
+// formulation. Les empreintes à graine fixe ci-dessous, mesurées avant la séparation, comparent
+// toujours « le tirage d'autrefois + le HTML en formulation livret » : on rebâtit le tirage
+// d'autrefois (mêmes clés, même ordre) pour prouver que le rendu `livret` n'a pas changé d'un octet.
+function contenuHistorique(f, c) {
+  const fm = formulation(f, 'livret');
+  if (!fm) return c;
+  const val = (x) => (typeof x === 'function' ? x(c) : x);
+  const out = {};
+  let objectifPose = false;
+  for (const [k, v] of Object.entries(c)) {
+    if (!objectifPose && (k === 'methode' || k === 'sommes')) { out.objectif = val(fm.objectif); objectifPose = true; }
+    out[k] = k === 'methode' && fm.rappel.etapes ? { ...v, etapes: val(fm.rappel.etapes) } : v;
+  }
+  return out;
+}
+const empreinteLivret = (f, o) => {
+  const c = tirer(f, o, 424242);
+  return JSON.stringify(contenuHistorique(f, c)) + rendre(f, c, { corrige: true, base: 'http://x/', formulation: 'livret' });
+};
 
 const fiche = FICHES.find((f) => f.id === 'ce2-addition-posee');
 
@@ -642,7 +663,7 @@ for (const opt of optionsMult) {
   verifier(vus.size > 190, `nombres : codes variés (${vus.size} sur 200)`);
 
   // Fiches précédentes inchangées : HTML et contenu à graine fixe comparés à l’état avant la fiche.
-  const empreinte = (f, o) => { const c = tirer(f, o, 424242); return JSON.stringify(c) + rendre(f, c, { corrige: true, base: 'http://x/' }); };
+  const empreinte = empreinteLivret;
   const somme = (s) => { let h = 5381; for (const ch of s) h = ((h * 33) ^ ch.charCodeAt(0)) >>> 0; return h; };
   const verif = [['ce2-addition-posee', 'mix'], ['ce2-soustraction-posee', 'mix'], ['ce2-multiplication', '2']].map(([id, v]) => {
     const f = FICHES.find((x) => x.id === id); return somme(empreinte(f, f.options[0].id === 'taille' ? { taille: v } : { facteur: v }));
@@ -799,7 +820,7 @@ for (const opt of optionsMult) {
   verifier(casse === 0, 'comparer : contraintes tenues sur 300 tirages');
 
   // Fiches précédentes inchangées (empreinte du HTML à graine fixe, mesurée avant l’ajout de cette fiche)
-  const empreinte = (f, o) => { const c = tirer(f, o, 424242); return JSON.stringify(c) + rendre(f, c, { corrige: true, base: 'http://x/' }); };
+  const empreinte = empreinteLivret;
   const somme = (s) => { let h = 5381; for (const ch of s) h = ((h * 33) ^ ch.charCodeAt(0)) >>> 0; return h; };
   const h4 = ['1000', '10000'].map((t) => somme(empreinte(nbl, { taille: t })));
   verifier(h4.join() === '4268362955,1347484675', `nombres (lire, écrire) : rendu inchangé (${h4.join()})`);
@@ -1009,7 +1030,7 @@ for (const opt of optionsMult) {
   verifier(casse === 0, 'fractions : contraintes tenues sur 300 tirages');
 
   // Les cinq fiches précédentes inchangées : empreinte du HTML à graine fixe, mesurée avant l’ajout
-  const empreinte = (f, o) => { const t = tirer(f, o, 424242); return JSON.stringify(t) + rendre(f, t, { corrige: true, base: 'http://x/' }); };
+  const empreinte = empreinteLivret;
   const somme = (s) => { let h = 5381; for (const ch of s) h = ((h * 33) ^ ch.charCodeAt(0)) >>> 0; return h; };
   const h = [['ce2-addition-posee', { taille: 'mix' }], ['ce2-soustraction-posee', { taille: 'mix' }], ['ce2-multiplication', { facteur: '2' }], ['ce2-nombres-lire-ecrire', { taille: '1000' }], ['ce2-nombres-lire-ecrire', { taille: '10000' }],
     ['ce2-nombres-comparer', { taille: '1000' }], ['ce2-nombres-comparer', { taille: '10000' }]].map(([id, o]) => somme(empreinte(FICHES.find((x) => x.id === id), o)));
@@ -1164,7 +1185,7 @@ for (const opt of optionsMult) {
   verifier(casse === 0, 'fractions égales : contraintes tenues sur 300 tirages');
 
   // Les six fiches précédentes inchangées : empreinte du HTML à graine fixe, mesurée avant l’ajout
-  const empreinte = (f, o) => { const t = tirer(f, o, 424242); return JSON.stringify(t) + rendre(f, t, { corrige: true, base: 'http://x/' }); };
+  const empreinte = empreinteLivret;
   const somme = (s) => { let h = 5381; for (const ch of s) h = ((h * 33) ^ ch.charCodeAt(0)) >>> 0; return h; };
   const h = [['ce2-addition-posee', { taille: 'mix' }], ['ce2-soustraction-posee', { taille: 'mix' }], ['ce2-multiplication', { facteur: '2' }], ['ce2-nombres-lire-ecrire', { taille: '1000' }], ['ce2-nombres-lire-ecrire', { taille: '10000' }],
     ['ce2-nombres-comparer', { taille: '1000' }], ['ce2-nombres-comparer', { taille: '10000' }], ['ce2-fractions-lire', {}]].map(([id, o]) => somme(empreinte(FICHES.find((x) => x.id === id), o)));
@@ -1350,7 +1371,7 @@ for (const opt of optionsMult) {
   }
 
   // Les sept fiches précédentes inchangées : empreinte du HTML à graine fixe, mesurée avant l’ajout
-  const empreinte = (f, o) => { const t = tirer(f, o, 424242); return JSON.stringify(t) + rendre(f, t, { corrige: true, base: 'http://x/' }); };
+  const empreinte = empreinteLivret;
   const somme = (s) => { let h = 5381; for (const ch of s) h = ((h * 33) ^ ch.charCodeAt(0)) >>> 0; return h; };
   const h = [['ce2-addition-posee', { taille: 'mix' }], ['ce2-soustraction-posee', { taille: 'mix' }], ['ce2-multiplication', { facteur: '2' }], ['ce2-nombres-lire-ecrire', { taille: '1000' }], ['ce2-nombres-lire-ecrire', { taille: '10000' }],
     ['ce2-nombres-comparer', { taille: '1000' }], ['ce2-nombres-comparer', { taille: '10000' }], ['ce2-fractions-lire', {}], ['ce2-fractions-comparer', {}]].map(([id, o]) => somme(empreinte(FICHES.find((x) => x.id === id), o)));
@@ -1528,7 +1549,7 @@ for (const opt of optionsMult) {
   verifier(codeDe(fm, { centimes: 'non' }, 5) !== codeDe(fm, { centimes: 'oui' }, 5), 'monnaie : l’option change le code');
 
   // Les huit fiches précédentes inchangées : empreinte du HTML à graine fixe, mesurée avant l’ajout
-  const empreinte = (f, o) => { const t = tirer(f, o, 424242); return JSON.stringify(t) + rendre(f, t, { corrige: true, base: 'http://x/' }); };
+  const empreinte = empreinteLivret;
   const somme = (s) => { let h = 5381; for (const ch of s) h = ((h * 33) ^ ch.charCodeAt(0)) >>> 0; return h; };
   const h = [['ce2-addition-posee', { taille: 'mix' }], ['ce2-soustraction-posee', { taille: 'mix' }], ['ce2-multiplication', { facteur: '2' }], ['ce2-nombres-lire-ecrire', { taille: '1000' }], ['ce2-nombres-lire-ecrire', { taille: '10000' }],
     ['ce2-nombres-comparer', { taille: '1000' }], ['ce2-nombres-comparer', { taille: '10000' }], ['ce2-fractions-lire', {}], ['ce2-fractions-comparer', {}], ['ce2-fractions-calculer', { denominateur: '4' }], ['ce2-fractions-calculer', { denominateur: '10' }]]
@@ -1727,7 +1748,7 @@ for (const opt of optionsMult) {
   verifier(codeDe(fl, { km: 'non' }, 5) !== codeDe(fl, { km: 'oui' }, 5), 'longueurs : l’option change le code');
 
   // Les neuf fiches précédentes inchangées : empreinte du HTML à graine fixe, mesurée avant l’ajout
-  const empreinte = (f, o) => { const t = tirer(f, o, 424242); return JSON.stringify(t) + rendre(f, t, { corrige: true, base: 'http://x/' }); };
+  const empreinte = empreinteLivret;
   const somme = (s) => { let h = 5381; for (const ch of s) h = ((h * 33) ^ ch.charCodeAt(0)) >>> 0; return h; };
   const h = [['ce2-addition-posee', { taille: 'mix' }], ['ce2-soustraction-posee', { taille: 'mix' }], ['ce2-multiplication', { facteur: '2' }], ['ce2-nombres-lire-ecrire', { taille: '1000' }], ['ce2-nombres-lire-ecrire', { taille: '10000' }],
     ['ce2-nombres-comparer', { taille: '1000' }], ['ce2-nombres-comparer', { taille: '10000' }], ['ce2-fractions-lire', {}], ['ce2-fractions-comparer', {}], ['ce2-fractions-calculer', { denominateur: '4' }], ['ce2-fractions-calculer', { denominateur: '10' }],
@@ -1917,7 +1938,7 @@ for (const opt of optionsMult) {
   verifier(codeDe(fh, { minutes: 'quarts' }, 5) !== codeDe(fh, { minutes: 'cinq' }, 5), 'heures : l’option change le code');
 
   // Les dix fiches précédentes inchangées : empreinte du HTML à graine fixe, mesurée avant l’ajout
-  const empreinte = (f, o) => { const t = tirer(f, o, 424242); return JSON.stringify(t) + rendre(f, t, { corrige: true, base: 'http://x/' }); };
+  const empreinte = empreinteLivret;
   const somme = (s) => { let h = 5381; for (const ch of s) h = ((h * 33) ^ ch.charCodeAt(0)) >>> 0; return h; };
   const h = [['ce2-addition-posee', { taille: 'mix' }], ['ce2-soustraction-posee', { taille: 'mix' }], ['ce2-multiplication', { facteur: '2' }], ['ce2-nombres-lire-ecrire', { taille: '1000' }], ['ce2-nombres-lire-ecrire', { taille: '10000' }],
     ['ce2-nombres-comparer', { taille: '1000' }], ['ce2-nombres-comparer', { taille: '10000' }], ['ce2-fractions-lire', {}], ['ce2-fractions-comparer', {}], ['ce2-fractions-calculer', { denominateur: '4' }], ['ce2-fractions-calculer', { denominateur: '10' }],
@@ -2109,7 +2130,7 @@ for (const opt of optionsMult) {
   verifier(new Set(['masses', 'contenances', 'deux'].map((g) => codeDe(fm, { grandeur: g }, 5))).size === 3, 'masses et contenances : l’option change le code');
 
   // Les onze fiches précédentes inchangées : empreinte du HTML à graine fixe, mesurée avant l’ajout
-  const empreinte = (f, o) => { const t = tirer(f, o, 424242); return JSON.stringify(t) + rendre(f, t, { corrige: true, base: 'http://x/' }); };
+  const empreinte = empreinteLivret;
   const somme = (s) => { let h = 5381; for (const ch of s) h = ((h * 33) ^ ch.charCodeAt(0)) >>> 0; return h; };
   const h = [['ce2-addition-posee', { taille: 'mix' }], ['ce2-soustraction-posee', { taille: 'mix' }], ['ce2-multiplication', { facteur: '2' }], ['ce2-nombres-lire-ecrire', { taille: '1000' }], ['ce2-nombres-lire-ecrire', { taille: '10000' }],
     ['ce2-nombres-comparer', { taille: '1000' }], ['ce2-nombres-comparer', { taille: '10000' }], ['ce2-fractions-lire', {}], ['ce2-fractions-comparer', {}], ['ce2-fractions-calculer', { denominateur: '4' }], ['ce2-fractions-calculer', { denominateur: '10' }],
@@ -2311,7 +2332,7 @@ for (const opt of optionsMult) {
   verifier(codeDe(fd, { secondes: 'non' }, 5) !== codeDe(fd, { secondes: 'oui' }, 5), 'durées : l’option change le code');
 
   // Les douze fiches précédentes inchangées : empreinte du HTML à graine fixe, mesurée avant l’ajout
-  const empreinte = (f, o) => { const t = tirer(f, o, 424242); return JSON.stringify(t) + rendre(f, t, { corrige: true, base: 'http://x/' }); };
+  const empreinte = empreinteLivret;
   const somme = (s) => { let h = 5381; for (const ch of s) h = ((h * 33) ^ ch.charCodeAt(0)) >>> 0; return h; };
   const h = [['ce2-addition-posee', { taille: 'mix' }], ['ce2-soustraction-posee', { taille: 'mix' }], ['ce2-multiplication', { facteur: '2' }], ['ce2-nombres-lire-ecrire', { taille: '1000' }], ['ce2-nombres-lire-ecrire', { taille: '10000' }],
     ['ce2-nombres-comparer', { taille: '1000' }], ['ce2-nombres-comparer', { taille: '10000' }], ['ce2-fractions-lire', {}], ['ce2-fractions-comparer', {}], ['ce2-fractions-calculer', { denominateur: '4' }], ['ce2-fractions-calculer', { denominateur: '10' }],
@@ -2441,7 +2462,7 @@ for (const opt of optionsMult) {
   verifier(vus.size > 190, `solides : codes variés (${vus.size} sur 200)`);
 
   // Les treize fiches précédentes inchangées : empreinte du HTML à graine fixe, mesurée avant l’ajout
-  const empreinte = (f, o) => { const t = tirer(f, o, 424242); return JSON.stringify(t) + rendre(f, t, { corrige: true, base: 'http://x/' }); };
+  const empreinte = empreinteLivret;
   const somme = (x) => { let h = 5381; for (const ch of x) h = ((h * 33) ^ ch.charCodeAt(0)) >>> 0; return h; };
   const h = [['ce2-addition-posee', { taille: 'mix' }], ['ce2-soustraction-posee', { taille: 'mix' }], ['ce2-multiplication', { facteur: '2' }], ['ce2-nombres-lire-ecrire', { taille: '1000' }], ['ce2-nombres-lire-ecrire', { taille: '10000' }],
     ['ce2-nombres-comparer', { taille: '1000' }], ['ce2-nombres-comparer', { taille: '10000' }], ['ce2-fractions-lire', {}], ['ce2-fractions-comparer', {}], ['ce2-fractions-calculer', { denominateur: '4' }], ['ce2-fractions-calculer', { denominateur: '10' }],
@@ -2588,7 +2609,7 @@ for (const opt of optionsMult) {
   verifier(vus.size > 190, `polygones : codes variés (${vus.size} sur 200)`);
 
   // Les quatorze fiches précédentes inchangées : empreinte du HTML à graine fixe
-  const empreinte = (f, o) => { const t = tirer(f, o, 424242); return JSON.stringify(t) + rendre(f, t, { corrige: true, base: 'http://x/' }); };
+  const empreinte = empreinteLivret;
   const somme = (x) => { let h = 5381; for (const ch of x) h = ((h * 33) ^ ch.charCodeAt(0)) >>> 0; return h; };
   const h = [['ce2-addition-posee', { taille: 'mix' }], ['ce2-soustraction-posee', { taille: 'mix' }], ['ce2-multiplication', { facteur: '2' }], ['ce2-nombres-lire-ecrire', { taille: '1000' }], ['ce2-nombres-lire-ecrire', { taille: '10000' }],
     ['ce2-nombres-comparer', { taille: '1000' }], ['ce2-nombres-comparer', { taille: '10000' }], ['ce2-fractions-lire', {}], ['ce2-fractions-comparer', {}], ['ce2-fractions-calculer', { denominateur: '4' }], ['ce2-fractions-calculer', { denominateur: '10' }],
@@ -2793,7 +2814,7 @@ for (const opt of optionsMult) {
   verifier(vus.size > 190, `symétrie : codes variés (${vus.size} sur 200)`);
 
   // Les quinze fiches précédentes inchangées : empreinte du HTML à graine fixe
-  const empreinte = (f, o) => { const t = tirer(f, o, 424242); return JSON.stringify(t) + rendre(f, t, { corrige: true, base: 'http://x/' }); };
+  const empreinte = empreinteLivret;
   const somme = (x) => { let h = 5381; for (const ch of x) h = ((h * 33) ^ ch.charCodeAt(0)) >>> 0; return h; };
   const h = [['ce2-addition-posee', { taille: 'mix' }], ['ce2-soustraction-posee', { taille: 'mix' }], ['ce2-multiplication', { facteur: '2' }], ['ce2-nombres-lire-ecrire', { taille: '1000' }], ['ce2-nombres-lire-ecrire', { taille: '10000' }],
     ['ce2-nombres-comparer', { taille: '1000' }], ['ce2-nombres-comparer', { taille: '10000' }], ['ce2-fractions-lire', {}], ['ce2-fractions-comparer', {}], ['ce2-fractions-calculer', { denominateur: '4' }], ['ce2-fractions-calculer', { denominateur: '10' }],
@@ -3007,7 +3028,7 @@ for (const opt of optionsMult) {
   verifier(vus.size > 190, `données : codes variés (${vus.size} sur 200)`);
 
   // Les seize fiches précédentes inchangées
-  const empreinte = (f, o) => { const t = tirer(f, o, 424242); return JSON.stringify(t) + rendre(f, t, { corrige: true, base: 'http://x/' }); };
+  const empreinte = empreinteLivret;
   const somme = (x) => { let h = 5381; for (const ch of x) h = ((h * 33) ^ ch.charCodeAt(0)) >>> 0; return h; };
   const h = [['ce2-addition-posee', { taille: 'mix' }], ['ce2-soustraction-posee', { taille: 'mix' }], ['ce2-multiplication', { facteur: '2' }], ['ce2-nombres-lire-ecrire', { taille: '1000' }], ['ce2-nombres-lire-ecrire', { taille: '10000' }],
     ['ce2-nombres-comparer', { taille: '1000' }], ['ce2-nombres-comparer', { taille: '10000' }], ['ce2-fractions-lire', {}], ['ce2-fractions-comparer', {}], ['ce2-fractions-calculer', { denominateur: '4' }], ['ce2-fractions-calculer', { denominateur: '10' }],
@@ -3017,6 +3038,139 @@ for (const opt of optionsMult) {
     .map(([id, o]) => somme(empreinte(FICHES.find((x) => x.id === id), o)));
   verifier(h.join() === '2857615915,907915864,1783462728,4268362955,1347484675,3671073380,178792032,2718432813,1534335352,750168435,1150851747,649082766,1335819493,11888257,1584605419,857785706,538954699,1652536371,2192490432,1573601925,237366352,3253221856,906907030,3321772385,3670825682,1245069007,2392590821,2808236880', `données : les dix-sept fiches (feuille panachée comprise) sont inchangées (${h.join()})`);
   verifier(FICHES.slice(0, 17).map((f) => f.id).join() === 'ce2-addition-posee,ce2-soustraction-posee,ce2-multiplication,ce2-nombres-lire-ecrire,ce2-nombres-comparer,ce2-fractions-lire,ce2-fractions-comparer,ce2-fractions-calculer,ce2-monnaie,ce2-longueurs,ce2-heures,ce2-masses-contenances,ce2-durees,ce2-solides,ce2-polygones,ce2-symetrie,ce2-donnees', 'données : ordre des dix-sept premières fiches inchangé');
+}
+
+/* Séparer la notion de sa formulation (#26) : livret / commune ------------------ */
+{
+  console.log('— Formulations : livret et commune');
+  const ids = ['ce2-addition-posee', 'ce2-soustraction-posee', 'ce2-multiplication', 'ce2-monnaie'];
+  const optsDe = { 'ce2-addition-posee': [{ taille: '3' }, { taille: 'mix' }], 'ce2-soustraction-posee': [{ taille: '3' }, { taille: 'mix' }],
+    'ce2-multiplication': [{ facteur: '1' }, { facteur: '2' }], 'ce2-monnaie': [{ centimes: 'non' }, { centimes: 'oui' }] };
+  const somme = (x) => { let h = 5381; for (const ch of x) h = ((h * 33) ^ ch.charCodeAt(0)) >>> 0; return h; };
+  const dom = (html) => new JSDOM(`<div>${html}</div>`).window.document;
+  const nombres = (el) => (el.textContent.match(/\d+/g) || []).join(' ');
+  const NEGATIFS = /\b(faux|fausse|fausses|erreur|erreurs|incorrect|incorrecte|mauvais|mauvaise|raté|ratée|perdu|échec)\b|[✗✘❌]/i;
+  const structure = (o) => (o && typeof o === 'object' && typeof o !== 'function'
+    ? `{${Object.keys(o).sort().map((k) => `${k}:${structure(o[k])}`).join(',')}}` : typeof o === 'function' ? 'f' : 'v');
+
+  verifier(formulation(FICHES.find((f) => f.id === 'ce2-nombres-lire-ecrire'), 'commune') === null, 'formulation : une fiche non convertie n’a pas de formulation (null)');
+  const empreintesCommune = [];
+
+  for (const id of ids) {
+    const f = FICHES.find((x) => x.id === id);
+    verifier(!!f.formulations && Object.keys(f.formulations).join() === 'livret,commune', `${id} : deux formulations nommées (livret, commune)`);
+    verifier(formulation(f, 'inconnue') === f.formulations.livret && formulation(f) === f.formulations.livret && formulation(f, 'commune') === f.formulations.commune,
+      `${id} : formulation(fiche, nom) renvoie la demandée, livret par défaut`);
+    verifier(structure(f.formulations.livret) === structure(f.formulations.commune), `${id} : mêmes clés dans les deux formulations (${Object.keys(f.formulations.livret).join(', ')})`);
+
+    let memesNombres = true, memesReponses = true, memeCode = true, sansNegatif = true, differents = true, memeGrille = true;
+    for (const options of optsDe[id]) {
+      for (const graine of [1, 2, 3, 424242]) {
+        const c = tirer(f, options, graine);
+        for (const methode of [true, false]) {
+          const rendu = (nom) => rendre(f, c, { corrige: true, methode, formulation: nom, base: 'http://x/' });
+          const L = dom(rendu('livret')), C = dom(rendu('commune'));
+          const eleve = (d) => { const e = d.querySelector('.feuille:not(.feuille--corrige)').cloneNode(true); e.querySelectorAll('.bloc--methode, .objectif').forEach((n) => n.remove()); return nombres(e); };
+          if (eleve(L) !== eleve(C)) { memesNombres = false; console.log(id, graine, '\n', eleve(L), '\n', eleve(C)); }
+          const corrige = (d) => { const e = d.querySelector('.feuille--corrige').cloneNode(true); e.querySelectorAll('.objectif--corrige, .pose__retenues, .ret-petite, .un, .note, .methode').forEach((n) => n.remove()); return nombres(e); };
+          if (corrige(L) !== corrige(C)) { memesReponses = false; console.log(id, graine, '\n', corrige(L), '\n', corrige(C)); }
+          if (NEGATIFS.test(L.body.textContent) || NEGATIFS.test(C.body.textContent)) sansNegatif = false;
+          if (rendu('livret') === rendu('commune')) differents = false;
+        }
+        if (tirer(f, options, graine).code !== c.code || decoder(c.code).graine !== graine) memeCode = false;
+        // les opérations d'une addition se dessinent de la même façon dans les deux formulations
+        if (id === 'ce2-addition-posee') {
+          const grilles = (nom) => dom(rendre(f, c, { formulation: nom })).querySelector('.feuille--corrige .operations').innerHTML;
+          if (grilles('livret') !== grilles('commune')) memeGrille = false;
+        }
+      }
+    }
+    verifier(memesNombres, `${id} : les deux formulations rendent les mêmes nombres sur la page élève (exercices)`);
+    verifier(memesReponses, `${id} : les deux formulations donnent les mêmes réponses dans le corrigé`);
+    verifier(sansNegatif, `${id} : aucun mot négatif, ni dans le livret ni en commune`);
+    verifier(differents, `${id} : la formulation commune change bien le rendu`);
+    verifier(memeCode, `${id} : le code d’un tirage ne dépend pas de la formulation`);
+    verifier(memeGrille || id !== 'ce2-addition-posee', 'addition : les retenues dessinées sont inchangées en commune');
+    const c0 = tirer(f, f.options[0].id === 'taille' ? { taille: 'mix' } : f.options[0].id === 'facteur' ? { facteur: '2' } : { centimes: 'oui' }, 424242);
+    verifier(!/livret|commune/.test(JSON.stringify(c0)) && !/livret|commune/.test(c0.code), `${id} : ni le tirage ni le code ne portent la formulation`);
+    verifier(objectifDe(f, c0, 'commune') !== objectifDe(f, c0, 'livret') || id === 'ce2-monnaie', `${id} : objectifs distincts`);
+    verifier(f.formulations.livret.noteParent !== f.formulations.commune.noteParent, `${id} : notes pour le parent distinctes`);
+    const eC = (o) => somme(JSON.stringify(c0) + rendre(f, c0, { corrige: true, base: 'http://x/', formulation: 'commune' }) + o);
+    empreintesCommune.push(eC(''));
+  }
+  // Empreintes à graine fixe de la formulation commune (mesurées à l'écriture de la formulation).
+  verifier(empreintesCommune.join() === '1315942214,2128063412,1053273845,47222720', `rendu commune stable (${empreintesCommune.join()})`);
+
+  // Une fiche non convertie ignore l'option
+  const nb = FICHES.find((x) => x.id === 'ce2-nombres-lire-ecrire');
+  const cn = tirer(nb, { taille: '1000' }, 77);
+  verifier(rendre(nb, cn, { formulation: 'commune', base: 'http://x/' }) === rendre(nb, cn, { base: 'http://x/' })
+    && nb.blocs(cn, { formulation: 'commune' }).length === nb.blocs(cn).length, 'une fiche non convertie ignore l’option formulation');
+
+  // Soustraction : retenues de la méthode commune (1 devant le chiffre du haut, 1 au pied du chiffre du bas de la colonne suivante)
+  const so = FICHES.find((x) => x.id === 'ce2-soustraction-posee');
+  let sousOk = true, nbOps = 0;
+  for (let g = 1; g <= 20; g++) {
+    const c = tirer(so, { taille: 'mix' }, g);
+    const d = dom(rendre(so, c, { formulation: 'commune' }));
+    const ops = [...d.querySelectorAll('.feuille--corrige .operations .op')];
+    const donnees = [...c.posees.slice(0, 4), ...c.aposer.slice(0, 3)];
+    ops.forEach((op, i) => {
+      nbOps++;
+      const { a, b } = donnees[i];
+      const A = String(a).split('').map(Number), B = String(b).padStart(A.length, '0').split('').map(Number);
+      const hautAtt = [], basAtt = [];
+      let retenue = 0;
+      for (let k = A.length - 1; k >= 0; k--) {
+        const recoit = A[k] < B[k] + retenue;
+        hautAtt[k] = recoit; basAtt[k] = retenue === 1;   // le chiffre du bas reçoit 1 s'il y a eu +10 à sa droite
+        retenue = recoit ? 1 : 0;
+      }
+      const pad = op.querySelectorAll('.pose__nombre')[0].querySelectorAll('td').length - 1 - A.length;
+      const lignes = op.querySelectorAll('.pose__nombre');
+      const hauts = [...lignes[0].querySelectorAll('td')].slice(1 + pad).map((td) => !!td.querySelector('.ret-petite--haut'));
+      const bas = [...lignes[1].querySelectorAll('td')].slice(1 + pad).map((td) => !!td.querySelector('.ret-petite--bas'));
+      if (JSON.stringify(hauts) !== JSON.stringify(hautAtt) || JSON.stringify(bas) !== JSON.stringify(basAtt.map((x, k) => x)) || op.querySelector('.barre') || op.querySelector('.pose__retenues')) sousOk = false;
+    });
+  }
+  verifier(sousOk && nbOps > 100, `soustraction commune : petit 1 en haut là où la colonne reçoit 10, petit 1 en bas de la colonne suivante, rien de barré (${nbOps} opérations)`);
+  const L = dom(rendre(so, tirer(so, { taille: 'mix' }, 5), { formulation: 'livret' }));
+  verifier(L.querySelector('.feuille--corrige .barre') && !L.querySelector('.ret-petite') && L.querySelector('.pose__retenues'), 'soustraction livret : chiffre barré et chiffre au-dessus, comme dans la leçon');
+
+  // Multiplication : retenues au-dessus des chiffres du premier facteur
+  const mu = FICHES.find((x) => x.id === 'ce2-multiplication');
+  let multOk = true, nbMult = 0, avecRetenue = 0;
+  for (let g = 1; g <= 20; g++) {
+    const c = tirer(mu, { facteur: '2' }, g);
+    const d = dom(rendre(mu, c, { formulation: 'commune' }));
+    const attendues = (a, ch) => { const A = String(a).split('').reverse().map(Number); const out = {}; let r = 0; for (let j = 0; j + 1 < A.length; j++) { r = Math.floor((A[j] * ch + r) / 10); if (r) out[j + 1] = String(r); } return out; };
+    const donnees = [...c.posees1.slice(0, 3), ...c.posees2.slice(0, 2)];
+    const ops = [...d.querySelectorAll('.feuille--corrige .operations .op')].slice(0, donnees.length);
+    ops.forEach((op, i) => {
+      nbMult++;
+      const { a, b } = donnees[i];
+      const rangee = (sel) => [...op.querySelectorAll(`${sel} td`)].slice(1).filter((td) => !td.classList.contains('note')).map((td) => td.textContent.trim());
+      const lire = (rg) => Object.fromEntries(rg.map((v, k) => [rg.length - 1 - k, v]).filter(([, v]) => v));
+      const un = lire(rangee('.pose__retenues--unites'));
+      const att = attendues(a, b % 10);
+      if (JSON.stringify(un) !== JSON.stringify(att)) multOk = false;
+      if (Object.keys(att).length) avecRetenue++;
+      if (b >= 10 && JSON.stringify(lire(rangee('.pose__retenues--dizaines'))) !== JSON.stringify(attendues(a, Math.floor(b / 10)))) multOk = false;
+      if (op.querySelector('.retenue--barree') || op.querySelector('td.note .retenue')) multOk = false;
+    });
+  }
+  verifier(multOk && avecRetenue > 20, `multiplication commune : retenues au-dessus du chiffre qui les reçoit, une ligne par chiffre du second facteur (${nbMult} opérations, ${avecRetenue} avec retenue)`);
+  const ML = dom(rendre(mu, tirer(mu, { facteur: '2' }, 5), { formulation: 'livret' }));
+  verifier(ML.querySelector('.feuille--corrige td.note .retenue') && !ML.querySelector('.pose__retenues--unites'), 'multiplication livret : retenues en petit à droite du facteur');
+  verifier(dom(rendre(mu, tirer(mu, { facteur: '2' }, 5), { formulation: 'commune' })).querySelector('.methode .pose__retenues--unites .retenue'), 'multiplication commune : le rappel dessine les retenues au-dessus des chiffres');
+
+  // Monnaie : le complément en deux temps est commun ; le livret n'est pas cité en commune
+  const mo = FICHES.find((x) => x.id === 'ce2-monnaie');
+  const MC = dom(rendre(mo, tirer(mo, { centimes: 'oui' }, 9), { formulation: 'commune' })).body.textContent;
+  verifier(!/leçon|livret/i.test(MC) && /en deux temps/.test(MC) && !/Je complète à 13/.test(MC), 'monnaie commune : complément en deux temps, sans citer le livret');
+  const SC = ['ce2-addition-posee', 'ce2-soustraction-posee', 'ce2-multiplication'].map((i) => FICHES.find((x) => x.id === i))
+    .map((f) => dom(rendre(f, tirer(f, optionsParDefaut(f), 9), { formulation: 'commune' })).body.textContent);
+  verifier(SC.every((t) => !/leçon|livret|Mila|Enzo|casse/i.test(t)), 'formulation commune : aucune tournure propre au livret (leçon, Mila, Enzo, « casser »)');
 }
 
 process.exit(echecs ? 1 : 0);

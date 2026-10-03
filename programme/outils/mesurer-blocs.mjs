@@ -27,7 +27,7 @@ await page.emulateMedia({ media: 'print' });
 await page.goto(`${URL_APP}/index.html`);
 
 const table = await page.evaluate(async ({ graines }) => {
-  const { FICHES, tirer } = await import('/js/fiches.js');
+  const { FICHES, NOMS_FORMULATIONS, tirer, objectifDe } = await import('/js/fiches.js');
   const { htmlBloc, rendrePanache } = await import('/js/panache.js');
   document.body.innerHTML = '<div class="app"><div id="mesure"></div></div>';
   const zone = document.getElementById('mesure');
@@ -40,8 +40,9 @@ const table = await page.evaluate(async ({ graines }) => {
   const eleve = {}, corrige = {};
   for (const f of FICHES) {
     for (const options of combinaisons(f)) {
-      for (const graine of graines) {
-        const blocs = f.blocs(tirer(f, options, graine));
+      for (const graine of graines) for (const nom of (f.formulations ? NOMS_FORMULATIONS : ['livret'])) {
+        // On garde le maximum des formulations : la composition ne dépend pas de la formulation.
+        const blocs = f.blocs(tirer(f, options, graine), { formulation: nom });
         zone.innerHTML = blocs.map((b) => `
           <section class="feuille">${htmlBloc(b, 1, 'eleve')}</section>
           <section class="feuille feuille--corrige">${htmlBloc(b, 1, 'corrige')}</section>`).join('');
@@ -58,8 +59,11 @@ const table = await page.evaluate(async ({ graines }) => {
   // Une ligne de mini-rappel par fiche (certains « Je sais… » tiennent sur deux lignes).
   const rappel = {};
   for (const f of FICHES) {
-    zone.innerHTML = `<section class="feuille"><ul class="rappels"><li><strong>Exercice 1.</strong> ${f.objectif}</li></ul></section>`;
-    rappel[f.id] = cout(zone.querySelector('.rappels li'));
+    for (const options of combinaisons(f)) for (const nom of (f.formulations ? NOMS_FORMULATIONS : ['livret'])) {
+      const objectif = f.formulations ? objectifDe(f, tirer(f, options, graines[0]), nom) : f.objectif;
+      zone.innerHTML = `<section class="feuille"><ul class="rappels"><li><strong>Exercice 1.</strong> ${objectif}</li></ul></section>`;
+      rappel[f.id] = Math.max(rappel[f.id] || 0, cout(zone.querySelector('.rappels li')));
+    }
   }
 
   // En-têtes : on met les titres les plus longs (cinq notions) pour avoir le pire cas.

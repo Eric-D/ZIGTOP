@@ -663,6 +663,10 @@ svg.visuel {
 .pose .barre { text-decoration: line-through; text-decoration-thickness: 2px; text-decoration-color: #C0392B; }
 .pose .un { color: #C0392B; }
 .pose .retenue { color: #C0392B; }
+/* Soustraction, formulation commune : petit 1 devant le chiffre du haut (+10), petit 1 au pied du chiffre du bas. */
+.pose .ret-petite { font-size: .62em; font-weight: 800; color: #C0392B; line-height: 1; }
+.pose .ret-petite--haut { position: relative; top: -.5em; margin-right: 1px; }
+.pose .ret-petite--bas { position: relative; top: .55em; margin-left: 1px; }
 
 .estimations { list-style: none; margin: 0; padding: 0; }
 .estimations li {
@@ -1614,3 +1618,8 @@ svg.visuel {
 }
 .carnet-fiche__notions { font-size: .85rem; color: var(--encre-douce); }
 .pied-page label.btn { display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+@media print {
+  /* Formulation commune de la multiplication : les lignes de retenues au-dessus du facteur restent fines. */
+  .pose--multiplication .pose__retenues--unites td, .pose--multiplication .pose__retenues--dizaines td,
+  .methode .pose--multiplication .pose__retenues--unites td, .methode .pose--multiplication .pose__retenues--dizaines td { height: 3mm; font-size: 7.5pt; }
+}

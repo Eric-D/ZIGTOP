@@ -236,7 +236,8 @@ async function ouvrir(recherche, profil) {
 
 {
   const compo = composer({ notions: ['ce2-soustraction-posee', 'ce2-heures', 'ce2-longueurs', 'ce2-fractions-lire'].map((id) => ({ id })), graine: 555, miniRappel: true });
-  const attendu = (opts) => doc(rendrePanache(compo, opts));
+  // L'application affiche la formulation commune par défaut (réglage `formulation`).
+  const attendu = (opts) => doc(rendrePanache(compo, { formulation: 'commune', ...opts }));
 
   // Lien du corrigé, sans profil
   let d = await ouvrir(`?fiche=${compo.code}&vue=corrige`, null);
