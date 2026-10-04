@@ -48,7 +48,7 @@ export function zigo(humeur = 'normal', taille = 92) {
 }
 
 // Zigo pour l'impression : traits noirs, aplats gris clair, ni dégradé ni couleur (une imprimante
-// noir et blanc ou une photocopie le rend tel quel). Décoratif : caché des lecteurs d'écran.
+// noir et blanc ou une copie en noir et blanc le rend tel quel). Décoratif : caché des lecteurs d'écran.
 // `taille` : hauteur en px ; à l'impression le CSS le ramène à 7 mm (.zigo-mono).
 export function zigoMono(humeur = 'normal', taille = 26) {
   const trait = 'stroke="#111" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"';
