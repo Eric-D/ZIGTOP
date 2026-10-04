@@ -1,0 +1,1989 @@
+/* Mathoo CE2 — feuille de style unique.
+   Objectifs : gros boutons tactiles, couleurs joyeuses, zéro message négatif. */
+
+:root {
+  --violet: #6C5CE7;
+  --violet-clair: #A29BFE;
+  --vert: #00B894;
+  --jaune: #FDCB6E;
+  --rose: #E84393;
+  --encre: #2D3436;
+  --encre-douce: #636E72;
+  --fond: #FFF9F0;
+  --carte: #FFFFFF;
+  --ombre: 0 6px 0 rgba(45, 52, 54, .12), 0 12px 28px rgba(45, 52, 54, .10);
+  --rayon: 22px;
+  --police: "Trebuchet MS", "Segoe UI", Verdana, system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  margin: 0;
+  min-height: 100%;
+  font-family: var(--police);
+  color: var(--encre);
+  background:
+    radial-gradient(circle at 12% 8%, #FFE9C7 0, transparent 42%),
+    radial-gradient(circle at 88% 4%, #DCD6FF 0, transparent 38%),
+    var(--fond);
+  background-attachment: fixed;
+}
+
+body { overscroll-behavior-y: contain; }
+
+.app {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: max(14px, env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom));
+}
+
+/* ---------- éléments communs ---------- */
+
+button {
+  font-family: inherit;
+  font-size: inherit;
+  border: none;
+  cursor: pointer;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 14px 22px;
+  border-radius: 18px;
+  background: var(--violet);
+  color: #fff;
+  font-size: 1.15rem;
+  font-weight: 700;
+  box-shadow: 0 5px 0 rgba(0, 0, 0, .18);
+  transition: transform .08s ease, box-shadow .08s ease, filter .15s ease;
+}
+.btn:active { transform: translateY(4px); box-shadow: 0 1px 0 rgba(0, 0, 0, .18); }
+.btn:focus-visible { outline: 4px solid var(--jaune); outline-offset: 3px; }
+.btn--vert { background: var(--vert); }
+.btn--jaune { background: var(--jaune); color: var(--encre); }
+.btn--fantome {
+  background: transparent;
+  color: var(--encre-douce);
+  box-shadow: none;
+  font-weight: 600;
+  min-height: 44px;
+}
+.btn--large { width: 100%; font-size: 1.3rem; min-height: 68px; }
+
+.carte {
+  background: var(--carte);
+  border-radius: var(--rayon);
+  box-shadow: var(--ombre);
+  padding: 20px;
+}
+
+h1, h2, h3 { margin: 0 0 10px; line-height: 1.2; }
+h1 { font-size: 1.7rem; }
+p { line-height: 1.5; }
+
+/* ---------- en-tête ---------- */
+
+.entete {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.entete__avatar {
+  font-size: 2rem;
+  width: 58px; height: 58px;
+  display: grid; place-items: center;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: var(--ombre);
+  flex: none;
+}
+.entete__texte { flex: 1; min-width: 0; }
+.entete__bonjour { font-size: 1.25rem; font-weight: 800; }
+.entete__sous { color: var(--encre-douce); font-size: .95rem; }
+.pastille {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: #fff; border-radius: 999px;
+  padding: 8px 14px; font-weight: 800;
+  box-shadow: var(--ombre);
+  white-space: nowrap;
+}
+
+/* ---------- accueil ---------- */
+
+.heros {
+  background: linear-gradient(135deg, var(--violet), var(--rose));
+  color: #fff;
+  border-radius: var(--rayon);
+  padding: 22px;
+  margin-bottom: 18px;
+  box-shadow: var(--ombre);
+}
+.heros p { margin: 0 0 16px; opacity: .95; }
+.heros__classe {
+  display: inline-block;
+  background: rgba(255, 255, 255, .22);
+  border-radius: 999px;
+  padding: 5px 14px;
+  font-weight: 800;
+  font-size: .9rem;
+  margin-bottom: 10px;
+}
+.heros .btn { background: #fff; color: var(--violet); }
+
+.grille {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 14px;
+}
+
+.module {
+  position: relative;
+  text-align: left;
+  background: var(--carte);
+  border-radius: var(--rayon);
+  padding: 16px;
+  box-shadow: var(--ombre);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 140px;
+  transition: transform .1s ease;
+  border-top: 6px solid var(--couleur, var(--violet));
+}
+.module:active { transform: scale(.97); }
+.module__emoji { font-size: 2rem; }
+.module__titre { font-weight: 800; font-size: 1rem; line-height: 1.25; }
+.module__pied {
+  margin-top: auto;
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 10px;
+  font-size: .85rem; color: var(--encre-douce); font-weight: 700;
+}
+.niveau { display: inline-flex; gap: 3px; }
+.niveau i {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: #E4E1DA; display: block;
+}
+.niveau i.on { background: var(--couleur, var(--violet)); }
+
+.section-titre {
+  margin: 26px 4px 12px;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--encre-douce);
+}
+
+/* ---------- session ---------- */
+
+.barre-progres {
+  display: flex; gap: 6px; margin-bottom: 16px;
+}
+.barre-progres i {
+  flex: 1; height: 10px; border-radius: 999px; background: #E7E3DA;
+  transition: background .3s ease;
+}
+.barre-progres i.ok { background: var(--vert); }
+.barre-progres i.actif { background: var(--violet-clair); }
+
+.question {
+  text-align: center;
+  padding: 26px 20px;
+  margin-bottom: 16px;
+}
+.question__texte {
+  font-size: clamp(1.3rem, 5.2vw, 2rem);
+  font-weight: 800;
+  line-height: 1.35;
+}
+.question__module { color: var(--encre-douce); font-weight: 700; font-size: .9rem; margin-bottom: 10px; }
+.question .btn--fantome { margin-top: 12px; }
+
+.ardoise {
+  min-height: 74px;
+  border-radius: 18px;
+  background: #F3F0FF;
+  border: 3px dashed var(--violet-clair);
+  display: grid; place-items: center;
+  font-size: 2.2rem; font-weight: 800;
+  letter-spacing: .06em;
+  margin-bottom: 14px;
+  color: var(--violet);
+}
+.ardoise.vide { color: #B9B2D8; }
+
+.clavier {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.touche {
+  min-height: 62px;
+  border-radius: 16px;
+  background: #fff;
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--encre);
+  box-shadow: var(--ombre);
+}
+.touche:active { transform: translateY(3px); }
+.touche--action { background: var(--jaune); font-size: 1.2rem; }
+.touche--valider { background: var(--vert); color: #fff; font-size: 1.2rem; }
+
+.choix { display: grid; gap: 12px; }
+.choix .btn { background: #fff; color: var(--encre); box-shadow: var(--ombre); font-size: 1.25rem; }
+
+/* ---------- retour (jamais négatif) ---------- */
+
+.retour {
+  border-radius: var(--rayon);
+  padding: 20px;
+  margin-bottom: 14px;
+  box-shadow: var(--ombre);
+  animation: apparait .25s ease;
+}
+.retour--bravo { background: #DFF7EF; border: 3px solid var(--vert); }
+.retour--astuce { background: #FFF4DC; border: 3px solid var(--jaune); }
+.retour__titre { font-size: 1.3rem; font-weight: 800; margin-bottom: 6px; }
+.retour__aide { line-height: 1.55; }
+
+@keyframes apparait { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+/* ---------- résultats ---------- */
+
+.bilan { text-align: center; padding: 28px 20px; }
+.bilan__etoiles { font-size: 3rem; margin: 6px 0 10px; }
+.bilan__phrase { font-size: 1.15rem; font-weight: 700; }
+.bilan__detail { color: var(--encre-douce); margin-top: 6px; }
+
+.badges { display: flex; flex-wrap: wrap; gap: 10px; }
+.badge {
+  display: flex; align-items: center; gap: 8px;
+  background: #fff; border-radius: 999px; padding: 10px 16px;
+  box-shadow: var(--ombre); font-weight: 700;
+}
+.badge.verrouille { opacity: .38; }
+
+.ligne-stat {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 4px;
+  border-bottom: 2px dotted #EFE9DE;
+}
+.ligne-stat:last-child { border-bottom: none; }
+.ligne-stat__nom { flex: 1; font-weight: 700; }
+
+/* ---------- profil ---------- */
+
+.champ {
+  width: 100%;
+  min-height: 60px;
+  border-radius: 18px;
+  border: 3px solid var(--violet-clair);
+  padding: 12px 18px;
+  font-size: 1.2rem;
+  font-family: inherit;
+  background: #fff;
+}
+.classes { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 10px; }
+.classe-choix {
+  display: grid; gap: 2px; justify-items: center;
+  padding: 14px 8px; border-radius: 18px;
+  background: #fff; box-shadow: var(--ombre);
+}
+.classe-choix__emoji { font-size: 1.8rem; }
+.classe-choix__nom { font-weight: 800; font-size: 1.1rem; }
+.classe-choix__age { font-size: .8rem; color: var(--encre-douce); }
+.classe-choix[aria-pressed="true"] { outline: 4px solid var(--violet); background: #F3F0FF; }
+
+.avatars { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0 20px; }
+.avatar-choix {
+  font-size: 1.8rem; width: 60px; height: 60px;
+  border-radius: 50%; background: #fff; box-shadow: var(--ombre);
+}
+.avatar-choix[aria-pressed="true"] { outline: 4px solid var(--violet); }
+
+.pied-page { text-align: center; margin-top: 26px; }
+
+/* ---------- confettis ---------- */
+
+.confetti {
+  position: fixed; top: -12px; width: 11px; height: 16px;
+  border-radius: 3px; pointer-events: none; z-index: 50;
+  animation: tombe linear forwards;
+}
+@keyframes tombe {
+  to { transform: translateY(105vh) rotate(720deg); opacity: .9; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+}
+
+/* ---------- l'univers : Zigo, l'île, le jardin ---------- */
+
+.compagnon {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.compagnon .zigo { flex: none; }
+
+.bulle {
+  position: relative;
+  background: #fff;
+  border-radius: 20px 20px 20px 4px;
+  padding: 14px 18px;
+  box-shadow: var(--ombre);
+  font-weight: 700;
+  line-height: 1.45;
+  flex: 1;
+  animation: apparait .3s ease;
+}
+.bulle::after {
+  content: '';
+  position: absolute;
+  left: -9px; bottom: 10px;
+  border: 9px solid transparent;
+  border-right-color: #fff;
+  border-left: 0;
+}
+
+.zigo { display: block; }
+.zigo__corps { animation: respire 3.4s ease-in-out infinite; transform-origin: 70px 130px; }
+.zigo__etoile { animation: scintille 2.2s ease-in-out infinite; transform-origin: 70px 12px; }
+@keyframes respire {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-4px) scale(1.02); }
+}
+@keyframes scintille {
+  0%, 100% { opacity: 1; transform: rotate(0); }
+  50% { opacity: .75; transform: rotate(18deg); }
+}
+
+.carte-ile {
+  background: var(--carte);
+  border-radius: var(--rayon);
+  box-shadow: var(--ombre);
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+.carte-ile__bandeau {
+  background: linear-gradient(135deg, var(--violet), var(--rose));
+  color: #fff;
+  font-weight: 800;
+  padding: 12px 18px;
+}
+.carte-ile__aide {
+  margin: 0;
+  padding: 10px 18px 14px;
+  color: var(--encre-douce);
+  font-size: .9rem;
+  text-align: center;
+}
+.carte { }
+svg.carte { display: block; width: 100%; height: auto; }
+
+.lieu { cursor: pointer; transition: transform .12s ease; transform-box: fill-box; transform-origin: center bottom; }
+.lieu:hover .lieu__batiment, .lieu:focus-visible .lieu__batiment { transform: translateY(-6px); }
+.lieu__batiment { transition: transform .15s ease; }
+.lieu:focus-visible { outline: none; }
+.lieu:focus-visible .lieu__panneau rect { stroke: var(--violet); stroke-width: 5; }
+.lieu:active .lieu__batiment { transform: translateY(-2px) scale(.97); }
+
+.rangee-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.rangee-actions .btn { width: 100%; }
+@media (max-width: 460px) {
+  .rangee-actions { grid-template-columns: 1fr; }
+}
+
+svg.scene-jardin { display: block; width: 100%; height: auto; }
+.pousse { animation: pousse .5s ease-out backwards; }
+@keyframes pousse {
+  from { opacity: 0; transform: translateY(14px) scale(.4); }
+  to { opacity: 1; transform: none; }
+}
+
+.grille--boutique { grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); }
+.graine {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  position: relative;
+  background: var(--carte);
+  border-radius: 18px;
+  padding: 14px 10px;
+  box-shadow: var(--ombre);
+  transition: transform .1s ease;
+}
+.graine:active { transform: scale(.96); }
+.graine__emoji { font-size: 2rem; }
+.graine__nom { font-weight: 700; font-size: .9rem; text-align: center; }
+.graine__prix { font-weight: 800; color: var(--violet); font-size: .95rem; }
+.graine--attente { filter: grayscale(.7); }
+.graine--attente .graine__prix { color: var(--encre-douce); font-size: .85rem; }
+.graine__nb {
+  position: absolute; top: 8px; right: 10px;
+  font-weight: 800; color: var(--vert); font-size: .85rem;
+}
+
+.note {
+  text-align: center;
+  color: var(--encre-douce);
+  font-weight: 600;
+  margin: 12px 4px 0;
+}
+
+.retour {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 14px;
+  align-items: start;
+}
+.retour .zigo { grid-row: span 2; margin-top: -4px; }
+
+/* ---------- accessibilité : réglages appliqués sur <html> ---------- */
+
+/* Taille du texte : tout est en rem, donc tout suit. */
+html { font-size: 100%; }
+html[data-taille="grand"] { font-size: 112.5%; }
+html[data-taille="tres-grand"] { font-size: 128%; }
+
+/* Confort de lecture : police très lisible, lettres et lignes bien séparées.
+   OpenDyslexic et Atkinson Hyperlegible sont utilisées si elles sont installées
+   sur l'appareil ; sinon on retombe sur des sans-serif larges et régulières. */
+html[data-lecture="facile"] body {
+  font-family: "OpenDyslexic", "Atkinson Hyperlegible", "Verdana", "Tahoma", sans-serif;
+  letter-spacing: .05em;
+  word-spacing: .18em;
+  line-height: 1.8;
+}
+html[data-lecture="facile"] .question__texte { line-height: 1.6; letter-spacing: .06em; }
+html[data-lecture="facile"] .bulle,
+html[data-lecture="facile"] .retour__aide { line-height: 1.9; }
+html[data-lecture="facile"] .module__titre,
+html[data-lecture="facile"] .graine__nom { line-height: 1.5; }
+
+/* Fonds : une teinte douce aide certains enfants à ne pas « perdre » la ligne. */
+html[data-fond="blanc"] body { background: #FFFFFF; }
+html[data-fond="bleu"] body { background: #E9F2FB; }
+html[data-fond="gris"] body { background: #EFEFEA; }
+html[data-fond="blanc"] { --fond: #FFFFFF; }
+html[data-fond="bleu"] { --fond: #E9F2FB; }
+html[data-fond="gris"] { --fond: #EFEFEA; }
+
+/* Écran calme : plus rien ne bouge, plus de confettis. */
+html[data-animations="non"] *,
+html[data-animations="non"] *::before,
+html[data-animations="non"] *::after {
+  animation: none !important;
+  transition: none !important;
+}
+html[data-animations="non"] .heros { background: var(--violet); }
+
+/* ---------- panneau de réglages ---------- */
+
+.reglages { display: grid; gap: 20px; }
+.reglage__libelle { font-weight: 800; margin-bottom: 8px; }
+.reglage__options { display: flex; flex-wrap: wrap; gap: 8px; }
+.option {
+  min-height: 48px;
+  padding: 10px 18px;
+  border-radius: 14px;
+  background: #F2F0EA;
+  color: var(--encre);
+  font-weight: 700;
+  border: 3px solid transparent;
+}
+.option[aria-pressed="true"] {
+  background: #F3F0FF;
+  border-color: var(--violet);
+  color: var(--violet);
+}
+.option:focus-visible { outline: 4px solid var(--jaune); outline-offset: 2px; }
+.reglage__aide {
+  margin-top: 8px;
+  color: var(--encre-douce);
+  font-size: .92rem;
+  line-height: 1.5;
+}
+
+/* ---------- dessins d'aide ---------- */
+
+.retour__dessin {
+  margin-top: 12px;
+  background: #fff;
+  border-radius: 14px;
+  padding: 10px;
+  overflow-x: auto;
+}
+svg.visuel {
+  display: block;
+  width: 100%;
+  max-width: 460px;
+  max-height: 240px;   /* une aide visuelle ne doit jamais noyer l'explication */
+  height: auto;
+  margin: 0 auto;
+}
+
+/* ---------- fiches de révision à imprimer ---------- */
+
+.feuille {
+  background: #fff;
+  color: #111;
+  border-radius: 14px;
+  box-shadow: var(--ombre);
+  padding: 22px 24px 18px;
+  margin: 0 0 22px;
+  font-family: "Trebuchet MS", "Segoe UI", Verdana, sans-serif;
+  line-height: 1.45;
+}
+/* Aperçu à l'écran : largeur de référence fixe, réduite par js (zoom sur #impression). */
+@media screen {
+  #impression .feuille { width: 673px; }
+}
+
+.feuille__entete {
+  border-bottom: 3px solid #E84393;
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+.feuille__entete__texte { flex: 1; min-width: 0; }
+.feuille__qr { text-align: center; flex: none; }
+.feuille__qr .qr { display: block; }
+.feuille__code {
+  font-size: .68rem;
+  font-weight: 800;
+  letter-spacing: .06em;
+  color: #666;
+  margin-top: 1px;
+}
+.feuille__domaine {
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  font-size: .72rem;
+  font-weight: 800;
+  color: #E84393;
+}
+.feuille__titre { font-size: 1.35rem; margin: 2px 0 8px; color: #111; }
+.feuille__identite { display: flex; gap: 26px; font-size: .9rem; flex-wrap: wrap; }
+.pointilles {
+  display: inline-block;
+  min-width: 190px;
+  border-bottom: 1.5px dotted #777;
+  vertical-align: bottom;
+  height: 1.1em;
+}
+.pointilles--court { min-width: 110px; }
+
+.objectif {
+  background: #F6F2FF;
+  border-left: 5px solid var(--violet);
+  padding: 8px 12px;
+  font-weight: 700;
+  font-size: .95rem;
+  margin-bottom: 14px;
+}
+.objectif--corrige { background: #FFF4DC; border-left-color: #E17055; font-weight: 600; }
+
+/* feuille panachée : une ligne de mini-rappel par notion */
+.rappels { list-style: none; margin: 0 0 6px; padding: 0; }
+.rappels li {
+  background: #F6F2FF;
+  border-left: 5px solid var(--violet);
+  padding: 2px 9px;
+  margin-bottom: 2px;
+  font-size: .85rem;
+  line-height: 1.3;
+}
+
+.feuille .bloc { margin-bottom: 11px; break-inside: avoid; }
+.feuille .bloc h2 {
+  font-size: 1rem;
+  margin: 0 0 8px;
+  padding: 5px 10px;
+  background: #F0EEE8;
+  border-radius: 6px;
+  color: #111;
+}
+/* Zigo en monochrome devant « Exercice N — … » (voir avecZigo dans fiches.js) : 7 mm de haut, aligné au titre,
+   il déborde un peu du bandeau gris plutôt que de l'épaissir. */
+.feuille .bloc h2.avec-zigo { display: flex; align-items: center; gap: 2.5mm; }
+.zigo-titre { flex: none; display: inline-flex; align-items: center; }
+.zigo-mono { display: block; height: 7mm; width: auto; margin: -1.4mm 0; }
+.bloc--methode { background: #FBFAF6; border: 2px dashed #CFC9BC; border-radius: 10px; padding: 10px 12px; }
+.bloc--methode h2 { background: none; padding: 0 0 4px; }
+
+.methode { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+.methode__exemple { text-align: center; }
+.methode__egalite { font-weight: 800; margin-top: 4px; font-size: .95rem; }
+.methode__etapes { margin: 0; padding-left: 18px; flex: 1; min-width: 240px; font-size: .82rem; line-height: 1.35; }
+.methode__etapes li { margin-bottom: 2px; }
+
+/* Une addition posée : entêtes m c d u, ligne de retenues, cases à remplir. */
+.operations {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 26px;
+  justify-content: flex-start;
+}
+.op { text-align: center; }
+.op__titre { font-weight: 700; font-size: .88rem; margin-bottom: 2px; min-height: 1.2em; }
+.pose { border-collapse: collapse; margin: 0 auto; font-variant-numeric: tabular-nums; }
+.pose td {
+  width: 30px;
+  height: 30px;
+  text-align: center;
+  font-size: 1.15rem;
+  font-weight: 700;
+  padding: 0;
+}
+.pose__entetes td {
+  height: 15px;
+  font-size: .62rem;
+  font-weight: 800;
+  color: #E84393;
+  text-transform: lowercase;
+}
+.pose__retenues td { height: 17px; font-size: .78rem; color: #E84393; font-weight: 800; }
+.pose__nombre--derniere td { border-bottom: 2.5px solid #111; }
+.pose .signe { font-weight: 800; width: 22px; }
+.pose .case { border: 1px dashed #BFBFBF; }
+.pose__nombre--derniere .case { border-bottom: 2.5px solid #111; }
+.pose__resultat td { height: 32px; }
+.pose .reponse { color: #C0392B; }
+/* Soustraction corrigée : chiffre barré, et « 1 » devant le chiffre qui reçoit 10 unités. */
+.pose .barre { text-decoration: line-through; text-decoration-thickness: 2px; text-decoration-color: #C0392B; }
+.pose .un { color: #C0392B; }
+.pose .retenue { color: #C0392B; }
+/* Soustraction, formulation commune : petit 1 devant le chiffre du haut (+10), petit 1 au pied du chiffre du bas. */
+.pose .ret-petite { font-size: .62em; font-weight: 800; color: #C0392B; line-height: 1; }
+.pose .ret-petite--haut { position: relative; top: -.5em; margin-right: 1px; }
+.pose .ret-petite--bas { position: relative; top: .55em; margin-left: 1px; }
+
+.estimations { list-style: none; margin: 0; padding: 0; }
+.estimations li {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 3px 0;
+  border-bottom: 1px dotted #DDD;
+}
+.estimation__op { font-weight: 700; min-width: 160px; }
+.estimation__choix { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.pastille-choix {
+  border: 2px solid #BBB;
+  border-radius: 999px;
+  padding: 3px 14px;
+  font-weight: 700;
+}
+.pastille-choix--bonne { border-color: #C0392B; color: #C0392B; }
+.verification { font-weight: 600; }
+.verification--corrigee { color: #C0392B; }
+.estimation__exact { font-size: .85rem; color: #666; }
+
+/* Deux problèmes côte à côte : la fiche tient ainsi sur une seule page A4. */
+.problemes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 22px; }
+.probleme { margin-bottom: 8px; break-inside: avoid; }
+.probleme__enonce { margin: 0 0 4px; font-size: .88rem; }
+.probleme__espace { display: flex; gap: 14px; align-items: flex-start; flex-wrap: wrap; }
+.probleme__phrase { flex: 1; min-width: 150px; font-size: .85rem; }
+.probleme__phrase .pointilles { min-width: 100%; margin-bottom: 8px; }
+.probleme--corrige .probleme__phrase { color: #C0392B; font-weight: 600; }
+
+.pied-feuille { text-align: right; font-size: .7rem; color: #999; margin-top: 10px; }
+
+.module--actif { outline: 4px solid var(--violet); }
+
+/* Écran des fiches : une ligne par fiche, regroupées par domaine */
+.liste-fiches { display: grid; gap: 8px; }
+.fiche {
+  display: flex; flex-wrap: wrap; align-items: stretch;
+  background: var(--carte);
+  border-radius: var(--rayon);
+  box-shadow: var(--ombre);
+  border-left: 6px solid transparent;
+  overflow: hidden;
+}
+.fiche--active { outline: 3px solid var(--violet); outline-offset: -3px; border-left-color: var(--violet); background: #F1EEFF; }
+.fiche__choix {
+  flex: 1; min-width: 0; min-height: 48px;
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 6px 10px 12px;
+  text-align: left;
+  background: transparent; box-shadow: none; border-radius: 0;
+}
+.fiche__case {
+  flex: none; width: 28px; height: 28px; margin: 0;
+  accent-color: var(--violet); cursor: pointer;
+}
+.fiche__case:focus-visible { outline: 4px solid var(--jaune); outline-offset: 3px; }
+.fiche__options {
+  flex: 1 0 100%;
+  display: grid; gap: 12px;
+  padding: 4px 14px 14px 52px;
+}
+.fiche__emoji { font-size: 1.7rem; flex: none; width: 2.2rem; text-align: center; }
+.fiche__texte { display: grid; gap: 2px; min-width: 0; }
+.fiche__titre { font-weight: 800; font-size: 1rem; line-height: 1.25; }
+.fiche__objectif { font-size: .8rem; line-height: 1.3; color: var(--encre-douce); }
+.fiche__lecon {
+  flex: none; min-width: 64px; min-height: 48px;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0 12px;
+  font-weight: 800; font-size: .9rem;
+  color: var(--violet); text-decoration: underline;
+}
+
+/* Le tunnel : fil d'Ariane, bouton retour, barre « Continuer » */
+.tunnel__haut { display: grid; gap: 10px; margin: 6px 0 4px; }
+.tunnel__haut > * { min-width: 0; }
+.tunnel .retour { justify-self: start; min-height: 48px; }
+.ariane ol { display: flex; gap: 6px; list-style: none; margin: 0; padding: 0; }
+.ariane li { flex: 1 1 0; min-width: 0; }
+.ariane__pas {
+  width: 100%; min-width: 0; min-height: 48px; overflow-wrap: anywhere;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 6px 4px;
+  border-radius: 14px;
+  background: #F2F0EA; color: var(--encre);
+  font-weight: 700; font-size: .88rem; line-height: 1.15; text-align: center;
+  border: 3px solid transparent; box-shadow: none;
+}
+.ariane__pas[aria-current="step"] { background: #F3F0FF; border-color: var(--violet); color: var(--violet); }
+.ariane__pas:disabled { opacity: .55; cursor: default; }
+.ariane__pas:focus-visible { outline: 4px solid var(--jaune); outline-offset: 2px; }
+.ariane__num {
+  flex: none; width: 24px; height: 24px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--violet); color: #fff; font-size: .8rem;
+}
+.barre-pas {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  margin: 18px -4px 12px; padding: 10px 4px;
+  background: var(--fond);
+  border-top: 2px solid #E4E1DA;
+}
+.barre-pas--collante { position: sticky; bottom: 0; z-index: 2; }
+.barre-pas__compte { font-weight: 800; color: var(--encre-douce); }
+.barre-pas .btn { min-height: 48px; min-width: 160px; }
+.barre-pas .btn:disabled { opacity: .5; cursor: default; }
+.code-grand {
+  display: flex; flex-wrap: wrap; gap: 6px 22px; justify-content: center;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-weight: 800; font-size: 1.7rem; letter-spacing: .05em; color: var(--violet);
+  overflow-wrap: anywhere; text-align: center;
+}
+.code-composition { display: grid; gap: 10px; }
+
+.barre-fiche { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+.recherche-code { display: flex; gap: 10px; flex-wrap: wrap; }
+.lien-partage {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.lien-partage__etiquette { font-weight: 800; font-size: .92rem; min-width: 118px; }
+.lien-partage .champ { flex: 1; min-width: 170px; }
+.lien-partage .btn { min-height: 48px; padding: 10px 18px; }
+@media (max-width: 520px) {
+  /* Sur un téléphone : l'étiquette au-dessus, puis l'adresse et le bouton côte à côte. */
+  .lien-partage { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+  .lien-partage__etiquette { grid-column: 1 / -1; min-width: 0; }
+}
+.recherche-code .champ { flex: 1; min-width: 180px; }
+#code-fiche { text-transform: uppercase; }
+.recherche-code .champ[readonly] { font-size: .95rem; color: var(--encre-douce); background: #FBFAF7; }
+.barre-fiche .btn { flex: 1; min-width: 150px; }
+
+/* ---------- impression ---------- */
+
+@page { size: A4 portrait; margin: 12mm 16mm; }
+
+@media print {
+  #impression { zoom: 1 !important; transform: none !important; height: auto !important; }
+  .no-print { display: none !important; }
+  html, body {
+    background: #fff !important;
+    font-size: 11.5pt;
+  }
+  .app { max-width: none; padding: 0; margin: 0; }
+  .feuille {
+    box-shadow: none;
+    border-radius: 0;
+    padding: 0;
+    margin: 0;
+    break-after: page;
+    page-break-after: always;
+  }
+  .feuille:last-child { break-after: auto; page-break-after: auto; }
+  .feuille .bloc { break-inside: avoid; page-break-inside: avoid; }
+  .pose td { width: 8.5mm; height: 8mm; font-size: 12pt; }
+  .pose .signe { width: 6mm; }
+  /* Grilles vides un peu plus étroites : quatre opérations à poser tiennent ainsi
+     sur une seule rangée, et la page ne déborde pas. */
+  .pose--vide td { width: 7.4mm; }
+  .pose__entetes td { height: 3.5mm; font-size: 6pt; }
+  .pose__retenues td { height: 4.5mm; font-size: 8pt; }
+  .pose__resultat td { height: 7.5mm; }
+  .methode .pose td { width: 7mm; height: 7mm; font-size: 11pt; }
+  .feuille .bloc h2 { font-size: 11pt; padding: 3px 8px; margin-bottom: 5px; line-height: 1.25; }
+  .operations { gap: 8px 18px; }
+  .objectif { padding: 4px 9px; margin-bottom: 10px; font-size: 10pt; }
+  .rappels li { font-size: 9pt; }
+  .methode__etapes { font-size: 8.3pt; }
+  .feuille__titre { font-size: 15pt; margin: 2px 0 8px; }
+  .feuille__entete { padding-bottom: 7px; margin-bottom: 12px; }
+  .probleme__enonce { font-size: 8.6pt; }
+  .pied-feuille { display: none; }
+  .feuille .bloc { margin-bottom: 7px; }
+  .bloc--methode { padding: 6px 9px; }
+  .methode .pose td { width: 6mm; height: 6mm; font-size: 10pt; }
+  .op__titre { font-size: 9pt; min-height: 1em; margin-bottom: 1px; }
+  .estimations li { padding: 1px 0; }
+  .pastille-choix { padding: 2px 12px; }
+  .probleme__phrase .pointilles { margin-bottom: 5px; }
+  .feuille__identite { font-size: 9.5pt; }
+  .feuille__qr .qr { width: 19mm; height: 19mm; }
+  .feuille__code { font-size: 8pt; line-height: 1.1; margin-top: 2px; }
+  .feuille { line-height: 1.3; }
+}
+
+/* ---------- fiche multiplication : rappel en ligne, lignes partielles ---------- */
+.pointilles--mini { min-width: 34px; }
+.enligne { display: flex; gap: 18px; align-items: flex-start; margin-bottom: 6px; }
+.enligne__methode { flex: 1; min-width: 0; font-size: .82rem; text-align: center; }
+.enligne__nom { font-weight: 800; color: #E84393; }
+.enligne__texte { margin: 1px 0 3px; white-space: nowrap; }
+.enligne__total { font-weight: 800; font-size: .82rem; }
+.rectangle { display: flex; margin: 0 auto 3px; font-size: .75rem; font-weight: 700; }
+.rectangle span { padding: 3px 2px; border: 1.5px solid #111; text-align: center; white-space: nowrap; }
+.rectangle__haut { flex: 10; background: #E6E6E6; }
+.rectangle__bas { flex: 5; background: #fff; border-left: 0 !important; }
+.arbre { border-collapse: collapse; margin: 0 auto; font-size: .82rem; }
+.arbre td { padding: 1px 6px; text-align: center; }
+.arbre tr:nth-child(2) td:not(:nth-child(2)), .arbre tr:nth-child(3) td:not(:nth-child(2)) { border: 1.5px solid #111; }
+.methode--multiplication { flex-wrap: nowrap; }
+.methode__exemples { display: flex; gap: 10px; align-items: flex-start; }
+.methode__droite { flex: 1; min-width: 0; }
+.methode__droite .methode__etapes { min-width: 0; }
+.pose td.signe--lettre { font-size: .8rem; font-weight: 700; text-align: left; vertical-align: bottom; }
+.pose .note { width: auto; text-align: left; font-size: .72rem; font-weight: 700; color: #666; white-space: nowrap; padding-left: 5px; border: 0; }
+.pose--multiplication .pose__retenues--dizaines td, .pose--multiplication .pose__retenues--somme td { height: 14px; }
+.decompositions { list-style: none; margin: 0; padding: 0; }
+.decompositions li { padding: 3px 0; border-bottom: 1px dotted #DDD; font-size: .88rem; }
+.decomposition__op { font-weight: 700; }
+.decomposition__ligne { white-space: nowrap; }
+.decomposition__ligne--corrigee { color: #C0392B; font-weight: 600; }
+
+@media print {
+  /* Cellules de 7,5 mm au moins (8 mm de large pour les grilles à remplir). */
+  .pose--multiplication td { width: 8mm; height: 7.5mm; }
+  .pose--multiplication.pose--vide td { width: 7.5mm; }
+  .pose--multiplication td.signe { width: 6mm; }
+  .pose--multiplication td.note { width: auto; height: auto; }
+  .pose--multiplication .pose__entetes td { height: 3mm; }
+  .pose--multiplication .pose__retenues td { height: 3.8mm; font-size: 8pt; }
+  .methode .pose--multiplication td { width: 7.5mm; height: 7.5mm; font-size: 11pt; }
+  .methode .pose--multiplication td.signe { width: 6mm; }
+  .methode .pose--multiplication td.note { width: auto; height: auto; }
+  .methode .pose--multiplication .pose__entetes td { height: 3mm; }
+  .methode .pose--multiplication .pose__retenues td { height: 3.8mm; }
+  .pose .note { font-size: 7.5pt; }
+  .methode--multiplication { gap: 8px; }
+  .methode__exemples { gap: 4px; }
+  .methode__droite .enligne { gap: 8px; margin-bottom: 3px; }
+  .methode__droite .enligne__methode, .enligne__total { font-size: 8pt; }
+  .rectangle { font-size: 7.5pt; }
+  .methode__droite .enligne__texte { font-size: 7.6pt; }
+  .pose td.signe--lettre { font-size: 9pt; font-weight: 700; text-align: left; vertical-align: bottom; color: #111; }
+  .arbre { font-size: 8pt; }
+  .arbre td { padding: 0 5px; }
+  .methode__droite .methode__etapes { font-size: 8pt; line-height: 1.15; }
+  .methode__droite .methode__etapes li { margin-bottom: 0; }
+  .decompositions li { padding: 1px 0; font-size: 9pt; }
+  .pointilles--mini { min-width: 9mm; }
+  .operations .op__titre { margin-bottom: 0; min-height: 0; line-height: 1.15; }
+}
+@media print {
+  .pose--multiplication .pose__retenues td, .methode .pose--multiplication .pose__retenues td { height: 3.4mm; font-size: 7.5pt; }
+  .pose--multiplication .pose__entetes td, .methode .pose--multiplication .pose__entetes td { height: 2.8mm; }
+  .feuille:has(.pose--multiplication) .bloc h2 { padding: 2px 8px; margin-bottom: 3px; }
+  .feuille:has(.pose--multiplication) .decompositions li { line-height: 1.1; }
+}
+@media print {
+  .methode .pose--multiplication .pose__retenues td { height: 3.1mm; }
+  .feuille:has(.pose--multiplication) .bloc { margin-bottom: 4px; }
+  .feuille:has(.pose--multiplication) .bloc--methode { padding: 4px 9px; }
+}
+.retenue--barree { text-decoration: line-through; text-decoration-thickness: 1.5px; }
+.pose td.note .note__sep { color: #666; }
+.pose td.note { min-width: 10mm; }
+@media print {
+  .pose td.note { min-width: 9mm; font-size: 8pt; }
+}
+
+/* ---------- fiche nombres : tableau de numération, lignes d'écriture ---------- */
+.rouge { color: #C0392B; font-weight: 700; }
+.pointilles--ligne { flex: 1; min-width: 22mm; height: 1.4em; }
+
+.methode--nombres { flex-wrap: nowrap; align-items: flex-start; }
+.methode__tableau { flex: none; text-align: center; max-width: 62mm; }
+.methode__legende { font-size: .78rem; color: #444; margin-top: 3px; line-height: 1.25; }
+.methode--nombres .methode__droite { flex: 1; min-width: 0; }
+.representations__titre { font-weight: 800; font-size: .88rem; margin-bottom: 3px; }
+.representations { margin: 0; padding-left: 16px; font-size: .86rem; line-height: 1.35; columns: 2; column-gap: 18px; }
+.representations li { break-inside: avoid; }
+.methode__relation { margin-top: 5px; text-align: center; font-weight: 800; font-size: .95rem; background: #fff; border: 1.5px solid #CFC9BC; border-radius: 6px; padding: 2px 6px; }
+
+.tab-num { border-collapse: collapse; font-variant-numeric: tabular-nums; margin: 0 auto; }
+.tab-num td { border: 1.5px solid #333; width: 11mm; height: 10mm; text-align: center; font-size: 1.15rem; font-weight: 700; padding: 0; }
+.tab-num .tab-num__nombre { width: 24mm; }
+.tab-num__entetes td { height: 6mm; font-size: .8rem; font-weight: 800; color: #E84393; background: #FFF0F7; }
+.tab-num .vide { background: #fff; }
+.tab-num--exemple td { width: 12mm; }
+.tableaux { display: flex; gap: 10mm; flex-wrap: wrap; justify-content: space-around; }
+
+.lignes { list-style: none; margin: 0; padding: 0; }
+.lignes li { display: flex; align-items: flex-end; gap: 6px; min-height: 10mm; padding: 2px 0; font-size: .95rem; }
+.lignes--deux { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 6mm; }
+.ligne__texte { white-space: nowrap; }
+.ligne__egal { font-weight: 700; }
+.lignes--corrigees li { min-height: 7mm; }
+
+@media print {
+  .methode__tableau { max-width: 50mm; }
+  .methode__legende { font-size: 7.5pt; }
+  .representations__titre { font-size: 9pt; }
+  .representations { font-size: 8.8pt; line-height: 1.25; }
+  .methode__relation { font-size: 9.5pt; margin-top: 3px; }
+  .tab-num td { width: 10mm; height: 9mm; font-size: 12pt; }
+  .tab-num .tab-num__nombre { width: 22mm; }
+  .tab-num__entetes td { height: 5mm; font-size: 8pt; }
+  .tab-num--exemple td { width: 10mm; height: 8mm; }
+  .tableaux { gap: 8mm; }
+  .lignes li { min-height: 8.6mm; font-size: 10.5pt; padding: 1px 0; gap: 4px; }
+  .lignes--deux li { font-size: 10pt; }
+  .lignes .pointilles--mini { min-width: 8mm; }
+  .lignes--corrigees li { min-height: 7mm; }
+  .pointilles--ligne { height: 1.5em; }
+}
+
+/* ---------- fiche nombres : comparer, ranger, encadrer, demi-droite ---------- */
+.rappel-comp { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; font-size: .82rem; line-height: 1.3; }
+.rappel-comp p { margin: 0 0 3px; }
+.rappel-comp__titre { font-weight: 800; margin-bottom: 2px; }
+.rappel-comp__exemples { margin: 0 0 3px; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 1px 12px; font-weight: 700; }
+.n { white-space: nowrap; font-weight: 700; font-variant-numeric: tabular-nums; }
+.paires { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2mm 3mm; }
+.paire { display: flex; align-items: center; gap: 4px; min-height: 10mm; font-size: 1rem; white-space: nowrap; }
+.case-symbole, .paire__symbole { display: inline-block; width: 9mm; height: 8mm; border: 1.5px solid #333; border-radius: 3px; text-align: center; line-height: 8mm; font-weight: 800; background: #fff; }
+.paire__symbole { border-color: transparent; background: none; }
+.rangs { display: flex; flex-direction: column; gap: 2mm; }
+.rang__nombres { font-size: 1rem; min-height: 6mm; }
+.rang__reponse { display: flex; align-items: flex-end; gap: 4px; min-height: 9mm; }
+.rang__reponse--corrige { display: block; min-height: 7mm; font-size: 1rem; }
+.rang__signe { font-weight: 800; padding: 0 3px; }
+.pointilles--rang { flex: 1; min-width: 12mm; height: 1.5em; }
+.encadrements { display: grid; grid-template-columns: 1.15fr 1fr; gap: 0 6mm; }
+.encadrement, .intercalation { white-space: nowrap; }
+.trou-borne { display: inline-block; flex: none; width: 17mm; height: 1.5em; border-bottom: 1.5px dotted #777; }
+.borne { display: inline-block; min-width: 17mm; text-align: center; }
+.consigne-droite { margin: 0 0 2px; font-size: .92rem; }
+.demi-droite { display: block; width: 100%; height: auto; max-height: 27mm; }
+
+@media print {
+  .rappel-comp { font-size: 8.3pt; line-height: 1.22; gap: 4mm; }
+  .rappel-comp p { margin-bottom: 2px; }
+  .paire { min-height: 9mm; font-size: 10.5pt; }
+  .case-symbole, .paire__symbole { width: 8mm; height: 8mm; line-height: 8mm; }
+  .rang__nombres { font-size: 10.5pt; min-height: 5mm; }
+  .rang__reponse { min-height: 8.6mm; }
+  .rangs { gap: 2.5mm; }
+  .consigne-droite { font-size: 9.5pt; }
+}
+
+/* ---------- fiche fractions : lire, écrire, représenter ---------- */
+.fraction { display: inline-flex; flex-direction: column; align-items: stretch; vertical-align: middle; line-height: 1.15; font-weight: 700; margin: 0 2px; text-align: center; font-variant-numeric: tabular-nums; }
+.fraction__num { border-bottom: 1.6px solid currentColor; padding: 0 5px 1px; min-width: 1em; }
+.fraction__den { padding: 1px 5px 0; min-width: 1em; }
+.fraction--grande { font-size: 1.9rem; }
+.fraction--vide .fraction__num { padding-bottom: 2px; }
+.fraction--vide .fraction__den { padding-top: 2px; }
+.case-fr { display: block; width: 6.5mm; height: 5.5mm; border: 1.5px solid #333; border-radius: 3px; background: #fff; }
+.fraction--reponse { color: #C0392B; }
+.fraction--reponse .fraction__num { border-bottom-color: #C0392B; }
+.figure-fraction { display: block; max-width: 100%; height: auto; }
+.rappel-frac { display: grid; grid-template-columns: 1fr 1fr; gap: 2mm 4mm; font-size: .82rem; line-height: 1.3; }
+.rappel-frac p { margin: 3px 0 0; }
+.rappel-frac__vedette { display: flex; align-items: center; gap: 10px; }
+.rappel-frac__noms { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 2px 9px; font-size: .78rem; margin: 2px 0 0; padding: 4px 0 0; list-style: none; border-top: 1px dashed #CFC9BC; }
+.rappel-frac__noms li { display: flex; align-items: center; gap: 3px; white-space: nowrap; }
+.figure-cellule { display: flex; flex-direction: column; align-items: center; gap: 2mm; position: relative; }
+.figure-cellule__lettre { position: absolute; left: 0; top: 0; }
+.figure-cellule__dessin { display: flex; align-items: center; justify-content: center; }
+.figures-lire { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 3mm 2mm; }
+.figures-lire--8 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.figures-lire .figure-cellule__dessin { min-height: 22mm; }
+.figures-colorier { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 3mm 2mm; }
+.figures-colorier .figure-cellule__dessin { min-height: 27mm; }
+.figures-colorier .fraction { font-size: 1.15rem; }
+.sous-titre { font-weight: 800; font-size: .9rem; }
+.ecritures { display: flex; flex-direction: column; gap: 1mm; }
+.lignes--lettres { display: grid; grid-template-columns: 1fr 1fr; gap: 0 8mm; }
+.lignes--chiffres { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 5mm; }
+.ecriture { align-items: center !important; min-height: 9mm !important; white-space: nowrap; }
+.ecriture--lettres .pointilles--ligne { height: 1em; }
+.ecriture--chiffres { min-height: 13.5mm !important; }
+.lignes--lettres .ecriture--lettres .mots { flex: 1; }
+.lignes--corrigees .ecriture { min-height: 9mm !important; }
+.lignes--chiffres.lignes--corrigees .ecriture { min-height: 13mm !important; }
+.affirmations { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 0 8mm; }
+.affirmation { display: flex; align-items: center; justify-content: space-between; gap: 6px; min-height: 12mm; padding: 1px 0; font-size: .95rem; border-bottom: 1px dotted #BBB; }
+.cases-vf { display: flex; gap: 3mm; flex: none; }
+.case-vf { display: inline-block; min-width: 8mm; height: 7mm; padding: 0 1mm; border: 1.5px solid #333; border-radius: 3px; text-align: center; line-height: calc(7mm - 3px); font-size: .72rem; font-weight: 700; background: #fff; white-space: nowrap; }
+.case-vf--cochee { background: #EEE; }
+.coche { font-size: .85rem; margin-left: 1px; }
+
+@media print {
+  .rappel-frac { font-size: 8.5pt; line-height: 1.22; }
+  .fraction--grande { font-size: 20pt; }
+  .figures-lire .figure-cellule__dessin { min-height: 22mm; }
+  .affirmation { min-height: 11mm; font-size: 10pt; }
+  .ecriture { font-size: 10.5pt; }
+}
+
+.lignes--chiffres.lignes--n4 { grid-template-columns: 1fr 1fr; }
+.rappel-frac .fraction { font-size: .85em; line-height: 1; margin: 0 1px; }
+.rappel-frac .fraction--grande { font-size: 1.9rem; line-height: 1.1; }
+.rappel-frac p { line-height: 1.2; }
+@media print {
+  .rappel-frac .fraction--grande { font-size: 18pt; }
+  .rappel-frac__vedette { gap: 6px; }
+  .rappel-frac__noms { font-size: 8pt; }
+  .figure-cellule { gap: 1mm; }
+  .figures-lire { gap: 2mm 2mm; }
+  .figures-lire .figure-cellule__dessin { min-height: 22mm; }
+  .figures-colorier .figure-cellule__dessin { min-height: 24mm; }
+  .figures-colorier .fraction { font-size: 12pt; }
+  .case-fr { width: 6mm; height: 5mm; }
+  .ecriture--chiffres { min-height: 12mm !important; }
+  .lignes--chiffres.lignes--corrigees .ecriture { min-height: 12mm !important; }
+  .ecriture { min-height: 8.5mm !important; }
+  .affirmation { font-size: 9.5pt; min-height: 10mm; }
+  .sous-titre { font-size: 9.5pt; }
+}
+@media print {
+  .rappel-frac__noms { gap: 1px 7px; font-size: 7.6pt; }
+  .rappel-frac__noms .fraction { font-size: .8em; }
+  .figures-lire .figure-cellule__dessin { min-height: 20mm; }
+  .rappel-frac { gap: 1mm 4mm; }
+}
+.ecritures > div { display: grid; grid-template-columns: 17mm 1fr; align-items: start; }
+.ecritures .sous-titre { padding-top: 2mm; }
+@media print {
+  .figures-lire .figure-cellule__dessin { min-height: 0; height: 22.5mm; }
+  .figures-colorier .figure-cellule__dessin { min-height: 0; height: 24mm; }
+  .rappel-frac__noms { gap: 1px 5px; font-size: 7.4pt; }
+}
+@media print {
+  .rappel-frac__noms { flex-wrap: nowrap; justify-content: space-between; gap: 0 6px; font-size: 8pt; }
+}
+@media print {
+  .feuille:has(.figures-lire) .bloc { margin-bottom: 3px; }
+  .feuille:has(.figures-lire) .objectif { margin-bottom: 5px; }
+}
+
+/* ---------- fiche fractions : égales et comparaison ---------- */
+.rappel-fc { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 2mm 4mm; font-size: .82rem; line-height: 1.2; }
+.rappel-fc__carte { grid-column: span 2; display: flex; flex-direction: column; gap: 2px; }
+.rappel-fc__carte--large { grid-column: span 3; }
+.rappel-fc__titre { font-weight: 800; }
+.rappel-fc p { margin: 0; }
+.rappel-fc .fraction { font-size: .85em; line-height: 1; margin: 0 1px; }
+.rappel-fc__figs { display: flex; align-items: center; gap: 6px; }
+.rappel-fc__signe { font-weight: 800; font-size: 1.1rem; }
+.entoures { display: flex; align-items: center; justify-content: space-between; gap: 2mm; margin-top: 1mm; }
+.entoures__cible { font-weight: 800; font-size: .9rem; white-space: nowrap; display: inline-flex; align-items: center; gap: 2px; }
+.entoure { display: inline-flex; align-items: center; justify-content: center; width: 12mm; height: 15mm; border: 2px solid transparent; border-radius: 50%; box-sizing: border-box; font-size: 1.1rem; flex: none; }
+.entoure .fraction { margin: 0; }
+.entoure--oui { border-color: #C0392B; }
+.paires-fr { display: grid; gap: 2mm 3mm; }
+.paires-fr--5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.paires-fr--8 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.paires-fr--fig4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.paires-fr--fig6 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.paire-fr { display: flex; align-items: center; justify-content: center; gap: 4px; min-height: 13mm; white-space: nowrap; font-size: 1.05rem; }
+.paire-fr .fraction { margin: 0; }
+.case-symbole--rep { font-size: 1.05rem; }
+.paire-fr-cellule { display: flex; flex-direction: column; align-items: center; gap: 1mm; }
+.appui { display: flex; flex-direction: column; gap: 2mm; align-items: center; }
+.regle { font-size: .72rem; color: #C0392B; font-weight: 600; text-align: center; line-height: 1.15; }
+.regle--rang { margin-left: 4mm; }
+.rangs--fr .rang__nombres { display: flex; align-items: center; gap: 2px; min-height: 12mm; font-size: 1.05rem; }
+.rangs--fr .rang__sep { margin: 0 6px; }
+.rangs--fr .rang__reponse { align-items: center; min-height: 14mm; }
+.rangs--fr .pointilles--rang { height: 11mm; min-width: 14mm; }
+.rangs--fr .rang__reponse--corrige { display: flex; min-height: 14mm; }
+
+@media print {
+  .rappel-fc { font-size: 8.5pt; line-height: 1.18; }
+  .entoure { font-size: 11pt; }
+  .paire-fr { font-size: 11pt; min-height: 11mm; }
+  .regle { font-size: 7.5pt; }
+  .rangs--fr .rang__nombres { font-size: 11pt; min-height: 10mm; }
+  .rangs--fr .rang__reponse { min-height: 12mm; }
+}
+.rappel-fc__titre { display: flex; align-items: center; gap: 3px; min-height: 8mm; }
+.rangs--fr .rang__reponse { align-items: flex-end; }
+.rangs--fr .rang__signe { padding-bottom: 1mm; }
+@media print {
+  .appui { gap: 1mm; }
+  .appui .figure-fraction { height: 30px; width: auto; }
+  .paires-fr--fig .paire-fr { min-height: 10mm; }
+  .paire-fr-cellule { gap: .5mm; }
+  .rangs--fr .rang__nombres { min-height: 9mm; }
+  .rangs--fr .rang__reponse, .rangs--fr .rang__reponse--corrige { min-height: 11mm; }
+  .rangs--fr .rang__reponse--corrige .fraction { font-size: 10pt; }
+  .rangs--fr .pointilles--rang { height: 9mm; }
+  .entoure { height: 13.5mm; }
+}
+
+/* ---------- fiche fractions : mesurer, additionner, soustraire ---------- */
+.regle-fractions { display: block; max-width: 100%; height: auto; }
+.rappel-fcal { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 2mm 4mm; font-size: .82rem; line-height: 1.2; }
+.rappel-fcal p { margin: 0; }
+.rappel-fcal .fraction { font-size: .85em; line-height: 1; margin: 0 1px; }
+.rappel-fcal__carte { grid-column: span 2; display: flex; flex-direction: column; gap: 2px; }
+.rappel-fcal__calcul { grid-column: span 3; display: grid; grid-template-columns: auto 1fr; column-gap: 10px; row-gap: 0; align-items: center; border-top: 1px dashed #CFC9BC; padding-top: 2mm; }
+.rappel-fcal__titre { grid-column: 1; font-weight: 800; }
+.rappel-fcal__calcul p { grid-column: 1 / -1; }
+.rappel-fcal__egalite { grid-column: 2; }
+.rappel-fcal__egalite { font-size: 1.05rem; font-weight: 700; white-space: nowrap; }
+.rappel-fcal__egalite .fraction { font-size: 1em; }
+.mesures { display: grid; grid-template-columns: 1fr 1fr; gap: 2mm 6mm; }
+.mesure { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.mesure__lettre { flex: none; }
+.mesure__fig { flex: 1 1 auto; min-width: 0; }
+.mesure__rep { flex: none; display: flex; align-items: center; gap: 3px; font-size: .9rem; }
+.mesure__rep--corrige { flex-direction: column; gap: 0; }
+.mesure__ligne { display: flex; align-items: center; gap: 3px; }
+.mesure__mots { font-size: .7rem; font-weight: 600; white-space: nowrap; }
+.calculs { display: grid; gap: 1mm 4mm; }
+.calculs--8 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.calculs--5 { grid-template-columns: repeat(5, minmax(0, 1fr)); column-gap: 1mm; }
+.calculs--5 .calc { font-size: .88rem; gap: 2px; }
+.calculs--5 .calc__eq { gap: 1px; }
+.calculs--5 .case-fr { width: 5mm; }
+.calculs--corriges { grid-template-columns: 1fr 1fr; }
+.calc { display: flex; align-items: center; gap: 4px; min-height: 12mm; white-space: nowrap; font-size: 1.05rem; }
+.calc__eq { display: inline-flex; align-items: center; gap: 3px; }
+.calc__eq .fraction { margin: 0; }
+.calc--corrige { white-space: normal; min-height: 10mm; }
+.calc--corrige .calc__eq { flex: none; font-size: .95rem; }
+.calc__regle { flex: 1; min-width: 0; font-size: .72rem; line-height: 1.15; color: #C0392B; font-weight: 600; }
+.problemes-fr { display: grid; gap: 2mm; }
+.probleme-fr__enonce { margin: 0 0 1mm; font-size: .9rem; }
+.probleme-fr__enonce .fraction { font-size: .95em; margin: 0 1px; }
+.probleme-fr__ligne { display: flex; align-items: center; gap: 6px; min-height: 8mm; font-size: .88rem; }
+.probleme-fr__ligne > span:first-child { flex: none; font-weight: 700; }
+.probleme-fr__rep { color: #C0392B; font-weight: 600; }
+.probleme-fr__rep .fraction { margin: 0 2px; }
+@media print {
+  .calc { min-height: 10.5mm; font-size: 11pt; }
+  .calc--corrige { min-height: 8.5mm; }
+  .calc--corrige .calc__eq { font-size: 10pt; }
+  .calc__regle { font-size: 7pt; }
+  .mesure__mots { font-size: 7pt; }
+  .probleme-fr__ligne { min-height: 7mm; font-size: 9.5pt; }
+  .probleme-fr__enonce { font-size: 9.5pt; }
+  .rappel-fcal { font-size: 8.5pt; }
+  .feuille:has(.mesures) .bloc { margin-bottom: 3px; }
+  .feuille:has(.mesures) .objectif { margin-bottom: 5px; }
+  .feuille--corrige:has(.mesures) .probleme-fr__ligne { min-height: 5.5mm; }
+  .feuille--corrige:has(.mesures) .probleme-fr__enonce { margin-bottom: 0; }
+  .feuille--corrige:has(.mesures) .problemes-fr { gap: 1mm; }
+}
+.feuille--corrige .probleme-fr { display: flex; flex-wrap: wrap; align-items: center; column-gap: 8mm; }
+.feuille--corrige .probleme-fr__enonce { flex: 1 0 100%; }
+.feuille--corrige .probleme-fr__ligne:last-child { flex: 1; min-width: 0; }
+@media print {
+  .calculs--5 .calc { font-size: 9.5pt; }
+  .calculs--5 .case-fr { width: 5mm; height: 4.6mm; }
+}
+
+/* ---------- fiche monnaie : composer une somme, rendre la monnaie ---------- */
+.monnaie, .schema-monnaie { display: block; max-width: 100%; height: auto; }
+.rappel-mon { display: grid; grid-template-columns: 1.3fr 1fr; gap: 3mm 5mm; font-size: .82rem; line-height: 1.25; }
+.rappel-mon p { margin: 0 0 2px; }
+.rappel-mon__titre { font-weight: 700; }
+.rappel-mon__rang { display: flex; flex-direction: column; gap: 1px; margin-bottom: 2px; }
+.rappel-mon__pieces { display: flex; gap: 10px; align-items: flex-end; }
+.rappel-mon__rang > span { font-weight: 600; font-size: .78rem; }
+.rappel-mon__egalite { font-size: .9rem; margin-top: 3px; }
+.rappel-mon__rendre { border-left: 1px dashed #CFC9BC; padding-left: 5mm; }
+.schema-monnaie { width: 100%; max-width: 330px; margin: 2px 0; }
+.consigne-mon { margin: 0 0 3px; font-size: .88rem; font-weight: 600; }
+.sommes { list-style: none; margin: 0; padding: 0; display: grid; gap: 1mm; }
+.somme { display: flex; align-items: center; gap: 8px; min-height: 9mm; font-size: 1.02rem; }
+.somme__montant { font-weight: 700; min-width: 22mm; text-align: right; white-space: nowrap; }
+.somme__compo { font-weight: 700; }
+.somme__total { font-size: .76rem; color: #555; margin-left: auto; white-space: nowrap; }
+.sommes--corrigees .somme { min-height: 7mm; font-size: .95rem; }
+.conversions { display: grid; grid-template-columns: 1fr 1fr; gap: 1mm 8mm; }
+.conversion { display: flex; align-items: center; gap: 6px; min-height: 11mm; font-size: 1.02rem; white-space: nowrap; }
+.conversion .pointilles--mini { min-width: 14mm; height: 1.4em; }
+.conversions--corrigees .conversion { min-height: 8mm; }
+.achats { display: grid; grid-template-columns: 1fr 1fr; gap: 2mm 8mm; }
+.achat__enonce, .probleme-mon__enonce { margin: 0 0 1mm; font-size: .9rem; line-height: 1.25; }
+.achat__ligne { display: flex; align-items: center; gap: 6px; min-height: 8mm; font-size: .88rem; }
+.achat__ligne > span:first-child { flex: none; font-weight: 700; white-space: nowrap; }
+.achat__ligne .pointilles--mini { min-width: 8mm; height: 1.4em; }
+.achat__ligne .pointilles--ligne { height: 1.4em; min-width: 14mm; }
+.achats--corriges { gap: 1.5mm 8mm; }
+.achat--corrige { font-size: .84rem; line-height: 1.25; }
+.achat__detail { display: block; font-weight: 600; }
+.problemes-mon { display: grid; gap: 2mm; }
+.probleme-mon__lignes { display: grid; grid-template-columns: 1fr 1fr; gap: 0 8mm; }
+.problemes-mon--corriges .probleme-mon__enonce { font-size: .86rem; }
+@media print {
+  .rappel-mon { font-size: 8.5pt; }
+  .rappel-mon__rang > span { font-size: 8pt; }
+  .somme { min-height: 6mm; font-size: 11pt; }
+  .sommes--corrigees .somme { min-height: 6.5mm; font-size: 10pt; }
+  .conversion { min-height: 7mm; font-size: 11pt; }
+  .achat__enonce, .probleme-mon__enonce { font-size: 9.5pt; }
+  .achat__ligne { min-height: 6mm; font-size: 9.5pt; }
+  .achats, .problemes-mon { gap: 1mm 8mm; }
+  .schema-monnaie { max-width: 300px; }
+  .achat--corrige { font-size: 9pt; }
+  .consigne-mon { font-size: 9.5pt; }
+}
+
+/* ---------- fiche longueurs : unités, conversions, périmètre ---------- */
+.polygone-cote { display: block; max-width: 100%; height: auto; }
+.rappel-lg { display: grid; grid-template-columns: 1fr 1.05fr; gap: 3mm 5mm; font-size: .82rem; line-height: 1.25; }
+.rappel-lg p { margin: 0 0 3px; }
+.rappel-lg__perimetre { border-left: 1px dashed #CFC9BC; padding-left: 5mm; }
+.rappel-lg__exemple { display: flex; align-items: center; gap: 3mm; }
+.rappel-lg__exemple .polygone-cote { flex: none; }
+.conversions--3 { grid-template-columns: repeat(3, 1fr); }
+.paires--lg { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.paires--lg4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.rangs--lg { margin-top: 2mm; }
+.figures-lg { display: grid; gap: 2mm 8mm; }
+.figures-lg--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2mm 5mm; }
+.figures-lg--4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.figure-lg__dessin { display: flex; align-items: flex-end; gap: 4px; }
+.figure-lg__dessin b { flex: none; }
+.calcul-lg { display: flex; flex-wrap: wrap; align-items: center; gap: 0 6px; min-height: 9mm; font-size: .92rem; }
+.calcul-lg__debut { flex: none; font-weight: 700; }
+.calcul-lg .pointilles--ligne { flex: 1 1 22mm; min-width: 22mm; height: 1.4em; }
+.calcul-lg__fin { display: flex; align-items: center; gap: 6px; flex: none; white-space: nowrap; }
+.calcul-lg__fin .pointilles--mini { min-width: 12mm; height: 1.4em; }
+.calcul-lg--corrige { display: block; min-height: 0; font-size: .88rem; line-height: 1.3; }
+.figures-lg--corrigees { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.figures-lg--corrigees .figure-lg { break-inside: avoid; }
+@media print {
+  .rappel-lg { font-size: 8.3pt; line-height: 1.22; }
+  .calcul-lg { min-height: 7mm; font-size: 10pt; }
+  .calcul-lg--corrige { min-height: 0; font-size: 9.5pt; }
+}
+
+/* ---------- fiche heures : lire l'heure sur une horloge ---------- */
+.horloge { display: block; max-width: 100%; height: auto; margin: 0 auto; }
+.rappel-h { display: grid; grid-template-columns: 1fr 1fr; gap: 3mm 5mm; font-size: .82rem; line-height: 1.25; }
+.rappel-h__partie { display: flex; align-items: center; gap: 3mm; }
+.rappel-h__partie--moins { border-left: 1px dashed #CFC9BC; padding-left: 5mm; }
+.rappel-h__partie .horloge { flex: none; margin: 0; }
+.rappel-h__texte p { margin: 0 0 3px; }
+.rappel-h__ligne { grid-column: 1 / -1; margin: 0; }
+.rappel-h__ligne--moins { margin-top: -2mm; text-align: right; }
+.rappel-h__egal { font-weight: 600; }
+.horloges { display: grid; grid-template-columns: repeat(var(--nb, 4), minmax(0, 1fr)); gap: 3mm 3mm; }
+.horloges--large { gap: 2mm 6mm; }
+.horloges--large .horloge-item { flex-direction: row; justify-content: center; gap: 2mm; }
+.horloges--large .horloge-item__rep { flex-wrap: wrap; white-space: normal; justify-content: flex-start; width: 27mm; }
+.ligne-h { display: inline-flex; align-items: center; gap: 1.5mm; white-space: nowrap; }
+.horloges--large .horloge-item__rep { flex-direction: column; align-items: flex-start; gap: 1mm; }
+.horloges--large .horloge-item__lettre { position: static; }
+.horloges--large .horloge-item { justify-content: flex-start; }
+.horloge-item { display: flex; flex-direction: column; align-items: center; gap: 2px; break-inside: avoid; }
+.horloge-item { position: relative; }
+.horloge-item__lettre { position: absolute; left: 0; top: 0; }
+.horloge-item__rep { display: flex; flex-wrap: nowrap; white-space: nowrap; justify-content: center; align-items: center; gap: 1.5mm; min-height: 9mm; font-size: .92rem; }
+.horloge-item__rep--heure { font-size: 1rem; }
+.horloge-item__rep--phrase { display: block; font-size: .86rem; line-height: 1.25; min-height: 0; text-align: center; white-space: normal; }
+.horloge-item__periode { font-weight: 700; font-size: .9rem; }
+.exemple-h { font-size: .8rem; font-weight: 600; margin-left: 6px; }
+.case-h { display: inline-block; width: 8.5mm; height: 8mm; border: 1.5px solid #333; border-radius: 3px; background: #fff; flex: none; }
+@media print {
+  .rappel-h { font-size: 8.3pt; line-height: 1.2; }
+  .horloge-item__rep { min-height: 8.5mm; font-size: 10pt; }
+  .horloge-item__rep--phrase { display: block; font-size: 9.5pt; min-height: 0; }
+  .horloge-item__periode { font-size: 10pt; }
+  .exemple-h { font-size: 9pt; }
+  .horloges--moins .horloge-item__rep { font-size: 8.5pt; gap: .8mm; }
+  .horloges--moins .ligne-h { gap: 1mm; }
+  .horloges--moins .case-h { width: 8mm; }
+}
+
+/* ---------- fiche masses et contenances : unités et conversions ---------- */
+.rappel-mc { display: grid; grid-template-columns: 1fr; gap: 3mm 5mm; font-size: .82rem; line-height: 1.25; }
+.rappel-mc--deux { grid-template-columns: 1fr 1.7fr; }
+.rappel-mc p { margin: 0 0 3px; }
+.rappel-mc__titre { font-weight: 800; }
+.rappel-mc__partie + .rappel-mc__partie { border-left: 1px dashed #CFC9BC; padding-left: 5mm; }
+.rappel-mc__reperes { grid-column: 1 / -1; list-style: none; margin: 0; padding: 2mm 0 0; border-top: 1px dashed #CFC9BC; display: grid; grid-template-columns: repeat(3, auto); justify-content: space-between; gap: 0 4mm; white-space: nowrap; }
+.conversions--objets .conversion .pointilles--mini { min-width: 12mm; }
+@media print {
+  .rappel-mc { font-size: 8.3pt; line-height: 1.22; }
+}
+
+/* ---------- fiche durées : relations et calculs ---------- */
+.ligne-du-temps { display: block; width: 100%; max-width: 300px; height: auto; }
+.rappel-du__detail { margin-top: 2px !important; }
+.rappel-du { display: grid; grid-template-columns: 1fr 1.7fr; gap: 3mm 5mm; font-size: .82rem; line-height: 1.25; }
+.rappel-du p { margin: 0 0 3px; }
+.rappel-du__titre { font-weight: 800; }
+.rappel-du ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; white-space: nowrap; }
+.rappel-du__calcul { border-left: 1px dashed #CFC9BC; padding-left: 5mm; }
+.conversions--durees { grid-template-columns: repeat(3, auto); justify-content: space-between; }
+.conversions--durees .conversion { gap: 4px; }
+.conversions--durees .conversion .pointilles--mini { min-width: 9mm; }
+.conversions--corrigees.conversions--durees .conversion { min-height: 7mm; }
+.durees { display: grid; grid-template-columns: 1fr 1fr; gap: 2mm 8mm; }
+.durees__titre { margin: 0 0 1mm; font-size: .86rem; font-weight: 800; }
+.duree { margin-bottom: 1mm; break-inside: avoid; }
+.duree__enonce { margin: 0; font-size: .9rem; line-height: 1.25; }
+.duree__reponse { display: flex; align-items: center; gap: 4px; min-height: 8mm; font-size: .92rem; white-space: nowrap; }
+.duree__reponse .pointilles--mini { min-width: 11mm; height: 1.4em; }
+.duree__detail { margin: 0; font-size: .82rem; line-height: 1.3; font-weight: 600; }
+.duree--corrige .ligne-du-temps { max-width: 300px; }
+@media print {
+  .rappel-du { font-size: 8.3pt; line-height: 1.2; }
+  .conversions--durees .conversion { font-size: 10.5pt; }
+  .duree__enonce { font-size: 9.5pt; }
+  .duree__reponse { min-height: 7mm; font-size: 10pt; }
+  .duree__detail { font-size: 8.5pt; }
+  .durees__titre { font-size: 9.5pt; }
+  .feuille:has(.durees) .probleme-fr__ligne { min-height: 6mm; }
+  .feuille:has(.durees) .probleme-fr__enonce { margin: 0; }
+}
+.feuille--corrige:has(.durees) .probleme-fr { display: block; }
+.feuille--corrige:has(.durees) .probleme-fr__ligne { align-items: baseline; }
+.feuille--corrige:has(.durees) .probleme-fr__rep { min-width: 0; }
+.conversions--durees { padding-right: 3mm; }
+.duree--corrige { margin-bottom: 2mm; }
+.duree--corrige .duree__detail { margin-top: 1px; }
+
+/* ---------- Fiche CE2 : les solides ---------- */
+.rappel-so { display: grid; grid-template-columns: auto 1fr; gap: 2mm 5mm; font-size: .82rem; line-height: 1.25; }
+.rappel-so__six { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0 2mm; }
+.rappel-so__solide { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 1px; }
+.rappel-so__solide figcaption { font-weight: 700; white-space: nowrap; }
+.rappel-so__vocabulaire { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; max-width: 62mm; }
+.rappel-so__vocabulaire p { margin: 0; }
+.rappel-so__descriptions { list-style: none; margin: 0; padding: 0 0 0 4mm; display: grid; gap: 2px; align-content: center; border-left: 1px dashed #CFC9BC; }
+.solides-nommer { display: grid; gap: 1mm 3mm; grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.solides-nommer--8 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.solide-cellule { position: relative; display: flex; flex-direction: column; align-items: center; gap: 1mm; }
+.solide-cellule__lettre { position: absolute; left: 0; top: 0; }
+.solide-nom { display: flex; width: 100%; justify-content: center; align-items: flex-end; }
+.solide-nom .pointilles { flex: 1; min-width: 14mm; height: 1.2em; }
+.solide-cellule { gap: 0; }
+.tab-so { width: 100%; border-collapse: collapse; }
+.tab-so { table-layout: fixed; }
+.tab-so th, .tab-so td { border: 1.5px solid #333; padding: 1px 4px; text-align: center; font-size: .8rem; }
+.tab-so th:first-child { width: 37%; }
+.tab-so th[scope="row"] { text-align: left; font-weight: 700; }
+.tab-so tr:first-child th { background: #F4F1EA; font-weight: 800; }
+.tab-so .case { height: 9mm; }
+.tab-so .reponse-cellule { height: 9mm; font-size: 1.05rem; }
+.tab-so__dessin { display: inline-block; vertical-align: middle; margin-right: 6px; }
+.tab-so__nom { display: inline-block; vertical-align: middle; }
+.patrons { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 2mm 3mm; }
+.patrons--8 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.patron-cellule { position: relative; display: flex; justify-content: center; align-items: center; padding: 2px 8px 2px 4px; gap: 3px; border: 2px solid transparent; border-radius: 16px; }
+.patron-cellule__lettre { flex: none; align-self: flex-start; margin-right: 2px; }
+.patron-cellule--entoure { border-color: #C0392B; }
+.affirmations--so .affirmation { flex-wrap: wrap; }
+.affirmation__justif { flex: 1 0 100%; font-size: .78rem; line-height: 1.25; font-weight: 600; padding-bottom: 2px; }
+@media print {
+  .rappel-so { font-size: 8.5pt; line-height: 1.2; }
+  .tab-so th, .tab-so td { font-size: 9.5pt; }
+  .tab-so th[scope="row"] { font-size: 10pt; }
+  .affirmation__justif { font-size: 8pt; }
+  .affirmations--so .affirmation { min-height: 9mm; }
+  .feuille--corrige .affirmations--so .affirmation { min-height: 0; }
+  .feuille--corrige .solide-nom { font-size: 10pt; }
+  .feuille--corrige .solides-nommer { gap: 0 3mm; }
+}
+
+/* ---------- Fiche CE2 : les polygones et le cercle ---------- */
+.rappel-po { display: grid; grid-template-columns: 200px 1fr 1fr; gap: 2mm 4mm; font-size: .82rem; line-height: 1.25; align-items: start; }
+.rappel-po p { margin: 0 0 2px; }
+.rappel-po__definition svg { display: block; max-width: 100%; height: auto; }
+.rappel-po__rang { display: flex; gap: 6px; margin-bottom: 2px; }
+.rappel-po__exemples p { white-space: nowrap; }
+.rappel-po__exemples .rappel-po__compas { white-space: normal; margin-top: 3px; }
+.rappel-po__petite svg { display: block; }
+.rappel-po__cercle { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; border-left: 1px dashed #CFC9BC; padding-left: 4mm; }
+.rappel-po__cercle svg { flex: none; }
+.rappel-po__noms { grid-column: 1 / -1; list-style: none; margin: 0; padding: 1px 0 0; display: grid; gap: 1px; border-top: 1px dashed #CFC9BC; }
+.figs-pc { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2mm 3mm; }
+.figs-pc--10 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.fig-pc { display: flex; align-items: center; gap: 4px; }
+.fig-pc > b { align-self: flex-start; flex: none; }
+.fig-pc svg { flex: none; }
+.oui-non { display: flex; flex-direction: column; gap: 3px; margin-left: 3px; }
+.figs-nom { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2mm 4mm; }
+.figs-nom--8 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.fig-nom { display: flex; align-items: center; gap: 4px; }
+.fig-nom > b { align-self: flex-start; flex: none; }
+.fig-nom svg { flex: none; }
+.fig-nom__lignes { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; font-size: .85rem; }
+.fig-nom__ligne { display: flex; align-items: flex-end; gap: 3px; white-space: nowrap; min-height: 1.5em; }
+.fig-nom__ligne .pointilles { flex: 1; min-width: 6mm; height: 1.2em; }
+.fig-nom__ligne .pointilles--mini { flex: none; min-width: 6mm; }
+.fig-nom__ligne { overflow: hidden; }
+.cercles--avec { display: flex; gap: 6mm; align-items: flex-start; }
+.cas-cercles { display: flex; flex-direction: column; gap: 3mm; flex: 1; min-width: 0; padding-top: 2mm; }
+.cercles--sans { display: block; }
+.cercles--sans .cas-cercles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2mm 4mm; padding-top: 0; margin-bottom: 2mm; }
+.cas-cercle { display: flex; align-items: flex-end; gap: 4px; white-space: nowrap; font-size: .92rem; min-height: 8mm; }
+.cas-cercle .pointilles--mini { min-width: 9mm; }
+.traces-cercles { display: flex; gap: 6mm; flex: none; }
+.trace-cercle-bloc__consigne { font-size: .88rem; margin-bottom: 1px; }
+.espace-cercle { border: 1.5px dashed #999; border-radius: 6px; width: 330px; line-height: 0; overflow: hidden; }
+.espace-cercle svg { display: block; }
+.banque-mots { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; border: 1.5px solid #333; border-radius: 8px; padding: 3px 10px; margin-bottom: 4px; }
+.banque-mots__titre { font-size: .75rem; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: #555; }
+.banque-mots__mot { font-weight: 700; padding: 0 6px; background: #F4F1EA; border-radius: 4px; }
+.phrases-po { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+.phrase-po { display: flex; align-items: flex-end; flex-wrap: nowrap; white-space: nowrap; gap: 0 4px; min-height: 7mm; padding: 1px 0; font-size: .92rem; border-bottom: 1px dotted #BBB; }
+.pointilles--mot { min-width: 24mm; height: 1.2em; }
+.phrase-po__mot { padding: 0 3px; }
+@media print {
+  .rappel-po { font-size: 8.3pt; line-height: 1.15; }
+  .fig-nom__lignes { font-size: 9.5pt; }
+  .cas-cercle { font-size: 10pt; }
+  .trace-cercle-bloc__consigne { font-size: 9.5pt; }
+  .phrase-po { font-size: 10pt; min-height: 7mm; }
+  .cas-cercles { gap: 2mm; }
+  .banque-mots { font-size: 10pt; }
+}
+@media print {
+  .feuille:has(.figs-pc) .bloc { margin-bottom: 2px; }
+  .feuille:has(.figs-pc) .case-vf { height: 6mm; line-height: calc(6mm - 3px); }
+  .figs-pc { gap: 1mm 3mm; }
+  .fig-nom__lignes { gap: 0; }
+  .figs-nom--8 .fig-nom__lignes { font-size: 8.5pt; }
+  .fig-nom__ligne { min-height: 1.35em; }
+  .figs-nom { gap: 1mm 4mm; }
+  .banque-mots { padding: 1px 10px; margin-bottom: 2px; }
+  .phrase-po { min-height: 6mm; padding: 0; }
+  .cercles--avec .cas-cercles { gap: 1mm; }
+  .feuille:has(.figs-pc) .bloc h2 { margin-bottom: 3px; }
+}
+
+/* Fiche CE2 · La symétrie */
+.rappel-sy { display: grid; grid-template-columns: 1.15fr 1.25fr .8fr; gap: 3mm 5mm; align-items: center; font-size: .86rem; line-height: 1.3; }
+.rappel-sy p { margin: 0 0 3px; }
+.rappel-sy figure { margin: 0; text-align: center; }
+.rappel-sy figcaption { font-size: .74rem; line-height: 1.15; max-width: 110px; margin: 0 auto; }
+.rappel-sy svg { display: block; margin: 0 auto; }
+.rappel-sy__schema { display: flex; align-items: center; justify-content: center; gap: 6px; border-left: 1px dashed #CFC9BC; padding-left: 4mm; }
+.rappel-sy__fleche { font-size: 1.4rem; font-weight: 700; }
+.rappel-sy__exemple { display: flex; align-items: center; gap: 6px; border-left: 1px dashed #CFC9BC; padding-left: 4mm; }
+.figs-sy { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2mm 3mm; }
+.figs-sy--10 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.fig-sy { display: flex; align-items: center; gap: 4px; }
+.fig-sy > b, .fig-ax > b, .grille-sy > b { align-self: flex-start; flex: none; }
+.fig-sy svg, .fig-ax svg { flex: none; }
+.figs-ax { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2mm 3mm; }
+.figs-ax--6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.fig-ax { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 4px; }
+.fig-ax__rep { display: flex; align-items: flex-end; gap: 3px; white-space: nowrap; font-size: .9rem; flex: 1 0 100%; padding-left: 14px; }
+.fig-ax .pointilles--mini { flex: none; width: 9mm; min-width: 9mm; }
+.fig-sy--10, .figs-sy--10 .fig-sy { flex-direction: column; align-items: center; }
+.figs-sy--10 .fig-sy > b { align-self: flex-start; }
+.figs-sy--10 .oui-non { flex-direction: row; gap: 3mm; margin-left: 0; }
+.grilles-sy { display: flex; justify-content: space-between; gap: 4mm; }
+.grille-sy { display: flex; align-items: flex-start; gap: 2px; }
+.grille-sy svg { display: block; }
+.grilles-sy--4 .grille-sy { flex-direction: column; gap: 0; }
+.affirmations--sy .affirmation__texte { flex: 1; min-width: 0; }
+@media print {
+  .rappel-sy { font-size: 8.8pt; line-height: 1.2; }
+  .feuille:has(.figs-sy) .bloc { margin-bottom: 3px; }
+  .feuille:has(.figs-sy) .bloc h2 { margin-bottom: 3px; }
+  .feuille:has(.figs-sy) .case-vf { height: 6mm; line-height: calc(6mm - 3px); }
+  .figs-sy { gap: 1mm 3mm; }
+  .fig-ax__rep { font-size: 9.5pt; }
+  .affirmations--sy .affirmation { min-height: 8.5mm; font-size: 9.5pt; }
+}
+@media print {
+  .feuille--corrige .affirmations--sy .affirmation { min-height: 0; }
+  .feuille--corrige .affirmations--sy .affirmation__justif { font-size: 7.5pt; line-height: 1.15; }
+}
+
+/* Fiche CE2 · Les tableaux et les diagrammes en barres */
+.tab-do { border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.tab-do th, .tab-do td { border: 1.5px solid #333; text-align: center; padding: 0 3px; height: 9mm; min-width: 11mm; font-size: .95rem; }
+.tab-do th { background: #EFEFEF; font-weight: 800; font-size: .85rem; }
+.tab-do .tab-do__coin { background: #fff; }
+.tab-do--donnees th:first-child { text-align: left; padding-left: 5px; }
+.tab-do .vide { background: #fff; }
+.tab-do--exemple { width: 100%; table-layout: fixed; }
+.tab-do--exemple th, .tab-do--exemple td { height: 8mm; min-width: 0; font-size: .8rem; padding: 0 2px; }
+.tab-do--exemple td { font-weight: 700; }
+.tab-do--exemple col.c-etiquette { width: 36mm; }
+.tab-do--exemple th:first-child { text-align: left; padding-left: 4px; }
+.rappel-do { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2mm 5mm; align-items: center; font-size: .86rem; line-height: 1.3; }
+.rappel-do p { margin: 0 0 3px; }
+.rappel-do svg { display: block; }
+.rappel-do .tab-do, .rappel-do__lire { grid-column: 1 / -1; }
+.rappel-do__lire { font-size: .8rem; color: #333; margin: 0 !important; }
+.ex-do { display: grid; gap: 1mm 6mm; align-items: start; grid-template-columns: auto minmax(0, 1fr); }
+.ex-do--construction { align-items: start; }
+.ex-do__figure { min-width: 0; }
+.ex-do__intro { margin: 0 0 3px; font-size: .84rem; max-width: 84mm; }
+.ex-do__consigne { margin: 4px 0 0; font-size: .84rem; max-width: 84mm; }
+.ex-do__figure svg, .ex-do__dessin svg { display: block; }
+.q-do-liste { list-style: none; margin: 0; padding: 0; }
+.q-do { display: flex; flex-wrap: wrap; align-items: flex-end; column-gap: 6px; padding: 1px 0 2px; border-bottom: 1px dotted #BBB; font-size: .9rem; line-height: 1.25; }
+.q-do__texte { flex: 0 1 auto; }
+.q-do__rep, .q-do__calcul { display: flex; align-items: flex-end; gap: 4px; font-size: .86rem; min-height: 6mm; }
+.q-do__rep { flex: 1 1 26mm; }
+.q-do__calcul { flex: 1 1 100%; }
+.q-do .pointilles--rep { flex: 1; min-width: 12mm; height: 1.3em; }
+.q-do .pointilles--mini { min-width: 14mm; }
+.q-do .reponse { white-space: nowrap; }
+.bloc > .q-do-liste { display: grid; grid-template-columns: 1fr 1fr; gap: 0 8mm; }
+@media print {
+  .rappel-do { font-size: 8.5pt; line-height: 1.15; gap: 1mm 5mm; }
+  .bloc--methode:has(.rappel-do) { padding: 4px 9px; }
+  .bloc--methode:has(.rappel-do) h2 { margin-bottom: 2px; }
+  .rappel-do__lire { font-size: 8.2pt; }
+  .tab-do th, .tab-do td { height: 8mm; font-size: 10.5pt; }
+  .tab-do th { font-size: 9.5pt; }
+  .tab-do--exemple th, .tab-do--exemple td { height: 7mm; font-size: 8.5pt; }
+  .ex-do__intro, .ex-do__consigne { font-size: 9pt; }
+  .q-do { font-size: 9pt; line-height: 1.18; padding: 0; }
+  .q-do__rep, .q-do__calcul { font-size: 9pt; min-height: 4.3mm; }
+  .q-do .pointilles--rep, .q-do .pointilles--mini { height: 1.15em; }
+  .feuille:has(.ex-do) .bloc { margin-bottom: 4px; }
+  .feuille:has(.ex-do) .bloc h2 { margin-bottom: 3px; }
+}
+.q-do__suite { white-space: nowrap; }
+.q-do__texte { text-wrap: pretty; }
+.q-do__texte { flex: 1 1 100%; }
+.q-do__rep, .q-do__calcul { flex: 1 1 100%; }
+.q-do__rep > :first-child, .q-do__calcul > :first-child { white-space: nowrap; }
+.q-do__lib { white-space: nowrap; flex: none; }
+
+/* Raccourcis de révision (pas 1) */
+.raccourcis { display: grid; gap: 16px; background: var(--carte); border-radius: var(--rayon); box-shadow: var(--ombre); padding: 14px; }
+.raccourci__page { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.raccourci__liste { flex: 1 1 12rem; min-width: 0; min-height: 48px; padding: 6px 10px; font-weight: 700; }
+.raccourci .btn { min-height: 48px; }
+.raccourcis__titre { margin: 0; }
+
+/* ---------- carnet ---------- */
+.fiche__vu { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: .75rem; color: var(--encre-douce); }
+.pastille-carnet {
+  display: inline-block; padding: 2px 10px; border-radius: 999px;
+  font-size: .78rem; font-weight: 800; white-space: nowrap;
+  background: #F2F0EA; color: var(--encre);
+}
+.pastille-carnet--acquis { background: #D9F5EC; color: #006B54; }
+.pastille-carnet--en-cours { background: #FFF1CC; color: #7A5600; }
+.pastille-carnet--a-revoir { background: #F0ECFF; color: var(--violet); }
+.pastille-carnet--decouverte { background: #E6F2FF; color: #00518F; }
+.pastille-carnet--a-consolider { background: #F0ECFF; color: var(--violet); }
+.maitrise { padding: 10px 0; border-top: 2px dotted #EFE9DE; }
+.maitrise__haut { display: flex; align-items: center; gap: 10px; }
+.courbe { display: block; width: 100%; max-width: 320px; height: auto; margin-top: 6px; }
+.courbe__trace { fill: none; stroke: var(--violet); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.courbe__seuil { stroke: var(--vert); stroke-width: 1.5; stroke-dasharray: 4 4; opacity: .7; }
+.courbe__fin { fill: var(--violet); }
+.intro-bloc { margin: 0 0 10px; padding: 10px 14px; border-radius: 14px; background: #F0ECFF; color: var(--encre); font-weight: 700; }
+.carnet-ligne__vu { display: block; font-size: .8rem; font-weight: 600; color: var(--encre-douce); }
+.carnet-titre { margin: 18px 0 8px; font-size: 1.05rem; }
+.carnet-fiche { display: grid; gap: 8px; padding: 12px 0; border-top: 2px dotted #EFE9DE; }
+.carnet-fiche__haut { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
+.carnet-fiche__code {
+  display: inline-flex; align-items: center; min-height: 48px;
+  font-weight: 800; letter-spacing: .04em; color: var(--violet); text-decoration: underline;
+}
+.carnet-fiche__notions { font-size: .85rem; color: var(--encre-douce); }
+.pied-page label.btn { display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+@media print {
+  /* Formulation commune de la multiplication : les lignes de retenues au-dessus du facteur restent fines. */
+  .pose--multiplication .pose__retenues--unites td, .pose--multiplication .pose__retenues--dizaines td,
+  .methode .pose--multiplication .pose__retenues--unites td, .methode .pose--multiplication .pose__retenues--dizaines td { height: 3mm; font-size: 7.5pt; }
+}
+
+/* ---------- figures posées avec l'énoncé d'un item (banque d'items) ---------- */
+
+.visuel-fig {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+  margin: 10px auto;
+  background: #fff;
+  border-radius: 14px;
+  padding: 10px;
+}
+.visuel-fig svg { max-width: 100%; height: auto; }
+.visuel-tableau { border-collapse: collapse; margin: 0 auto; font-variant-numeric: tabular-nums; }
+.visuel-tableau th, .visuel-tableau td { border: 1.5px solid #333; text-align: center; padding: 6px 10px; min-width: 44px; font-size: 1rem; }
+.visuel-tableau th { background: #EFEFEF; font-weight: 800; }
+.visuel-tableau tbody th { text-align: left; }
+
+/* Figure posée avec l'énoncé (items en QCM : fraction coloriée, horloge, solide…). */
+.question__figure { margin: 12px auto 4px; max-width: 320px; }
+.question__figure svg { display: block; width: 100%; height: auto; max-height: 220px; }
+.question__figure table { margin: 0 auto; }
+
+/* ---------- #31 : fiches imprimées plus aérées, compactage par fiche (largeur utile 673 px, budget 1 000 px) ---------- */
+/* calculs */
+/* Fiches de calculs posés (addition, soustraction, multiplication) : compactage #31 */
+@media print {
+  .feuille:has(.pose) .pose__entetes td { height: 3.2mm; font-size: 8pt; line-height: 1; }
+  .feuille:has(.pose) .pose__retenues td { height: 4mm; line-height: 1; }
+  .feuille:has(.pose) .methode__etapes { font-size: 8pt; line-height: 1.15; }
+  .feuille:has(.pose) .methode__etapes li { margin-bottom: 0; }
+  .feuille:has(.pose) .bloc--methode { padding: 4px 9px; }
+  .feuille:has(.pose) .bloc--methode h2 { margin-bottom: 3px; }
+  .feuille:has(.pose) .estimations li { padding: 0; }
+  .feuille:has(.pose) .pastille-choix { padding: 1px 12px; }
+  .feuille:has(.pose) .probleme__enonce { line-height: 1.2; margin-bottom: 2px; }
+}
+@media print {
+  /* le corps de chaque problème : grille à gauche, phrase réponse à droite (au lieu de dessous) */
+  .feuille:has(.pose) .probleme__espace { gap: 8px; flex-wrap: nowrap; }
+  .feuille:has(.pose) .probleme__phrase { min-width: 0; }
+}
+@media print {
+  .feuille:has(.pose) .pose .ret-petite { font-size: 8pt; }
+  /* multiplication : textes remontés à 8 pt, rangées de retenues/en-têtes à leur hauteur d'avant */
+  .feuille:has(.pose--multiplication) .pose--multiplication .pose__entetes td,
+  .feuille:has(.pose--multiplication) .methode .pose--multiplication .pose__entetes td { height: 2.8mm; font-size: 8pt; line-height: 1; }
+  .feuille:has(.pose--multiplication) .pose--multiplication .pose__retenues td { height: 3.4mm; font-size: 8pt; line-height: 1; }
+  .feuille:has(.pose--multiplication) .methode .pose--multiplication .pose__retenues td { height: 3.1mm; font-size: 8pt; line-height: 1; }
+  .feuille:has(.pose--multiplication) .rectangle { font-size: 8pt; }
+  .feuille:has(.pose--multiplication) .methode__droite .enligne__texte { font-size: 8pt; }
+  .feuille:has(.pose--multiplication) .pose .retenue { font-size: 8pt; }
+}
+@media print {
+  .feuille:has(.pose--multiplication) .bloc--methode { padding: 3px 9px; }
+}
+/* nombres-fractions */
+/* #31 — compactage des fiches nombres, fractions, monnaie (impression) */
+@media print {
+  /* ===== nombres : lire, écrire, décomposer ===== */
+  .feuille:has(.tab-num) .methode__legende { font-size: 8pt; line-height: 1.15; }
+  .feuille:not(.feuille--corrige):has(.tab-num) .lignes:not(.lignes--deux) { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 6mm; }
+
+  /* ===== nombres : comparer, ranger, encadrer ===== */
+  .feuille:has(.encadrements) .rappel-comp { line-height: 1.15; }
+  .feuille:has(.encadrements) .rappel-comp p { margin-bottom: 1px; }
+  .feuille:has(.encadrements) .bloc--methode { padding: 3px 9px 4px; }
+  .feuille:has(.encadrements) .bloc--methode h2 { margin-bottom: 2px; }
+  .feuille:has(.encadrements) .rappel-comp { gap: 3mm; }
+  .feuille:has(.encadrements) .demi-droite { max-height: 24mm; }
+  .feuille:has(.encadrements) .rangs { gap: 1.5mm; }
+  .feuille:has(.encadrements) .bloc { margin-bottom: 5px; }
+  .feuille:has(.encadrements) .bloc h2 { margin-bottom: 3px; }
+  .feuille:has(.encadrements) .objectif { margin-bottom: 8px; }
+  .feuille:has(.encadrements) .paires { gap: 1mm 3mm; }
+  .feuille:has(.encadrements) .consigne-droite { margin-bottom: 0; line-height: 1.25; }
+  .feuille:has(.encadrements) .bloc--methode { margin-bottom: 5px; }
+  .feuille:not(.feuille--corrige):has(.tab-num) .lignes li { min-height: 9.5mm; }
+}
+@media print {
+  /* ===== fractions : lire, écrire, représenter ===== */
+  .feuille:has(.figures-lire) .rappel-frac { line-height: 1.15; }
+  .feuille:has(.figures-lire) .rappel-frac .fraction:not(.fraction--grande) { font-size: 8pt; }
+  .feuille:has(.figures-lire) .rappel-frac__noms { flex-wrap: nowrap; justify-content: space-between; gap: 0 3px; font-size: 8pt; }
+  .feuille:has(.figures-lire) .rappel-frac__noms li { gap: 1px; }
+  .feuille:has(.figures-lire) .rappel-frac__noms .fraction { font-size: 8pt; margin: 0; }
+  .feuille:has(.figures-lire) .rappel-frac__noms .fraction__num { padding: 0 2px 0; }
+  .feuille:has(.figures-lire) .rappel-frac__noms .fraction__den { padding: 0 2px 0; }
+  .feuille:has(.figures-lire) .figures-lire .figure-cellule__dessin { height: 20.5mm; }
+  .feuille:has(.figures-lire) .figures-colorier .figure-cellule__dessin { height: 20.5mm; }
+  .feuille:has(.figures-lire) .affirmation { min-height: 9mm; }
+  .feuille:has(.figures-lire) .bloc--methode { padding: 4px 9px; }
+  .feuille:has(.figures-lire) .rappel-frac { font-size: 8.2pt; gap: 1mm 4mm; }
+  .feuille:has(.figures-lire) .rappel-frac p { margin-top: 1px; }
+  .feuille:has(.figures-lire) .ecriture--lettres .fraction { font-size: 10pt; }
+  .feuille:has(.figures-lire) .figure-cellule { gap: .5mm; }
+  .feuille:has(.figures-lire) .figures-colorier { gap: 1.5mm 2mm; }
+}
+@media print {
+  /* ===== fractions : égales et comparaison ===== */
+  .feuille:has(.rappel-fc, .paires-fr, .rangs--fr) .rappel-fc { line-height: 1.12; row-gap: 1mm; }
+  .feuille:has(.rappel-fc, .paires-fr, .rangs--fr) .fraction:not(.fraction--grande) { --x: 0; }
+  .feuille:has(.rappel-fc) .rappel-fc .fraction { font-size: 8pt; }
+  .feuille:has(.rappel-fc, .paires-fr, .rangs--fr) .regle { font-size: 8pt; line-height: 1.1; }
+  .feuille:has(.rappel-fc, .paires-fr, .rangs--fr) .bloc--methode { padding: 4px 9px; }
+  .feuille:has(.rappel-fc, .paires-fr, .rangs--fr) .bloc h2 .fraction { font-size: .9em; line-height: 1; }
+  .feuille--corrige:has(.rappel-fc, .paires-fr, .rangs--fr) .objectif--corrige,
+  .feuille--corrige:has(.paires-fr, .rangs--fr) .objectif--corrige { font-size: 9pt; line-height: 1.2; padding: 3px 9px; margin-bottom: 8px; }
+}
+@media print {
+  .feuille:has(.rappel-fc, .paires-fr, .rangs--fr) .rappel-fc__titre { min-height: 6mm; }
+  .feuille:has(.rappel-fc, .paires-fr, .rangs--fr) .bloc { margin-bottom: 5px; }
+  .feuille:has(.rappel-fc, .paires-fr, .rangs--fr) .bloc h2 { margin-bottom: 3px; }
+}
+@media print {
+  .feuille--corrige:has(.paires-fr, .rangs--fr) .regle { line-height: 1.05; }
+  .feuille--corrige:has(.paires-fr, .rangs--fr) .appui { gap: 0; }
+  .feuille--corrige:has(.paires-fr, .rangs--fr) .paires-fr { gap: 1mm 3mm; }
+  .feuille--corrige:has(.paires-fr, .rangs--fr) .rangs--fr .rang__nombres { min-height: 8mm; }
+}
+@media print {
+  /* ===== fractions : mesurer, additionner, soustraire ===== */
+  .feuille:has(.mesures) .rappel-fcal p .fraction { font-size: 8pt; }
+  .feuille:has(.mesures) .mesure__mots, .feuille:has(.mesures) .calc__regle { font-size: 8pt; }
+  .feuille:has(.mesures) .bloc { margin-bottom: 7px; }
+  .feuille:has(.mesures) .objectif { margin-bottom: 10px; }
+  .feuille--corrige:has(.mesures) .objectif--corrige { font-size: 9pt; line-height: 1.2; }
+}
+@media print {
+  /* ===== monnaie ===== */
+  .feuille:has(.sommes) .rappel-mon { line-height: 1.15; gap: 2mm 5mm; }
+  .feuille:has(.sommes) .rappel-mon p { margin-bottom: 1px; }
+  .feuille:has(.sommes) .schema-monnaie { max-width: 270px; margin: 0; }
+  .feuille:has(.sommes) .bloc--methode { padding: 4px 9px; }
+  .feuille:has(.sommes) .bloc { margin-bottom: 5px; }
+  .feuille:has(.sommes) .bloc h2 { margin-bottom: 3px; }
+  .feuille:has(.sommes) .objectif { margin-bottom: 8px; }
+  .feuille:has(.sommes) .consigne-mon { margin-bottom: 1px; }
+}
+@media print {
+  .feuille:has(.sommes) .rappel-mon__rendre { font-size: 8.2pt; line-height: 1.12; padding-left: 4mm; }
+  .feuille:has(.sommes) .rappel-mon { grid-template-columns: 1.2fr 1fr; gap: 2mm 4mm; }
+  .feuille:has(.sommes) .schema-monnaie { max-width: 240px; }
+}
+@media print {
+  .feuille:has(.sommes) .rappel-mon { grid-template-columns: 1.1fr 1fr; gap: 2mm 3mm; }
+  .feuille:has(.sommes) .rappel-mon__rendre { padding-left: 3mm; }
+  .feuille:has(.sommes) .schema-monnaie { max-width: 215px; }
+}
+@media print {
+  .feuille:has(.sommes) .rappel-mon__rendre { font-size: 8pt; line-height: 1.1; }
+  .feuille:has(.sommes) .rappel-mon__rendre p { margin: 0; }
+}
+/* mesures */
+/* heures */
+@media print {
+  .feuille:has(.horloges) .horloges .horloge { width: 88px; height: 88px; }
+  .feuille:has(.horloges) .horloges { gap: 1mm 3mm; }
+  .feuille:has(.horloges) .horloge-item { gap: 0; }
+  .feuille:has(.horloges) .horloge-item__rep { min-height: 8.5mm; }
+  .feuille:has(.rappel-h) .rappel-h { gap: 1.5mm 5mm; line-height: 1.2; }
+  .feuille:has(.rappel-h) .rappel-h__partie .horloge { width: 70px; height: 70px; }
+  .feuille:has(.horloges) .bloc { margin-bottom: 6px; }
+}
+/* durées */
+@media print {
+  .feuille:has(.durees) .bloc { margin-bottom: 6px; }
+  .feuille:has(.durees) .rappel-du { line-height: 1.12; gap: 2mm 5mm; }
+  .feuille:has(.durees) .rappel-du p { margin-bottom: 2px; }
+  .feuille:has(.durees) .rappel-du .ligne-du-temps { max-width: 300px; }
+  .feuille:has(.durees) .duree .ligne-du-temps { max-width: 300px; }
+  .feuille:has(.durees) .duree { margin-bottom: 0; }
+  .feuille:has(.durees) .durees { gap: 0 8mm; }
+  .feuille:has(.durees) .conversions--durees { gap: 0 3mm; }
+  .feuille:has(.durees) .conversions--durees .conversion { min-height: 8mm; }
+}
+@media print {
+  .feuille:has(.durees) .rappel-du ul { gap: 0; }
+  .feuille:has(.durees) .rappel-du { gap: 1mm 4mm; }
+  .feuille:has(.durees) .rappel-du .ligne-du-temps { margin-top: -2mm; }
+  .feuille:has(.durees) .duree .ligne-du-temps { margin: -2mm 0 -1mm; }
+  .feuille:has(.durees) .durees__titre { margin: 0; }
+  .feuille:has(.durees) .conversions--durees { row-gap: 0; }
+}
+/* geometrie */
+@media print {
+  /* solides */
+  .feuille:has(.tab-so) .tab-so__dessin svg { height: 9.5mm; width: auto; }
+  .feuille:has(.tab-so) .tab-so th, .feuille:has(.tab-so) .tab-so td { padding-top: 0; padding-bottom: 0; }
+  .feuille:has(.tab-so) .objectif--corrige { line-height: 1.2; padding-top: 3px; padding-bottom: 3px; margin-bottom: 8px; }
+  .feuille:has(.rappel-so) .rappel-so, .feuille:has(.rappel-so) .rappel-so p { line-height: 1.15; }
+}
+@media print {
+  /* polygones */
+  .feuille:has(.figs-pc) .bloc { margin-bottom: 3px; }
+  .feuille:has(.figs-pc) .bloc h2, .feuille:has(.rappel-po) .bloc h2 { margin-bottom: 3px; }
+  .feuille:has(.figs-pc) .fig-nom__lignes { line-height: 1.15; }
+  .feuille:has(.figs-pc) .rappel-po { grid-template-columns: 165px 185px 1fr; line-height: 1.12; gap: 1mm 4mm; }
+  .feuille:has(.figs-pc) .rappel-po p { margin-bottom: 1px; }
+  .feuille:has(.figs-pc) .cas-cercles { padding-top: 0; }
+}
+@media print {
+  .feuille:has(.figs-pc) .rappel-po__cercle { display: flex; flex-direction: row; gap: 2mm; align-items: center; }
+  .feuille:has(.figs-pc) .rappel-po__cercle svg { flex: none; width: 24mm; height: auto; }
+  .feuille:has(.figs-pc) .rappel-po__cercle p { margin: 0; }
+}
+@media print {
+  .feuille:has(.figs-pc) .cercles--sans .cas-cercles { gap: 0 4mm; margin-bottom: 1mm; }
+  .feuille:has(.figs-pc) .objectif--corrige { line-height: 1.2; padding-top: 3px; padding-bottom: 3px; margin-bottom: 8px; }
+}
+@media print {
+  .bloc--methode:has(.rappel-po) { padding: 3px 9px; }
+  .rappel-po__petite svg { height: 36px; width: auto; }
+  .rappel-po__rang { margin-bottom: 0; }
+  .rappel-po__exemples p { margin-bottom: 0; }
+  .rappel-po__noms { gap: 0; padding-top: 0; }
+  .feuille:has(.figs-pc) .rappel-po { column-gap: 3mm; }
+}
+@media print {
+  .feuille:has(.figs-pc) .bloc h2 { padding-top: 2px; padding-bottom: 2px; }
+  .feuille:has(.figs-pc) .bloc { margin-bottom: 2px; }
+}
+@media print {
+  /* symétrie */
+  .feuille:has(.figs-sy) .bloc h2, .feuille:has(.rappel-sy) .bloc h2 { padding-top: 2px; padding-bottom: 2px; }
+  .feuille:has(.rappel-sy) .rappel-sy { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1.15fr) minmax(0, .85fr); gap: 2mm 3mm; line-height: 1.15; }
+  .bloc--methode:has(.rappel-sy) { padding: 3px 9px; }
+  .rappel-sy p { margin-bottom: 1px; }
+  .rappel-sy__schema, .rappel-sy__exemple { padding-left: 2mm; gap: 3px; }
+  .feuille:has(.figs-sy) .grilles-sy { gap: 2mm; }
+  .feuille:has(.figs-sy) .grilles-sy .grille-sy { flex: 1 1 0; min-width: 0; }
+  .feuille:has(.figs-sy) .grille-sy svg { max-width: 100%; height: auto; }
+  .feuille--corrige .affirmations--sy .affirmation__justif { font-size: 8pt; }
+}
+@media print {
+  .feuille:has(.figs-sy) .fig-sy svg { width: 66px; height: 66px; }
+  .feuille:has(.figs-sy) .fig-ax svg { width: 68px; height: 68px; }
+  .feuille:has(.figs-sy) .objectif--corrige { line-height: 1.2; padding-top: 3px; padding-bottom: 3px; margin-bottom: 8px; }
+  .feuille:has(.rappel-sy) .rappel-sy { grid-template-columns: minmax(0, 1.8fr) minmax(0, 1.1fr) minmax(0, .8fr); }
+}
+@media print {
+  .affirmations--sy .affirmation { gap: 3mm; padding: 0; }
+  .affirmations--sy .affirmation__texte { line-height: 1.15; }
+  .feuille--corrige .affirmations--sy .affirmation__justif { line-height: 1.1; padding-bottom: 1px; }
+}
+@media print {
+  .feuille--corrige:has(.figs-sy) .bloc { margin-bottom: 2px; }
+  .feuille--corrige:has(.figs-sy) .grille-sy svg { max-height: 162px; width: auto; }
+  .feuille--corrige:has(.figs-sy) .figs-ax { gap: 0 3mm; }
+}
+@media print {
+  /* données */
+  .feuille:has(.ex-do) .bloc h2, .feuille:has(.rappel-do) .bloc h2 { padding-top: 2px; padding-bottom: 2px; }
+  .feuille:has(.ex-do) .bloc { margin-bottom: 3px; }
+}
+@media print {
+  .feuille:has(.rappel-do) .rappel-do { line-height: 1.1; gap: 1mm 4mm; }
+  .rappel-do p { margin-bottom: 2px; }
+  .feuille:has(.ex-do) .objectif--corrige { line-height: 1.2; padding-top: 3px; padding-bottom: 3px; margin-bottom: 8px; }
+}
+@media print {
+  .feuille:has(.rappel-do) .rappel-do { font-size: 8.2pt; }
+  .feuille:has(.rappel-do) .rappel-do__lire { font-size: 8pt; }
+  .bloc--methode:has(.rappel-do) { padding: 3px 9px; }
+}
+@media print {
+  .feuille--corrige:has(.figs-sy) .bloc h2 { margin-bottom: 2px; }
+}
+
+/* ---------- #32 : plancher d'écriture à l'impression ----------
+   Toute zone où l'enfant écrit (ligne de réponse, case, cellule de pose) fait au moins 8 mm de haut.
+   Mesuré par programme/outils/mesure-ecriture.mjs. Ne touche pas au corrigé. */
+@media print {
+  .feuille:not(.feuille--corrige) :is(.somme, .conversion, .achat__ligne, .probleme-fr__ligne, .calcul-lg, .calcul-lg__fin,
+    .duree__reponse, .solide-nom, .fig-nom__ligne, .phrase-po, .cas-cercle, .fig-ax__rep, .q-do__rep, .q-do__calcul) { min-height: 8mm; }
+  .feuille:not(.feuille--corrige) :is(.verification, .ligne__texte) { line-height: 8mm; }
+  .feuille:not(.feuille--corrige) .decompositions li { line-height: 8mm; }
+  .feuille:not(.feuille--corrige) .case-vf { height: 8.2mm; line-height: calc(8.2mm - 3px); }
+  .feuille:not(.feuille--corrige) .case-fr { height: 8.2mm; }
+  .feuille:not(.feuille--corrige) .pose__resultat td, .feuille:not(.feuille--corrige) .pose td.case { height: 8.2mm; }
+  .feuille:has(.pose--multiplication) .bloc { margin-bottom: 3px; }
+}
+
+/* ---------- #33 : polygones et multiplication, items regagnés par la mise en page ---------- */
+/* polygones : « … côtés, … sommets » sur une seule ligne d'écriture (une rangée de moins par figure) */
+@media print {
+  .feuille .fig-nom { position: relative; gap: 3px; }
+  .feuille .fig-nom > b { position: absolute; left: 0; top: 0; z-index: 1; }
+  .feuille .fig-nom svg { margin-left: 12px; }
+  .feuille:has(.figs-pc) .bloc h2 { font-size: 9.5pt; }
+  .feuille .fig-nom__lignes { font-size: 9pt; }
+  .feuille .fig-nom__ligne--nb { gap: 3px; overflow: visible; }
+  .feuille .fig-nom__ligne--nb .pointilles--mini { min-width: 6mm; }
+}
+/* multiplication : rappel compact. Exemple simple | méthodes en ligne (sur une seule rangée) | grand exemple à droite,
+   sur deux rangées ; les étapes passent sous les deux premiers, en 8 pt. */
+@media print {
+  /* grilles du rappel (pas des zones d'écriture) : cellules de 7 mm */
+  .feuille .methode .pose--multiplication td { width: 7mm; height: 7mm; }
+  .feuille .methode .pose--multiplication td.signe { width: 6mm; }
+  .feuille .methode .pose--multiplication td.note { width: auto; height: auto; }
+}
+@media print {
+  .feuille:has(.pose--multiplication) .bloc h2 { font-size: 10pt; }
+  .feuille:has(.pose--multiplication) .bloc { margin-bottom: 2px; }
+  .feuille .methode--multiplication.methode--commune .methode__etapes { font-size: 8pt; }
+}
+
+/* ---------- la leçon, lue dans l'application et imprimable ---------- */
+.lecon-barre { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
+.lecon-barre .btn { width: auto; }
+.lecon__attente { color: #666; font-style: italic; }
+.lecon { font-size: .95rem; overflow-wrap: anywhere; }
+.lecon h2 { font-size: 1.1rem; margin: 14px 0 6px; color: #E84393; }
+.lecon h3 { font-size: 1rem; margin: 12px 0 5px; color: #6C5CE7; }
+.lecon h4 { font-size: .95rem; margin: 10px 0 4px; }
+.lecon p { margin: 0 0 8px; }
+.lecon ul, .lecon ol { margin: 0 0 8px; padding-left: 1.4em; }
+.lecon li { margin-bottom: 3px; }
+.lecon strong { color: #111; }
+.lecon hr { border: 0; border-top: 1px solid #ccc; margin: 12px 0; }
+.lecon .objectif { margin: 0 0 12px; }
+.lecon blockquote { margin: 0 0 10px; padding: 4px 12px; border-left: 4px solid #ccc; color: #444; background: #FAFAFA; }
+.lecon blockquote p { margin: 4px 0; }
+.lecon pre {
+  font-family: "DejaVu Sans Mono", "Courier New", Consolas, monospace;
+  font-size: .95rem; line-height: 1.3;
+  background: #FAF8FF; border: 1px solid #DDD6F5; border-radius: 6px;
+  padding: 6px 12px; margin: 0 0 10px; width: fit-content; max-width: 100%;
+  overflow-x: auto; white-space: pre;
+}
+.lecon code { font-family: "DejaVu Sans Mono", "Courier New", Consolas, monospace; background: #F3F0FA; padding: 0 3px; border-radius: 3px; }
+.lecon table { border-collapse: collapse; margin: 0 0 10px; max-width: 100%; }
+.lecon th, .lecon td { border: 1px solid #bbb; padding: 3px 8px; text-align: left; vertical-align: top; }
+.lecon th { background: #F6F2FF; }
+.lecon h2, .lecon h3, .lecon h4 { break-after: avoid; }
+@media print {
+  .lecon { font-size: 10.5pt; line-height: 1.35; }
+  .lecon h2 { font-size: 12.5pt; }
+  .lecon h3 { font-size: 11.5pt; }
+  .lecon pre, .lecon table, .lecon blockquote, .lecon .objectif, .lecon li, .lecon p {
+    break-inside: avoid; page-break-inside: avoid;
+  }
+  .feuille--lecon { break-after: auto; page-break-after: auto; }
+  .lecon pre { overflow: visible; font-size: 10.5pt; }
+}
