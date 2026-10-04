@@ -7,7 +7,7 @@
 //   node programme/outils/mesurer-blocs.mjs --ecrire        # et réécrit js/hauteurs-blocs.js
 //   node programme/outils/mesurer-blocs.mjs --url=http://localhost:8766
 //
-// Chaque bloc est rendu seul dans une .feuille, en mode impression, à 673 px de large (178 mm :
+// Chaque bloc est rendu seul dans une .feuille, en mode impression, à 794 px de large (feuille A4 ; contenu 178 mm = 673 px :
 // une A4 moins ses marges). Pour chaque fiche on tire 5 graines et on parcourt toutes les
 // combinaisons de ses options ; on garde le maximum observé + 4 %.
 // À relancer dès qu'on ajoute une fiche, qu'on change le rendu d'un bloc ou le CSS d'impression.
@@ -22,9 +22,10 @@ const MARGE = 1.04;
 const FICHIER = new URL('../../js/hauteurs-blocs.js', import.meta.url);
 
 const navigateur = await chromium.launch();
-const page = await navigateur.newPage({ viewport: { width: 673, height: 1100 } });
+const page = await navigateur.newPage({ viewport: { width: 794, height: 1100 } });
 await page.emulateMedia({ media: 'print' });
 await page.goto(`${URL_APP}/index.html`);
+await page.addStyleTag({ content: '.feuille { min-height: 0 !important; }' });
 
 const table = await page.evaluate(async ({ graines }) => {
   const { FICHES, NOMS_FORMULATIONS, tirer, objectifDe } = await import('/js/fiches.js');
@@ -74,7 +75,7 @@ const table = await page.evaluate(async ({ graines }) => {
   };
   zone.innerHTML = rendrePanache([feuille], { corrige: true, identite: true, base: 'http://localhost/' });
   const [pe, pc] = zone.querySelectorAll('.feuille');
-  const hauteurPage = (el) => el.getBoundingClientRect().height;
+  const hauteurPage = (el) => { const c = getComputedStyle(el); return el.getBoundingClientRect().height - parseFloat(c.paddingTop) - parseFloat(c.paddingBottom); };
   return { eleve, corrige, rappel, page: { enteteEleve: hauteurPage(pe), enteteCorrige: hauteurPage(pc) } };
 }, { graines: GRAINES });
 

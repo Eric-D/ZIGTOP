@@ -547,9 +547,14 @@ svg.visuel {
   font-family: "Trebuchet MS", "Segoe UI", Verdana, sans-serif;
   line-height: 1.45;
 }
-/* Aperçu à l'écran : largeur de référence fixe, réduite par js (zoom sur #impression). */
+/* Aperçu à l'écran : la feuille est une vraie page A4 (210 mm ≈ 794 px) avec ses marges
+   (12 mm / 16 mm), comme à l'impression ; js la réduit à la largeur disponible (zoom sur
+   #impression). Contenu : 178 mm ≈ 673 px. */
 @media screen {
-  #impression .feuille { width: 673px; }
+  #impression .feuille {
+    width: 210mm; padding: 12mm 16mm; border-radius: 2px;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, .18);
+  }
 }
 
 .feuille__entete {
@@ -813,7 +818,9 @@ svg.visuel {
 
 /* ---------- impression ---------- */
 
-@page { size: A4 portrait; margin: 12mm 16mm; }
+/* Les marges font partie de la feuille (padding), pas de @page : le rendu est le même quel
+   que soit le navigateur ou son réglage « marges ». */
+@page { size: A4; margin: 0; }
 
 @media print {
   #impression { zoom: 1 !important; transform: none !important; height: auto !important; }
@@ -826,7 +833,10 @@ svg.visuel {
   .feuille {
     box-shadow: none;
     border-radius: 0;
-    padding: 0;
+    width: 210mm;
+    min-height: 297mm;
+    box-sizing: border-box;
+    padding: 12mm 16mm;
     margin: 0;
     break-after: page;
     page-break-after: always;

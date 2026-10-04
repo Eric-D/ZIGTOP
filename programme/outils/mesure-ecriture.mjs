@@ -2,14 +2,15 @@
 // cellules de pose, grilles) sur la page élève des 17 fiches, et signale tout ce qui est sous 8 mm (30 px).
 // Hauteur retenue : pour des pointillés, la ligne (le parent) où l'enfant écrit ; pour une case dans une cellule de pose,
 // la cellule ; sinon l'élément lui-même. Exclus : ligne Nom / Date (masquable), cellules de retenue (annotation de 1 chiffre).
-// node mesure-ecriture.mjs [largeur=673] [minimum=30] [fiche]   (serveur sur le port 8766)
+// node mesure-ecriture.mjs [largeur=794] [minimum=30] [fiche]   (serveur sur le port 8766)
 import { chromium } from 'playwright';
-const LARGEUR = Number(process.argv[2] || 673), MIN = Number(process.argv[3] || 30);
+const LARGEUR = Number(process.argv[2] || 794), MIN = Number(process.argv[3] || 30);
 const SEL = '.pointilles, .case, .case-fr, .case-vf, .case-symbole, .paire__symbole, .case-h, .reponse-cellule, .vide, .grille-sy';
 const b = await chromium.launch();
 const page = await b.newPage({ viewport: { width: LARGEUR, height: 1200 } });
 await page.emulateMedia({ media: 'print' });
 await page.goto('http://localhost:8766/index.html');
+await page.addStyleTag({ content: '.feuille { min-height: 0 !important; }' });
 const res = await page.evaluate(async ({ SEL, filtre }) => {
   const F = await import('/js/fiches.js');
   document.body.innerHTML = '<div class="app"><div id="z"></div></div>';

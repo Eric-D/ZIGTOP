@@ -6,7 +6,7 @@
 import { FICHES, NOMS_FORMULATIONS, ficheParId, optionsParDefaut, tirer, blocsDe, objectifDe, codePanache, enTeteHTML, echappe, avecZigo } from './fiches.js';
 import { HAUTEURS_PAGE, HAUTEURS_RAPPEL } from './hauteurs-blocs.js';
 
-// Budget de hauteur d'une page élève ou corrigé (px, impression, 673 px de large). La page A4 avec ses marges
+// Budget de hauteur d'une page élève ou corrigé (px de CONTENU, hors marges de la feuille ; impression, 673 px de contenu). La page A4 avec ses marges
 // de 12 mm offre 273 mm ≈ 1 032 px : les 32 px de reste absorbent l'écart entre la mesure et l'imprimante.
 export const BUDGET_HAUTEUR = 1000;
 export const NOTIONS_MAX = 5;         // par feuille

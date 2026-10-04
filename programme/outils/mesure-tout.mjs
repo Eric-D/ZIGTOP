@@ -1,12 +1,15 @@
+// Hauteurs de contenu (hors marges de 12 mm) ; la feuille fait 210 mm de large (794 px).
 // Mesure la page élève (et le corrigé) de chaque fiche × options × rappel, et 10 feuilles panachées.
-// node mesure-tout.mjs [largeur=673] [limite=1000]  -> JSON sur stdout (max par fiche) + détails des dépassements
+// node mesure-tout.mjs [largeur=794] [limite=1000]  -> JSON sur stdout (max par fiche) + détails des dépassements
 import { chromium } from 'playwright';
-const LARGEUR = Number(process.argv[2] || 673), LIMITE = Number(process.argv[3] || 1000);
+const LARGEUR = Number(process.argv[2] || 794), LIMITE = Number(process.argv[3] || 1000);
 const GRAINES = [101, 2024, 31415];
 const b = await chromium.launch();
 const page = await b.newPage({ viewport: { width: LARGEUR, height: 1200 } });
 await page.emulateMedia({ media: 'print' });
 await page.goto('http://localhost:8766/index.html');
+// Hauteur de CONTENU : sans le min-height A4 ni les marges (padding) de la feuille.
+await page.addStyleTag({ content: '.feuille { min-height: 0 !important; }' });
 import fsx from 'fs';
 const CSS_EXTRA = (fsx.existsSync(process.env.CSS31 || '/nonexistent') ? fsx.readFileSync(process.env.CSS31, 'utf8') : '');
 if (CSS_EXTRA) await page.addStyleTag({ content: CSS_EXTRA });
@@ -16,7 +19,8 @@ const res = await page.evaluate(async ({ graines, filtre }) => {
   document.body.innerHTML = '<div class="app"><div id="z"></div></div>';
   const z = document.getElementById('z');
   const comb = (f) => (f.options || []).reduce((acc, o) => acc.flatMap((x) => o.valeurs.map((v) => ({ ...x, [o.id]: v.v }))), [{}]);
-  const mes = (html) => { z.innerHTML = html; return [...z.querySelectorAll('.feuille')].map((e) => Math.round(e.getBoundingClientRect().height)); };
+  const hc = (e) => { const c = getComputedStyle(e); return e.getBoundingClientRect().height - parseFloat(c.paddingTop) - parseFloat(c.paddingBottom); };
+  const mes = (html) => { z.innerHTML = html; return [...z.querySelectorAll('.feuille')].map((e) => Math.round(hc(e))); };
   const fiches = {};
   const FILTRE = filtre;
   for (const f of F.FICHES) {

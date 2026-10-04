@@ -754,9 +754,9 @@ function pasImprimer() {
       <div class="pied-page"><button class="btn btn--fantome" data-aller="accueil">← Retour à l’île</button></div>`;
 }
 
-/* L'aperçu : les feuilles sont rendues à une largeur de référence fixe (673 px, voir
+/* L'aperçu : les feuilles sont rendues à une largeur de référence fixe (794 px = A4, voir
    styles.css) puis réduites à la largeur disponible. Sans effet à l'impression. */
-const LARGEUR_FEUILLE = 673;
+const LARGEUR_FEUILLE = 794;
 function ajusterApercu() {
   const imp = document.getElementById('impression');
   if (!imp) return;
