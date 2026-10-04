@@ -394,8 +394,8 @@ js/utils.js               aléatoire, mélange, nombres en toutes lettres
 icons/                    icônes de l'application
 tests/                    tests de parcours (jsdom)
 programme/ce2/            les leçons de CE2 transcrites, une leçon par fichier (+ index)
-programme/outils/         assembler.py (leçons depuis les transcriptions), mesurer-blocs.mjs et
-                          mesure-tout.mjs (hauteurs des fiches en mode impression, Playwright)
+programme/outils/         mesurer-blocs.mjs, mesure-tout.mjs, mesure-ecriture.mjs (mesures des fiches en
+                          mode impression, Playwright)
 ```
 
 ⚠️ Après modification d'un fichier, incrémenter `VERSION` dans `sw.js` pour que les
